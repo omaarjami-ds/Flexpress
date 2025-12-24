@@ -4,7 +4,7 @@ import { FiPlus, FiUsers, FiPackage, FiMapPin } from 'react-icons/fi';
 import ProfileMenu from '../components/ProfileMenu';
 import './Dashboard.css';
 
-const API_URL = 'http://192.168.1.13:5000/api';
+const API_URL = 'https://flexpress.onrender.com/api';
 
 function AdminDashboard({ user, onLogout }) {
   const [restaurants, setRestaurants] = useState([]);

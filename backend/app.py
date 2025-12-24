@@ -15,6 +15,41 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 CORS(app)
 jwt = JWTManager(app)
 
+# Database initialization
+def init_db():
+    try:
+        conn = sqlite3.connect('delivery.db')
+        c = conn.cursor()
+        
+        # Users table
+        c.execute('''CREATE TABLE IF NOT EXISTS users
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      username TEXT UNIQUE NOT NULL,
+                      email TEXT UNIQUE NOT NULL,
+                      password TEXT NOT NULL,
+                      role TEXT NOT NULL,
+                      phone TEXT,
+                      latitude REAL,
+                      longitude REAL,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Vérifier et ajouter la colonne is_available à la table users si elle n'existe pas
+        c.execute("PRAGMA table_info(users)")
+        user_columns = [column[1] for column in c.fetchall()]
+        if 'is_available' not in user_columns:
+            app.logger.info("Ajout de la colonne is_available à la table users...")
+            c.execute('ALTER TABLE users ADD COLUMN is_available BOOLEAN DEFAULT 0')
+            conn.commit()
+            
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        app.logger.error(f"DB Init Error: {e}")
+
+# Initialize DB on startup
+with app.app_context():
+    init_db()
+
 # Helper function pour obtenir l'identity de manière sécurisée
 def get_current_user():
     """Récupère l'utilisateur actuel depuis le token JWT avec son rôle"""
