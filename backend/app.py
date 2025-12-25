@@ -15,10 +15,20 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 CORS(app)
 jwt = JWTManager(app)
 
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'delivery.db')
+
+@app.route('/')
+def home():
+    return jsonify({
+        "status": "success",
+        "message": "FLEXPRESS API is running",
+        "version": "1.0.0"
+    })
+
 # Database initialization
 def init_db():
     try:
-        conn = sqlite3.connect('delivery.db')
+        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         
         # Users table
@@ -107,9 +117,9 @@ def handle_exception(e):
     app.logger.error(f'Unhandled exception: {str(e)}\n{traceback.format_exc()}')
     return jsonify({'error': f'Server error: {str(e)}'}), 500
 
-# Database initialization
-def init_db():
-    conn = sqlite3.connect('delivery.db')
+# Database initialization (legacy - use the one above)
+def init_db_legacy():
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Users table
@@ -228,7 +238,7 @@ def init_db():
     conn.close()
     
     # Create default admin user
-    conn = sqlite3.connect('delivery.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT COUNT(*) FROM users WHERE role = ?', ('admin',))
     if c.fetchone()[0] == 0:
@@ -239,7 +249,7 @@ def init_db():
     conn.close()
 
 def get_db():
-    conn = sqlite3.connect('delivery.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 

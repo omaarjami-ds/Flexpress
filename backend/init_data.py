@@ -1,9 +1,12 @@
 import sqlite3
+import os
 from werkzeug.security import generate_password_hash
+
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'delivery.db')
 
 def init_db():
     """Créer les tables si elles n'existent pas"""
-    conn = sqlite3.connect('delivery.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Users table
@@ -66,7 +69,7 @@ def init_test_data():
     # Créer les tables d'abord
     init_db()
     
-    conn = sqlite3.connect('delivery.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Vérifier si des restaurants existent déjà

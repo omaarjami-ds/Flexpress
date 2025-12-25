@@ -1,8 +1,11 @@
 import sqlite3
+import os
+
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'delivery.db')
 
 def update_database():
     """Ajouter les colonnes open_time et close_time si elles n'existent pas"""
-    conn = sqlite3.connect('delivery.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     try:
