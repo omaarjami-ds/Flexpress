@@ -41,24 +41,112 @@ def init_db():
                       phone TEXT,
                       latitude REAL,
                       longitude REAL,
+                      is_available BOOLEAN DEFAULT 0,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         
-        # Vérifier et ajouter la colonne is_available à la table users si elle n'existe pas
-        c.execute("PRAGMA table_info(users)")
-        user_columns = [column[1] for column in c.fetchall()]
-        if 'is_available' not in user_columns:
-            app.logger.info("Ajout de la colonne is_available à la table users...")
-            c.execute('ALTER TABLE users ADD COLUMN is_available BOOLEAN DEFAULT 0')
-            conn.commit()
-            
+        # Restaurants table
+        c.execute('''CREATE TABLE IF NOT EXISTS restaurants
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      name TEXT NOT NULL,
+                      description TEXT,
+                      latitude REAL NOT NULL,
+                      longitude REAL NOT NULL,
+                      address TEXT,
+                      phone TEXT,
+                      image_url TEXT,
+                      rating REAL DEFAULT 0,
+                      is_active BOOLEAN DEFAULT 1,
+                      open_time TEXT DEFAULT '09:00',
+                      close_time TEXT DEFAULT '22:00',
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Orders table
+        c.execute('''CREATE TABLE IF NOT EXISTS orders
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      client_id INTEGER NOT NULL,
+                      restaurant_id INTEGER NOT NULL,
+                      status TEXT DEFAULT 'pending',
+                      total_price REAL NOT NULL,
+                      delivery_address TEXT NOT NULL,
+                      delivery_latitude REAL NOT NULL,
+                      delivery_longitude REAL NOT NULL,
+                      delivery_id INTEGER,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      FOREIGN KEY (client_id) REFERENCES users(id),
+                      FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
+                      FOREIGN KEY (delivery_id) REFERENCES users(id))''')
+        
+        # Order items table
+        c.execute('''CREATE TABLE IF NOT EXISTS order_items
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      order_id INTEGER NOT NULL,
+                      item_name TEXT NOT NULL,
+                      quantity INTEGER NOT NULL,
+                      price REAL NOT NULL,
+                      FOREIGN KEY (order_id) REFERENCES orders(id))''')
+        
+        # Menu items table
+        c.execute('''CREATE TABLE IF NOT EXISTS menu_items
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      restaurant_id INTEGER NOT NULL,
+                      name TEXT NOT NULL,
+                      description TEXT,
+                      price REAL NOT NULL,
+                      category TEXT,
+                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      FOREIGN KEY (restaurant_id) REFERENCES restaurants(id))''')
+        
         conn.commit()
         conn.close()
     except Exception as e:
         app.logger.error(f"DB Init Error: {e}")
 
+def create_default_data():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        c.execute('SELECT COUNT(*) FROM users WHERE role = ?', ('admin',))
+        if c.fetchone()[0] == 0:
+            admin_password = generate_password_hash('admin123')
+            c.execute('INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
+                      ('admin', 'admin@flexpress.com', admin_password, 'admin'))
+            conn.commit()
+        
+        c.execute('SELECT COUNT(*) FROM users WHERE role = ?', ('livreur',))
+        if c.fetchone()[0] == 0:
+            livreur_password = generate_password_hash('livreur123')
+            c.execute('INSERT INTO users (username, email, password, role, phone) VALUES (?, ?, ?, ?, ?)',
+                      ('livreur', 'livreur@flexpress.com', livreur_password, 'livreur', '06 12 34 56 78'))
+            conn.commit()
+        
+        c.execute('SELECT COUNT(*) FROM users WHERE role = ?', ('client',))
+        if c.fetchone()[0] == 0:
+            client_password = generate_password_hash('client123')
+            c.execute('INSERT INTO users (username, email, password, role, phone) VALUES (?, ?, ?, ?, ?)',
+                      ('client', 'client@flexpress.com', client_password, 'client', '06 98 76 54 32'))
+            conn.commit()
+        
+        c.execute('SELECT COUNT(*) FROM restaurants')
+        if c.fetchone()[0] == 0:
+            restaurants = [
+                ('Pizza Express', 'Pizzas italiennes authentiques', 48.8566, 2.3522, '123 Rue de la Pizza, Paris', '01 23 45 67 89'),
+                ('Burger House', 'Les meilleurs burgers de la ville', 48.8606, 2.3376, '456 Avenue des Burgers, Paris', '01 23 45 67 90'),
+                ('Sushi Master', 'Sushi frais et délicieux', 48.8526, 2.3444, '789 Boulevard du Sushi, Paris', '01 23 45 67 91'),
+            ]
+            for restaurant in restaurants:
+                c.execute('''INSERT INTO restaurants (name, description, latitude, longitude, address, phone)
+                              VALUES (?, ?, ?, ?, ?, ?)''', restaurant)
+            conn.commit()
+        
+        conn.close()
+    except Exception as e:
+        app.logger.error(f"Error creating default data: {e}")
+
 # Initialize DB on startup
 with app.app_context():
     init_db()
+    create_default_data()
 
 # Helper function pour obtenir l'identity de manière sécurisée
 def get_current_user():
@@ -117,136 +205,7 @@ def handle_exception(e):
     app.logger.error(f'Unhandled exception: {str(e)}\n{traceback.format_exc()}')
     return jsonify({'error': f'Server error: {str(e)}'}), 500
 
-# Database initialization (legacy - use the one above)
-def init_db_legacy():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    
-    # Users table
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  username TEXT UNIQUE NOT NULL,
-                  email TEXT UNIQUE NOT NULL,
-                  password TEXT NOT NULL,
-                  role TEXT NOT NULL,
-                  phone TEXT,
-                  latitude REAL,
-                  longitude REAL,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
-    # Vérifier et ajouter la colonne is_available à la table users si elle n'existe pas
-    try:
-        c.execute("PRAGMA table_info(users)")
-        user_columns = [column[1] for column in c.fetchall()]
-        if 'is_available' not in user_columns:
-            app.logger.info("Ajout de la colonne is_available à la table users...")
-            c.execute('ALTER TABLE users ADD COLUMN is_available BOOLEAN DEFAULT 0')
-            conn.commit()
-    except Exception as e:
-        app.logger.error(f"Erreur lors de la mise à jour de la table users: {str(e)}")
 
-    # Restaurants table
-    c.execute('''CREATE TABLE IF NOT EXISTS restaurants
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  name TEXT NOT NULL,
-                  description TEXT,
-                  latitude REAL NOT NULL,
-                  longitude REAL NOT NULL,
-                  address TEXT,
-                  phone TEXT,
-                  image_url TEXT,
-                  rating REAL DEFAULT 0,
-                  is_active BOOLEAN DEFAULT 1,
-                  open_time TEXT DEFAULT '09:00',
-                  close_time TEXT DEFAULT '22:00',
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
-    # Vérifier et ajouter les colonnes open_time et close_time si elles n'existent pas
-    try:
-        c.execute("PRAGMA table_info(restaurants)")
-        columns = [column[1] for column in c.fetchall()]
-        
-        if 'open_time' not in columns:
-            app.logger.info("Ajout de la colonne open_time...")
-            c.execute('ALTER TABLE restaurants ADD COLUMN open_time TEXT DEFAULT "09:00"')
-            conn.commit()
-        
-        if 'close_time' not in columns:
-            app.logger.info("Ajout de la colonne close_time...")
-            c.execute('ALTER TABLE restaurants ADD COLUMN close_time TEXT DEFAULT "22:00"')
-            conn.commit()
-        
-        # Mettre à jour les restaurants existants avec des horaires par défaut
-        c.execute('UPDATE restaurants SET open_time = "09:00" WHERE open_time IS NULL')
-        c.execute('UPDATE restaurants SET close_time = "22:00" WHERE close_time IS NULL')
-        conn.commit()
-    except Exception as e:
-        app.logger.error(f"Erreur lors de la mise à jour de la table restaurants: {str(e)}")
-    
-    # Orders table
-    c.execute('''CREATE TABLE IF NOT EXISTS orders
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  client_id INTEGER NOT NULL,
-                  restaurant_id INTEGER NOT NULL,
-                  status TEXT DEFAULT 'pending',
-                  total_price REAL NOT NULL,
-                  delivery_address TEXT NOT NULL,
-                  delivery_latitude REAL NOT NULL,
-                  delivery_longitude REAL NOT NULL,
-                  delivery_id INTEGER,
-                  estimated_delivery_time INTEGER,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  FOREIGN KEY (client_id) REFERENCES users(id),
-                  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
-                  FOREIGN KEY (delivery_id) REFERENCES users(id))''')
-    
-    # Order items table
-    c.execute('''CREATE TABLE IF NOT EXISTS order_items
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  order_id INTEGER NOT NULL,
-                  item_name TEXT NOT NULL,
-                  quantity INTEGER NOT NULL,
-                  price REAL NOT NULL,
-                  FOREIGN KEY (order_id) REFERENCES orders(id))''')
-    
-    # Menu items table
-    c.execute('''CREATE TABLE IF NOT EXISTS menu_items
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  restaurant_id INTEGER NOT NULL,
-                  name TEXT NOT NULL,
-                  description TEXT,
-                  price REAL NOT NULL,
-                  category TEXT DEFAULT 'Plat',
-                  image_url TEXT,
-                  is_available BOOLEAN DEFAULT 1,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id))''')
-    
-    conn.commit()
-    
-    # Vérifier et ajouter la colonne estimated_delivery_time si elle n'existe pas encore
-    try:
-        c.execute("PRAGMA table_info(orders)")
-        order_columns = [column[1] for column in c.fetchall()]
-        if 'estimated_delivery_time' not in order_columns:
-            app.logger.info("Ajout de la colonne estimated_delivery_time à la table orders...")
-            c.execute('ALTER TABLE orders ADD COLUMN estimated_delivery_time INTEGER')
-            conn.commit()
-    except Exception as e:
-        app.logger.error(f"Erreur lors de la mise à jour de la table orders: {str(e)}")
-    
-    conn.close()
-    
-    # Create default admin user
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT COUNT(*) FROM users WHERE role = ?', ('admin',))
-    if c.fetchone()[0] == 0:
-        admin_password = generate_password_hash('admin123')
-        c.execute('INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
-                  ('admin', 'admin@flexpress.com', admin_password, 'admin'))
-        conn.commit()
-    conn.close()
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
