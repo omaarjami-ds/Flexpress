@@ -272,7 +272,8 @@ def login():
     conn = get_db()
     c = conn.cursor()
     
-    c.execute('SELECT * FROM users WHERE username = ? OR email = ?', (data['username'], data['username']))
+    username_or_email = data.get('username', '')
+    c.execute('SELECT * FROM users WHERE username = ? OR email = ?', (username_or_email, username_or_email))
     user = c.fetchone()
     conn.close()
     
