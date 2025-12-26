@@ -110,12 +110,15 @@ function LivreurDashboard({ user, onLogout }) {
         updateHumanReadablePosition(latitude, longitude);
         
         console.log('Position livreur mise à jour:', newPosition);
+        
+        // Démarrer le suivi en temps réel après avoir obtenu la première position
+        startWatchPosition();
       },
       (error) => {
         // Comportement plus doux, façon Google Maps : pas d'alerte bloquante sur timeout,
         // on log seulement l'erreur et l'utilisateur peut recliquer sur le bouton.
         if (error.code === error.PERMISSION_DENIED) {
-          alert('Vous avez refusé l\'accès à votre position. Vous pouvez l\'autoriser dans les paramètres du navigateur.');
+          alert('📍 (Livreur) L\'accès à la position a été refusé. Veuillez l\'autoriser dans les paramètres de votre téléphone.');
         } else {
           console.warn('Erreur géolocalisation livreur (non bloquante):', error);
         }
@@ -124,6 +127,33 @@ function LivreurDashboard({ user, onLogout }) {
         enableHighAccuracy: true,
         timeout: 60000,     // attendre plus longtemps comme Google Maps
         maximumAge: 10000   // permettre une position récente en cache
+      }
+    );
+  };
+
+  const startWatchPosition = () => {
+    if (!navigator.geolocation) return;
+    
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
+    
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy: acc } = pos.coords;
+        const newPosition = [latitude, longitude];
+        setPosition(newPosition);
+        setAccuracy(acc);
+        updateLocation(latitude, longitude);
+        updateHumanReadablePosition(latitude, longitude);
+      },
+      (error) => {
+        console.warn('Erreur watchPosition livreur:', error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 5000
       }
     );
   };
@@ -143,31 +173,6 @@ function LivreurDashboard({ user, onLogout }) {
     };
     fetchStatus();
 
-    // Obtenir la position initiale
-    getCurrentLocation();
-
-    // Démarrer le suivi en temps réel de la position
-    if (navigator.geolocation) {
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        (pos) => {
-          const { latitude, longitude, accuracy: acc } = pos.coords;
-          const newPosition = [latitude, longitude];
-          setPosition(newPosition);
-          setAccuracy(acc);
-          updateLocation(latitude, longitude);
-          updateHumanReadablePosition(latitude, longitude);
-        },
-        (error) => {
-          console.error('Erreur watchPosition livreur:', error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 5000 // Mettre à jour toutes les 5 secondes
-        }
-      );
-    }
-
     loadOrders();
     const interval = setInterval(loadOrders, 5000);
     
@@ -177,6 +182,7 @@ function LivreurDashboard({ user, onLogout }) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateLocation = async (lat, lon) => {
@@ -710,9 +716,16 @@ function LivreurDashboard({ user, onLogout }) {
                           </p>
                         );
                       })()}
-                      <p>
+                      <p 
+                        style={{ cursor: 'pointer', color: '#007bff', textDecoration: 'underline' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedOrderId(expandedOrderId === order.id ? null : order.id);
+                        }}
+                      >
                         <strong>Temps estimé:</strong>{' '}
                         {order.estimated_delivery_time ? `${order.estimated_delivery_time} min` : 'N/A'}
+                        {expandedOrderId === order.id ? ' ▼' : ' ▶'}
                       </p>
                       {expandedOrderId === order.id && (
                         <div style={{marginTop: '8px', fontSize: '0.85em', color: '#555'}}>

@@ -279,30 +279,59 @@
 }
 
 /* Mobile Responsiveness */
+@media (max-width: 1024px) {
+  .header {
+    padding: 12px 16px;
+    height: 64px;
+  }
+
+  .header h1 {
+    font-size: 28px;
+    gap: 12px;
+  }
+
+  .header .main-logo {
+    height: 45px;
+  }
+}
+
 @media (max-width: 768px) {
   .header {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
-    height: 60px;
+    padding: 8px 12px;
+    height: 56px;
     position: sticky;
     top: 0;
+    border-bottom: 2px solid #FFD700;
   }
 
   .header h1 {
-    font-size: 20px;
+    font-size: 18px;
     width: auto;
     margin: 0;
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
   }
   
   .header-logo {
-    gap: 8px;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
   }
   
   .header .main-logo {
-    height: 35px;
+    height: 32px;
+    width: auto;
+  }
+
+  .header h1 {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   /* Hide desktop buttons */
@@ -310,11 +339,12 @@
     display: none;
   }
 
-  /* Keep ProfileMenu */
+  /* Keep ProfileMenu visible */
   .header-actions {
     width: auto;
     display: flex;
-    gap: 10px;
+    gap: 8px;
+    margin-left: auto;
   }
 
   /* Show bottom nav */
@@ -323,11 +353,80 @@
   }
 
   .container {
-    padding-bottom: 80px; /* Space for bottom nav */
+    padding-bottom: 100px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .dashboard {
+    padding-bottom: 60px;
   }
   
   .hero-section {
-    padding: 20px 15px;
+    padding: 20px 12px;
+    margin: 0 -12px;
+  }
+
+  .hero-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .hero-title {
+    font-size: 32px;
+  }
+
+  .hero-subtitle {
+    font-size: 16px;
+  }
+
+  .hero-input {
+    min-width: 100%;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .card {
+    padding: 16px;
+    margin: 10px 0;
+    border-radius: 12px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .restaurants-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 15px 0;
+  }
+
+  .restaurants-grid.glovo-style {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+  }
+
+  .category-btn {
+    padding: 10px 16px;
+    min-width: 70px;
+    font-size: 12px;
+  }
+
+  .category-icon {
+    font-size: 24px;
+  }
+
+  .section-title {
+    font-size: 24px;
+  }
+
+  input, select, textarea {
+    font-size: 16px;
   }
 }
 

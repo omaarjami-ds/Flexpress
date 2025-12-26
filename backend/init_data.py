@@ -48,6 +48,7 @@ def init_db():
                   delivery_latitude REAL NOT NULL,
                   delivery_longitude REAL NOT NULL,
                   delivery_id INTEGER,
+                  estimated_delivery_time INTEGER DEFAULT 30,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (client_id) REFERENCES users(id),
                   FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
@@ -61,6 +62,17 @@ def init_db():
                   quantity INTEGER NOT NULL,
                   price REAL NOT NULL,
                   FOREIGN KEY (order_id) REFERENCES orders(id))''')
+    
+    # Menu items table
+    c.execute('''CREATE TABLE IF NOT EXISTS menu_items
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  restaurant_id INTEGER NOT NULL,
+                  name TEXT NOT NULL,
+                  description TEXT,
+                  price REAL NOT NULL,
+                  category TEXT,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id))''')
     
     conn.commit()
     conn.close()

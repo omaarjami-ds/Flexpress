@@ -1299,22 +1299,26 @@
   }
   
   .hero-section {
-    padding: 15px 10px;
+    padding: 8px 10px;
+  }
+  
+  .hero-section::before {
+    height: 25px;
   }
   
   .hero-content {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 10px;
   }
   
   .hero-title {
-    font-size: 24px;
-    margin-bottom: 10px;
+    font-size: 20px;
+    margin-bottom: 5px;
   }
   
   .hero-subtitle {
-    font-size: 14px;
-    margin-bottom: 15px;
+    font-size: 12px;
+    margin-bottom: 10px;
   }
   
   .hero-image {
@@ -1322,20 +1326,20 @@
   }
   
   .section-title {
-    font-size: 24px;
+    font-size: 20px;
   }
   
   .header {
-    padding: 12px 15px;
+    padding: 8px 15px;
   }
   
   .header h1 {
-    font-size: 20px;
+    font-size: 18px;
   }
   
   .header img,
   .header .main-logo {
-    height: 65px;
+    height: 50px;
   }
 }
 
@@ -2321,5 +2325,290 @@
 .logout-full-btn:active {
   transform: scale(0.98);
   background: #ffcdd2;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .dashboard {
+    padding-bottom: 80px;
+  }
+
+  .admin-dashboard-page .container {
+    max-width: 100%;
+    margin: 0;
+    padding: 12px;
+  }
+
+  .hero-section {
+    padding: 16px 12px;
+    border-radius: 0;
+  }
+
+  .section-title {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .section-title::after {
+    width: 40px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .sidebar {
+    width: 100%;
+    margin-top: 16px;
+  }
+
+  .card {
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  }
+
+  .card h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .orders-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 80px;
+  }
+
+  .order-card {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .order-header {
+    margin-bottom: 8px;
+  }
+
+  .order-header h4 {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .status-badge {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .order-info {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .order-info p {
+    margin: 4px 0;
+  }
+
+  .order-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .order-actions .btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .btn-full {
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  /* Livreur Dashboard Mobile */
+  .livreur-summary-card {
+    grid-column: 1;
+  }
+
+  .summary-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .summary-item {
+    padding: 10px;
+    background: #f8f8f8;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .summary-label {
+    font-size: 11px;
+    color: #666;
+  }
+
+  .summary-value {
+    font-size: 18px;
+    font-weight: 700;
+    display: block;
+  }
+
+  /* Client Dashboard Mobile */
+  .categories-scroll {
+    padding: 0 12px;
+  }
+
+  .category-btn {
+    padding: 8px 12px;
+    min-width: 60px;
+    font-size: 11px;
+  }
+
+  .category-icon {
+    font-size: 20px;
+  }
+
+  .modal, .modal-content {
+    max-width: 95vw;
+    margin: auto;
+    border-radius: 12px;
+  }
+
+  .modal-content {
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  /* Map optimisation mobile */
+  .map-container {
+    height: 300px;
+    border-radius: 8px;
+    margin: 12px 0;
+  }
+
+  .leaflet-bottom.leaflet-right {
+    bottom: 10px;
+    right: 10px;
+  }
+
+  /* Filter bar mobile */
+  .filters-bar {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .filters-left {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .selected-filter-tag {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  /* Input fields mobile */
+  .input {
+    padding: 10px 12px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  /* Form fields mobile */
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  .form-group label {
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  /* Logout button mobile */
+  .logout-button-container {
+    position: fixed;
+    bottom: 80px;
+    left: 0;
+    right: 0;
+    padding: 12px;
+    background: white;
+    border-top: 1px solid #e0e0e0;
+  }
+
+  .logout-full-btn {
+    padding: 12px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 16px;
+  }
+
+  .header .main-logo {
+    height: 28px;
+  }
+
+  .container {
+    padding: 8px;
+  }
+
+  .hero-section {
+    padding: 12px 8px;
+  }
+
+  .hero-title {
+    font-size: 24px;
+  }
+
+  .hero-subtitle {
+    font-size: 14px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .card {
+    padding: 10px;
+  }
+
+  .btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .restaurants-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+
+  .summary-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .order-card {
+    padding: 10px;
+  }
+
+  .modal-content {
+    max-height: 90vh;
+  }
+
+  .dashboard-grid {
+    gap: 10px;
+  }
 }
 

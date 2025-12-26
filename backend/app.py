@@ -31,6 +31,17 @@ def init_db():
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         
+        # Migration: Add estimated_delivery_time to orders if missing
+        try:
+            c.execute("PRAGMA table_info(orders)")
+            columns = [col[1] for col in c.fetchall()]
+            if columns and 'estimated_delivery_time' not in columns:
+                app.logger.info("Migrating database: adding estimated_delivery_time to orders")
+                c.execute("ALTER TABLE orders ADD COLUMN estimated_delivery_time INTEGER DEFAULT 30")
+                conn.commit()
+        except Exception as e:
+            app.logger.error(f"Migration Error: {e}")
+
         # Users table
         c.execute('''CREATE TABLE IF NOT EXISTS users
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,6 +82,7 @@ def init_db():
                       delivery_latitude REAL NOT NULL,
                       delivery_longitude REAL NOT NULL,
                       delivery_id INTEGER,
+                      estimated_delivery_time INTEGER DEFAULT 30,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                       FOREIGN KEY (client_id) REFERENCES users(id),
                       FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),

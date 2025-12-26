@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { FiShoppingCart, FiMapPin, FiNavigation, FiHome, FiList, FiPlusCircle, FiUser } from 'react-icons/fi';
+import { FiShoppingCart, FiMapPin, FiHome, FiList, FiPlusCircle, FiUser } from 'react-icons/fi';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import ProfileMenu from '../components/ProfileMenu';
@@ -176,7 +176,7 @@ function ClientDashboard({ user, onLogout }) {
         clearInterval(trackingIntervalRef.current);
       }
     };
-  }, [showTrackingMap]); // Retiré trackingOrder des dépendances pour éviter boucle infinie si on met à jour trackingOrder ici
+  }, [showTrackingMap, trackingOrder]);
 
   // Mettre à jour trackingOrder quand orders change
   useEffect(() => {
@@ -189,7 +189,7 @@ function ClientDashboard({ user, onLogout }) {
         }
       }
     }
-  }, [orders]);
+  }, [orders, showTrackingMap, trackingOrder]);
 
   const openTrackingMap = (order) => {
     setTrackingOrder(order);
@@ -237,7 +237,7 @@ function ClientDashboard({ user, onLogout }) {
         // Comportement plus proche de Google Maps : on évite les popups pour les timeouts,
         // on ne bloque que si l'utilisateur refuse la permission.
         if (error.code === error.PERMISSION_DENIED) {
-          alert('Vous avez refusé l\'accès à votre position. Vous pouvez l\'autoriser dans les paramètres du navigateur.');
+          alert('📍 (Client) L\'accès à la position a été refusé. Veuillez l\'autoriser dans les paramètres de votre téléphone.');
         } else {
           console.warn('Erreur géolocalisation (non bloquante):', error);
         }
@@ -288,10 +288,8 @@ function ClientDashboard({ user, onLogout }) {
   };
 
   useEffect(() => {
-    // Essayer de charger la position au démarrage
-    getCurrentLocation();
     loadOrders();
-    // Ne pas charger les restaurants automatiquement - seulement après détection GPS
+    loadRestaurants(null, null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -364,8 +362,12 @@ function ClientDashboard({ user, onLogout }) {
 
   const loadRestaurants = async (lat, lon) => {
     try {
-      // Charger TOUS les restaurants à proximité (comme Google Maps)
-      const response = await axios.get(`${API_URL}/restaurants?lat=${lat}&lon=${lon}`);
+      // Construire l'URL avec ou sans coordonnées
+      let url = `${API_URL}/restaurants`;
+      if (lat !== null && lon !== null) {
+        url += `?lat=${lat}&lon=${lon}`;
+      }
+      const response = await axios.get(url);
       setAllRestaurants(response.data);
       setRestaurants(response.data);
     } catch (err) {
@@ -588,7 +590,7 @@ function ClientDashboard({ user, onLogout }) {
       setCustomRestaurantInfo({ name: manualOrderForm.restaurant_name, isCustom: true });
       setSelectedRestaurant(null);
     } else if (manualOrderForm.restaurant_id) {
-      const rest = allRestaurants.find(r => r.id == manualOrderForm.restaurant_id);
+      const rest = allRestaurants.find(r => r.id === manualOrderForm.restaurant_id);
       if (rest) {
         setSelectedRestaurant(rest);
         setCustomRestaurantInfo({ name: '', isCustom: false });
