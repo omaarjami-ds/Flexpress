@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,12 +10,20 @@ import traceback
 import json
 
 app = Flask(__name__)
+# Définir le chemin vers le dossier static à la racine du projet
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_DIR = os.path.join(PROJECT_ROOT, 'static')
+
 app.config['JWT_SECRET_KEY'] = 'your-secret-key-change-in-production'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 CORS(app)
 jwt = JWTManager(app)
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'delivery.db')
+
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory(STATIC_DIR, filename)
 
 @app.route('/')
 def home():
