@@ -838,31 +838,33 @@ function ClientDashboard({ user, onLogout }) {
       </header>
 
       {/* Hero Section Style Glovo */}
-      <div className="hero-section">
-        <div className="hero-content">
-          <div className="hero-text">
-            <h1 className="hero-title">Livraison de nourriture et plus</h1>
-            <p className="hero-subtitle">Restaurants, épiceries, pharmacies, tout ce dont vous avez besoin !</p>
-            <div className="hero-search">
-              <input 
-                type="text" 
-                placeholder="Quelle est votre adresse ?" 
-                className="hero-input"
-                onClick={() => getCurrentLocation()}
-              />
-              <button onClick={getCurrentLocation} className="btn btn-success hero-location-btn">
-                📍 Utiliser ma position
-              </button>
+      {!showMyOrders && !showProfile && (
+        <div className="hero-section">
+          <div className="hero-content">
+            <div className="hero-text">
+              <h1 className="hero-title">Livraison de nourriture et plus</h1>
+              <p className="hero-subtitle">Restaurants, épiceries, pharmacies, tout ce dont vous avez besoin !</p>
+              <div className="hero-search">
+                <input 
+                  type="text" 
+                  placeholder="Quelle est votre adresse ?" 
+                  className="hero-input"
+                  onClick={() => getCurrentLocation()}
+                />
+                <button onClick={getCurrentLocation} className="btn btn-success hero-location-btn">
+                  📍 Utiliser ma position
+                </button>
+              </div>
+              <span className="hero-position-text">
+                {getPositionLabel()}
+              </span>
             </div>
-            <span className="hero-position-text">
-              {getPositionLabel()}
-            </span>
-          </div>
-          <div className="hero-image">
-            <div className="hero-food-illustration">🍔🍕🥙</div>
+            <div className="hero-image">
+              <div className="hero-food-illustration">🍔🍕🥙</div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="container">
         {showProfile ? (
@@ -1103,9 +1105,7 @@ function ClientDashboard({ user, onLogout }) {
             </div>
           </div>
         </div>
-        </>
-        )}
-
+        
         <div className="dashboard-grid">
           <div className="main-content">
             {/* Catégories de filtres style Glovo */}
@@ -1275,7 +1275,17 @@ function ClientDashboard({ user, onLogout }) {
                   <div className="menu-items">
                     {menuItems.map((item) => (
                       <div key={item.id} className="menu-item">
-                        <div>
+                        {item.image_url && (
+                          <img 
+                            src={item.image_url} 
+                            alt={item.name} 
+                            className="menu-item-image"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <div className="menu-item-content">
                           <strong>{item.name}</strong>
                           <p>{item.description || 'Plat délicieux'}</p>
                           {item.category && (
@@ -1344,6 +1354,8 @@ function ClientDashboard({ user, onLogout }) {
             </div>
           </div>
         </div>
+        </>
+        )}
         </>
         )}
       </div>
@@ -1660,9 +1672,25 @@ function ClientDashboard({ user, onLogout }) {
                 </div>
               )}
               
-              <div style={{fontSize: '0.9em', color: '#666'}}>
+              <div style={{fontSize: '0.9em', color: '#666', marginBottom: '10px'}}>
                 La position du livreur se met à jour automatiquement toutes les 5 secondes.
               </div>
+
+              {trackingOrder.items && trackingOrder.items.length > 0 && (
+                <div style={{borderTop: '1px solid #ddd', paddingTop: '10px'}}>
+                  <strong style={{display: 'block', marginBottom: '5px'}}>Ma commande:</strong>
+                  <ul style={{paddingLeft: '20px', margin: 0, fontSize: '0.9em'}}>
+                    {trackingOrder.items.map((item, idx) => (
+                      <li key={idx}>
+                        {item.item_name} <span style={{color: '#666'}}>x{item.quantity}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div style={{marginTop: '5px', fontWeight: 'bold', textAlign: 'right'}}>
+                    Total: {trackingOrder.total_price.toFixed(2)} DT
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -92,6 +92,16 @@
   white-space: nowrap;
 }
 
+.hero-position-text {
+  display: block;
+  margin-top: 15px;
+  font-weight: 700;
+  color: #000;
+  font-size: 14px;
+  line-height: 1.4;
+  padding-bottom: 25px;
+}
+
 .hero-image {
   display: flex;
   justify-content: center;
@@ -140,7 +150,7 @@
   align-items: center;
 }
 
-.dashboard-grid {
+.dashboard-grid-sidebar-only {
   display: grid;
   grid-template-columns: 1fr 350px;
   gap: 20px;
@@ -285,8 +295,11 @@
 }
 
 .leaflet-bottom.leaflet-right {
+  position: absolute;
   bottom: 20px;
   right: 20px;
+  z-index: 1000;
+  pointer-events: auto;
 }
 
 .restaurants-grid {
@@ -419,7 +432,114 @@
   font-weight: 600;
 }
 
-/* Cartes de restaurants style Glovo */
+/* Organized GPS Section for Livreur */
+.livreur-gps-container {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.localization-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.loc-card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.loc-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.loc-icon {
+  font-size: 32px;
+  background: #f0f7ff;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.loc-info h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.loc-info p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.btn-locate-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3);
+}
+
+.btn-locate-main:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(66, 133, 244, 0.4);
+}
+
+.btn-locate-main svg {
+  width: 20px;
+  height: 20px;
+}
+
+.loc-footer-address {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
+  color: #4285F4;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.map-view-section {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive fixes for GPS card */
+@media (max-width: 768px) {
+  .loc-card-body {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .loc-info {
+    flex-direction: column;
+  }
+  
+  .btn-locate-main {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .dashboard-grid-sidebar-only {
+    grid-template-columns: 1fr;
+  }
+}
+
 .glovo-restaurant-card {
   background: white;
   border-radius: 16px;
@@ -942,23 +1062,32 @@
   align-items: center;
   padding: 15px;
   border-bottom: 1px solid #eee;
+  gap: 15px;
+}
+
+.menu-item-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.menu-item-content {
+  flex: 1;
 }
 
 .menu-item:last-child {
   border-bottom: none;
 }
 
-.menu-item > div:first-child {
-  flex: 1;
-}
-
-.menu-item strong {
+.menu-item-content strong {
   display: block;
   margin-bottom: 5px;
   color: #333;
 }
 
-.menu-item p {
+.menu-item-content p {
   margin: 5px 0;
   color: #666;
   font-size: 0.9em;
@@ -1299,11 +1428,12 @@
   }
   
   .hero-section {
-    padding: 8px 10px;
+    padding: 20px 10px 60px 10px;
+    margin-top: 0;
   }
   
   .hero-section::before {
-    height: 25px;
+    height: 35px;
   }
   
   .hero-content {
@@ -1312,13 +1442,19 @@
   }
   
   .hero-title {
-    font-size: 20px;
-    margin-bottom: 5px;
+    font-size: 26px;
+    margin-bottom: 8px;
+    line-height: 1.1;
   }
   
   .hero-subtitle {
-    font-size: 12px;
-    margin-bottom: 10px;
+    font-size: 14px;
+    margin-bottom: 15px;
+  }
+
+  .hero-position-text {
+    padding-bottom: 20px;
+    font-size: 13px;
   }
   
   .hero-image {
@@ -1330,16 +1466,29 @@
   }
   
   .header {
-    padding: 8px 15px;
+    padding: 15px 12px;
+    padding-top: calc(35px + env(safe-area-inset-top, 15px));
+    height: auto;
+    min-height: 80px;
   }
   
   .header h1 {
     font-size: 18px;
+    width: auto;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   
   .header img,
   .header .main-logo {
-    height: 50px;
+    height: 38px;
+    width: auto;
   }
 }
 
@@ -1948,6 +2097,7 @@
 /* Tableaux professionnels */
 .admin-table-container {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: 12px;
   border: 1px solid #f0f0f0;
 }
@@ -1956,6 +2106,7 @@
   width: 100%;
   border-collapse: collapse;
   background: white;
+  min-width: 1200px;
 }
 
 .admin-table thead {
@@ -2098,27 +2249,55 @@
 @media (max-width: 968px) {
   .admin-dashboard-layout {
     grid-template-columns: 1fr;
+    margin-top: 15px;
+    gap: 15px;
   }
 
   .admin-sidebar {
-    position: static;
+    position: sticky;
+    top: 60px; /* Header height approx */
+    z-index: 99;
+    border-radius: 12px;
+    margin-bottom: 15px;
+  }
+
+  .admin-sidebar-header {
+    display: none;
   }
 
   .admin-nav {
     flex-direction: row;
     overflow-x: auto;
+    padding: 10px;
+    gap: 10px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .admin-nav-item {
     white-space: nowrap;
+    padding: 10px 16px;
+    font-size: 14px;
+    flex: 0 0 auto;
   }
 
-  .admin-table-container {
-    overflow-x: scroll;
+  .nav-badge {
+    display: none;
   }
 
-  .form-grid {
-    grid-template-columns: 1fr;
+  .admin-main-content {
+    padding: 15px;
+    border-radius: 12px;
+  }
+
+  .admin-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .admin-section-header h2 {
+    font-size: 20px;
   }
 }
 
@@ -2490,9 +2669,13 @@
 
   /* Map optimisation mobile */
   .map-container {
-    height: 300px;
-    border-radius: 8px;
-    margin: 12px 0;
+    height: 600px !important;
+    border-radius: 12px;
+    margin: 15px 0;
+  }
+
+  .leaflet-container {
+    height: 100% !important;
   }
 
   .leaflet-bottom.leaflet-right {
@@ -2609,6 +2792,187 @@
 
   .dashboard-grid {
     gap: 10px;
+  }
+
+  /* Styles Livreur Priority Section */
+  .livreur-priority-section {
+    margin-bottom: 20px;
+  }
+
+  .order-item-active, .order-item-available {
+    background: #fff;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 12px;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .order-main-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .restaurant-badge {
+    background: #f0f0f0;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .order-price-badge {
+    color: #28a745;
+    font-weight: 800;
+    font-size: 16px;
+  }
+
+  .order-details-mini p {
+    margin: 4px 0;
+    font-size: 13px;
+    color: #444;
+  }
+
+  .route-highlight {
+    color: #4285F4;
+    font-weight: 600;
+    background: #e8f0fe;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .order-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .order-header-mini {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .dist-badge {
+    background: #e1f5fe;
+    color: #0288d1;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .price-tag {
+    font-weight: 800;
+    color: #333;
+  }
+
+  .addr-text {
+    font-size: 13px;
+    color: #666;
+    margin: 5px 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 10px;
+  }
+
+  .empty-icon {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .sub-text {
+    font-size: 12px;
+    color: #999;
+  }
+}
+
+/* Hide mobile banner on desktop */
+.mobile-status-banner {
+  display: none;
+}
+
+/* Styles pour le bouton de statut livreur sur mobile */
+@media (max-width: 768px) {
+  .header-actions .btn.btn-status-toggle {
+    display: flex !important;
+    padding: 6px 12px;
+    font-size: 11px;
+    margin-right: 0;
+    white-space: nowrap;
+    border-radius: 20px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: 32px;
+    min-width: 100px;
+  }
+  
+  .header h1 {
+    font-size: 14px !important;
+    max-width: 100px;
+  }
+
+  .header-logo {
+    gap: 8px !important;
+  }
+
+  .header .main-logo {
+    height: 32px !important;
+  }
+
+  .mobile-status-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-left: 5px solid #28a745;
+  }
+
+  .mobile-status-banner.offline {
+    border-left-color: #dc3545;
+  }
+
+  .status-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #28a745;
+    animation: pulse 2s infinite;
+  }
+
+  .mobile-status-banner.offline .status-dot {
+    background: #dc3545;
+    animation: none;
+  }
+
+  .status-text {
+    font-weight: 700;
+    font-size: 15px;
+    color: #333;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
   }
 }
 

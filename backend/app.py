@@ -105,6 +105,8 @@ def init_db():
                       description TEXT,
                       price REAL NOT NULL,
                       category TEXT,
+                      image_url TEXT,
+                      is_available BOOLEAN DEFAULT 1,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                       FOREIGN KEY (restaurant_id) REFERENCES restaurants(id))''')
         
@@ -142,13 +144,13 @@ def create_default_data():
         c.execute('SELECT COUNT(*) FROM restaurants')
         if c.fetchone()[0] == 0:
             restaurants = [
-                ('Pizza Express', 'Pizzas italiennes authentiques', 48.8566, 2.3522, '123 Rue de la Pizza, Paris', '01 23 45 67 89'),
-                ('Burger House', 'Les meilleurs burgers de la ville', 48.8606, 2.3376, '456 Avenue des Burgers, Paris', '01 23 45 67 90'),
-                ('Sushi Master', 'Sushi frais et délicieux', 48.8526, 2.3444, '789 Boulevard du Sushi, Paris', '01 23 45 67 91'),
+                ('Pizza Express', 'Pizzas italiennes authentiques', 48.8566, 2.3522, '123 Rue de la Pizza, Paris', '01 23 45 67 89', 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400'),
+                ('Burger House', 'Les meilleurs burgers de la ville', 48.8606, 2.3376, '456 Avenue des Burgers, Paris', '01 23 45 67 90', 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400'),
+                ('Esmiralda', 'Plats tunisiens et fast-food délicieux', 48.8526, 2.3444, '789 Boulevard Esmiralda, Paris', '01 23 45 67 91', '/static/Esmiralda.png'),
             ]
             for restaurant in restaurants:
-                c.execute('''INSERT INTO restaurants (name, description, latitude, longitude, address, phone)
-                              VALUES (?, ?, ?, ?, ?, ?)''', restaurant)
+                c.execute('''INSERT INTO restaurants (name, description, latitude, longitude, address, phone, image_url)
+                              VALUES (?, ?, ?, ?, ?, ?, ?)''', restaurant)
             conn.commit()
         
         conn.close()

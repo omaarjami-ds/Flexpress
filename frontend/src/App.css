@@ -1,5 +1,18 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
 .App {
   min-height: 100vh;
+  width: 100%;
 }
 
 .loading {
@@ -271,6 +284,12 @@
 
 .mobile-nav-item.active {
   color: #000;
+  font-weight: 800;
+}
+
+.mobile-nav-item.active .mobile-nav-icon {
+  color: #000;
+  stroke-width: 3px;
 }
 
 .mobile-nav-icon {
@@ -300,8 +319,10 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    height: 56px;
+    padding: 15px 12px;
+    padding-top: calc(35px + env(safe-area-inset-top, 15px));
+    height: auto;
+    min-height: 80px;
     position: sticky;
     top: 0;
     border-bottom: 2px solid #FFD700;
@@ -313,25 +334,22 @@
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-weight: 700;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   
   .header-logo {
-    gap: 6px;
+    gap: 10px;
     flex: 1;
     min-width: 0;
   }
   
   .header .main-logo {
-    height: 32px;
+    height: 38px;
     width: auto;
-  }
-
-  .header h1 {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
   /* Hide desktop buttons */
@@ -353,9 +371,10 @@
   }
 
   .container {
-    padding-bottom: 100px;
+    padding-bottom: 150px; /* Espace pour la barre de navigation basse */
     padding-left: 12px;
     padding-right: 12px;
+    margin-top: 20px;
   }
 
   .dashboard {
@@ -373,11 +392,14 @@
   }
 
   .hero-title {
-    font-size: 32px;
+    font-size: 26px;
+    line-height: 1.1;
+    margin-bottom: 10px;
   }
 
   .hero-subtitle {
-    font-size: 16px;
+    font-size: 14px;
+    margin-bottom: 15px;
   }
 
   .hero-input {

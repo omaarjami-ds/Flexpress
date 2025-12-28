@@ -444,14 +444,11 @@ function AdminDashboard({ user, onLogout }) {
                             <td>
                               {order.items && order.items.length > 0 ? (
                                 <div className="table-items">
-                                  {order.items.slice(0, 2).map((item, idx) => (
+                                  {order.items.map((item, idx) => (
                                     <span key={idx} className="item-tag">
                                       {item.item_name} x{item.quantity}
                                     </span>
                                   ))}
-                                  {order.items.length > 2 && (
-                                    <span className="item-tag-more">+{order.items.length - 2}</span>
-                                  )}
                                 </div>
                               ) : '-'}
                             </td>

@@ -71,6 +71,8 @@ def init_db():
                   description TEXT,
                   price REAL NOT NULL,
                   category TEXT,
+                  image_url TEXT,
+                  is_available BOOLEAN DEFAULT 1,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (restaurant_id) REFERENCES restaurants(id))''')
     
@@ -93,17 +95,17 @@ def init_test_data():
     
     # Créer des restaurants de test (coordonnées Paris) avec horaires
     restaurants = [
-        ('Pizza Express', 'Pizzas italiennes authentiques', 48.8566, 2.3522, '123 Rue de la Pizza, Paris', '01 23 45 67 89', '11:00', '23:00'),
-        ('Burger House', 'Les meilleurs burgers de la ville', 48.8606, 2.3376, '456 Avenue des Burgers, Paris', '01 23 45 67 90', '10:00', '22:00'),
-        ('Sushi Master', 'Sushi frais et délicieux', 48.8526, 2.3444, '789 Boulevard du Sushi, Paris', '01 23 45 67 91', '12:00', '23:30'),
-        ('Tacos Corner', 'Tacos mexicains épicés', 48.8584, 2.2945, '321 Rue des Tacos, Paris', '01 23 45 67 92', '11:30', '22:30'),
-        ('Pasta Italia', 'Pâtes faites maison', 48.8647, 2.3490, '654 Rue des Pâtes, Paris', '01 23 45 67 93', '12:00', '22:00'),
+        ('Pizza Express', 'Pizzas italiennes authentiques', 48.8566, 2.3522, '123 Rue de la Pizza, Paris', '01 23 45 67 89', '11:00', '23:00', 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400'),
+        ('Burger House', 'Les meilleurs burgers de la ville', 48.8606, 2.3376, '456 Avenue des Burgers, Paris', '01 23 45 67 90', '10:00', '22:00', 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400'),
+        ('Esmiralda', 'Plats tunisiens et fast-food délicieux', 48.8526, 2.3444, '789 Boulevard Esmiralda, Paris', '01 23 45 67 91', '12:00', '23:30', '/static/Esmiralda.png'),
+        ('Tacos Corner', 'Tacos mexicains épicés', 48.8584, 2.2945, '321 Rue des Tacos, Paris', '01 23 45 67 92', '11:30', '22:30', 'https://images.unsplash.com/photo-1565299585323-38174c6a6c08?w=400'),
+        ('Pasta Italia', 'Pâtes faites maison', 48.8647, 2.3490, '654 Rue des Pâtes, Paris', '01 23 45 67 93', '12:00', '22:00', 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400'),
     ]
     
     restaurant_ids = []
     for restaurant in restaurants:
-        c.execute('''INSERT INTO restaurants (name, description, latitude, longitude, address, phone, open_time, close_time)
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', restaurant)
+        c.execute('''INSERT INTO restaurants (name, description, latitude, longitude, address, phone, open_time, close_time, image_url)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', restaurant)
         restaurant_ids.append(c.lastrowid)
     
     # Créer des plats pour chaque restaurant
@@ -122,31 +124,24 @@ def init_test_data():
         (restaurant_ids[1], 'Frites', 'Frites maison', 5.00, 'Accompagnement'),
         (restaurant_ids[1], 'Coca-Cola', 'Boisson fraîche', 3.00, 'Boisson'),
         
-        # Sushi Master
-        (restaurant_ids[2], 'Sushi Mix', 'Assortiment de 12 sushis', 22.00, 'Sushi'),
-        (restaurant_ids[2], 'Sashimi Saumon', '6 tranches de saumon frais', 18.00, 'Sushi'),
-        (restaurant_ids[2], 'California Roll', '8 pièces de california roll', 14.00, 'Sushi'),
-        (restaurant_ids[2], 'Maki Avocat', '6 maki à l\'avocat', 10.00, 'Sushi'),
-        (restaurant_ids[2], 'Thé vert', 'Thé japonais traditionnel', 4.00, 'Boisson'),
-        
-        # Tacos Corner
-        (restaurant_ids[3], 'Tacos Viande', 'Viande hachée, frites, sauce', 9.00, 'Tacos'),
-        (restaurant_ids[3], 'Tacos Poulet', 'Poulet grillé, frites, sauce', 9.50, 'Tacos'),
-        (restaurant_ids[3], 'Tacos Mixte', 'Viande et poulet, frites, sauce', 10.50, 'Tacos'),
-        (restaurant_ids[3], 'Nuggets', '6 nuggets de poulet', 7.00, 'Accompagnement'),
-        (restaurant_ids[3], 'Soda', 'Boisson au choix', 3.00, 'Boisson'),
-        
-        # Pasta Italia
-        (restaurant_ids[4], 'Pâtes Carbonara', 'Pâtes, lardons, crème', 14.00, 'Pâtes'),
-        (restaurant_ids[4], 'Pâtes Bolognaise', 'Pâtes, sauce bolognaise', 13.00, 'Pâtes'),
-        (restaurant_ids[4], 'Pâtes aux Fruits de Mer', 'Pâtes, fruits de mer, crème', 18.00, 'Pâtes'),
-        (restaurant_ids[4], 'Lasagnes', 'Lasagnes maison au fromage', 16.00, 'Pâtes'),
-        (restaurant_ids[4], 'Tiramisu', 'Dessert italien', 7.00, 'Dessert'),
+        # Esmiralda (Plats tunisiens)
+        (restaurant_ids[2], 'Pizza Thon', 'Tomate, mozzarella, thon, olives', 12.00, 'Pizza', '/static/logo.png'),
+        (restaurant_ids[2], 'Makloub Escalope', 'Pain maison, escalope, frites, salade, sauces', 9.00, 'Tunisien', '/static/makloub.jpg'),
+        (restaurant_ids[2], 'Sandwich Escalope Pané', 'Escalope pané croustillant, frites, salade', 8.00, 'Sandwich', '/static/logo.png'),
+        (restaurant_ids[2], 'Pizza Tonno', 'Sauce tomate, thon, oignons, câpres', 13.00, 'Pizza', '/static/logo.png'),
+        (restaurant_ids[2], 'Pgaletteizza', 'Galette pizza spéciale Esmiralda', 10.00, 'Pizza', '/static/logo.png'),
+        (restaurant_ids[2], 'Baguette Scallop', 'Baguette farcie à l\'escalope grillé', 7.50, 'Sandwich', '/static/baguette farcie.jpg'),
+        (restaurant_ids[2], 'Plat Charwarma', 'Assiette chawarma avec accompagnements', 14.00, 'Plat', '/static/chawarma.jpg'),
     ]
     
     for item in menu_items_data:
-        c.execute('''INSERT INTO menu_items (restaurant_id, name, description, price, category)
-                      VALUES (?, ?, ?, ?, ?)''', item)
+        # Vérifier si l'item a une image, sinon mettre None
+        if len(item) == 5:
+            c.execute('''INSERT INTO menu_items (restaurant_id, name, description, price, category)
+                          VALUES (?, ?, ?, ?, ?)''', item)
+        else:
+            c.execute('''INSERT INTO menu_items (restaurant_id, name, description, price, category, image_url)
+                          VALUES (?, ?, ?, ?, ?, ?)''', item)
     
     # Créer un livreur de test
     c.execute('SELECT COUNT(*) FROM users WHERE role = ?', ('livreur',))

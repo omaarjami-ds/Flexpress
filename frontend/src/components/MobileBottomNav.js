@@ -8,9 +8,10 @@ function MobileBottomNav({ role, currentPage, onNavigate, onLogout }) {
       case 'client':
         return [
           { id: 'home', label: 'Accueil', icon: FiHome },
-          { id: 'orders', label: 'Commandes', icon: FiShoppingCart },
+          { id: 'orders', label: 'Commandes', icon: FiList },
+          { id: 'manual', label: 'Manuel', icon: FiPlusCircle },
+          { id: 'cart', label: 'Panier', icon: FiShoppingCart },
           { id: 'profile', label: 'Profil', icon: FiUser },
-          { id: 'logout', label: 'Déco', icon: FiLogOut, action: 'logout' },
         ];
       case 'livreur':
         return [

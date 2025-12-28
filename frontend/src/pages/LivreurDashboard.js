@@ -401,8 +401,8 @@ function LivreurDashboard({ user, onLogout }) {
         <div className="header-actions">
           <button 
             onClick={toggleStatus} 
-            className={`btn ${isAvailable ? 'btn-success' : 'btn-danger'}`}
-            style={{marginRight: '15px', fontWeight: 'bold'}}
+            className={`btn btn-status-toggle ${isAvailable ? 'btn-success' : 'btn-danger'}`}
+            style={{fontWeight: 'bold'}}
           >
             {isAvailable ? '🟢 En Service' : '🔴 Hors Service'}
           </button>
@@ -411,7 +411,168 @@ function LivreurDashboard({ user, onLogout }) {
       </header>
 
       <div className="container">
-        {/* Dashboard Statistiques Livreur */}
+        {/* Banner Status Mobile - Très visible */}
+        <div className={`mobile-status-banner ${isAvailable ? 'online' : 'offline'}`}>
+          <div className="status-info">
+            <span className="status-dot"></span>
+            <span className="status-text">
+              {isAvailable ? 'En ligne - Prêt à livrer' : 'Hors service'}
+            </span>
+          </div>
+          <button 
+            onClick={toggleStatus} 
+            className={`btn btn-sm ${isAvailable ? 'btn-danger' : 'btn-success'}`}
+          >
+            {isAvailable ? 'Déconnexion' : 'Se mettre en service'}
+          </button>
+        </div>
+
+        {/* Section Prioritaire : Nouvelles Commandes ou Livraison en cours */}
+        <div className="livreur-priority-section">
+          {activeOrders.length > 0 ? (
+            <div className="card active-order-card">
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                <h2 style={{margin: 0, color: '#28a745'}}>🚚 Livraison en cours</h2>
+                <button 
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowHistory(true)}
+                >
+                  📜 Historique
+                </button>
+              </div>
+              {activeOrders.map(order => (
+                <div key={order.id} className="order-item-active" onClick={() => setSelectedOrder(order)}>
+                  <div className="order-main-info">
+                    <div className="restaurant-badge">{order.restaurant_name}</div>
+                    <div className="order-price-badge">{order.total_price.toFixed(2)} DT</div>
+                  </div>
+                  
+                  <div className="order-details-mini">
+                    <p><strong>📍 Client:</strong> {order.client_name}</p>
+                    <p><strong>🏠 Adresse:</strong> {order.delivery_address}</p>
+                    {order.items && order.items.length > 0 && (
+                      <div className="order-items-active" style={{
+                        margin: '10px 0',
+                        padding: '10px',
+                        backgroundColor: '#f1f8f1',
+                        borderRadius: '8px',
+                        fontSize: '0.9em'
+                      }}>
+                        <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                          {order.items.map((item, idx) => (
+                            <li key={idx}>
+                              {item.item_name} <span style={{ color: '#666' }}>x{item.quantity}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {getRouteInfoForOrder(order) && (
+                      <p className="route-highlight">
+                        ⏱️ {getRouteInfoForOrder(order).distanceKm.toFixed(1)} km (~{getRouteInfoForOrder(order).travelMinutes} min)
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="order-actions-grid">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); openItineraryForOrder(order); }}
+                      className="btn btn-info btn-full"
+                    >
+                      🗺️ Itinéraire
+                    </button>
+                    
+                    {order.status === 'accepted' && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, 'delivering'); }}
+                        className="btn btn-primary btn-full"
+                      >
+                        En route
+                      </button>
+                    )}
+                    
+                    {order.status === 'delivering' && (
+                      <button 
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Confirmer la livraison de la commande ${order.id} ?`)) {
+                            await updateOrderStatus(order.id, 'delivered');
+                          }
+                        }}
+                        className="btn btn-success btn-full"
+                      >
+                        ✓ Livrée
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card available-orders-card">
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                <h2 style={{margin: 0, color: '#17a2b8'}}>📦 Commandes Disponibles</h2>
+                <button 
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowHistory(true)}
+                >
+                  📜 Historique
+                </button>
+              </div>
+              
+              {availableOrders.length === 0 ? (
+                <div className="empty-state">
+                  <span className="empty-icon">⏳</span>
+                  <p>Aucune nouvelle commande pour le moment.</p>
+                  <p className="sub-text">Restez en ligne pour recevoir des alertes.</p>
+                </div>
+              ) : (
+                <div className="available-orders-list">
+                  {availableOrders.map(order => (
+                    <div key={order.id} className="order-item-available" onClick={() => setSelectedOrder(order)}>
+                      <div className="order-header-mini">
+                        <span className="dist-badge">
+                          {getRouteInfoForOrder(order) ? `${getRouteInfoForOrder(order).distanceKm.toFixed(1)} km` : 'N/A'}
+                        </span>
+                        <span className="price-tag">{order.total_price.toFixed(2)} DT</span>
+                      </div>
+                      <h3>{order.restaurant_name}</h3>
+                      <p className="addr-text">{order.delivery_address}</p>
+                      
+                      {order.items && order.items.length > 0 && (
+                        <div className="order-items-preview" style={{
+                          marginTop: '10px',
+                          padding: '10px',
+                          backgroundColor: '#f8f9fa',
+                          borderRadius: '8px',
+                          fontSize: '0.9em'
+                        }}>
+                          <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                            {order.items.map((item, idx) => (
+                              <li key={idx}>
+                                {item.item_name} <span style={{ color: '#666' }}>x{item.quantity}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); acceptOrder(order.id); }}
+                        className="btn btn-success btn-full"
+                        style={{marginTop: '15px'}}
+                      >
+                        Accepter la commande
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Dashboard Statistiques Livreur (Masquable sur mobile si besoin) */}
         <div className="livreur-stats-dashboard">
           <h2 className="section-title">📊 Mon Tableau de Bord</h2>
           <div className="stats-grid">
@@ -523,10 +684,36 @@ function LivreurDashboard({ user, onLogout }) {
           )}
         </div>
 
-        <div className="dashboard-grid">
-          <div className="main-content">
-            <h2>Commandes disponibles</h2>
-            
+        <div className="livreur-gps-container">
+          <div className="card localization-card">
+            <div className="loc-card-body">
+              <div className="loc-info">
+                <span className="loc-icon">🛰️</span>
+                <div>
+                  <h3>Système de Géolocalisation</h3>
+                  <p>Activez votre position pour voir les commandes et l'itinéraire</p>
+                </div>
+              </div>
+              <button 
+                onClick={getCurrentLocation} 
+                className="btn btn-primary btn-locate-main"
+              >
+                <svg width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="10" cy="10" r="2" fill="currentColor"/>
+                  <circle cx="10" cy="10" r="5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1" fill="none"/>
+                </svg>
+                Me localiser maintenant
+              </button>
+            </div>
+            {position && (
+              <div className="loc-footer-address">
+                <p>{positionLabel}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="map-view-section">
             <div className="map-container">
               <div className="map-legend">
                 <div className="map-legend-item">
@@ -539,248 +726,86 @@ function LivreurDashboard({ user, onLogout }) {
                   <span style={{color: '#17a2b8'}}>🔵</span> Commandes disponibles
                 </div>
               </div>
-              {position ? (
-                <>
-                  <MapContainer 
-                    center={mapCenter || position} 
-                    zoom={mapZoom || 13} 
-                    style={{ height: '500px', width: '100%' }}
-                    scrollWheelZoom={true}
-                    ref={mapRef}
-                  >
-                  <TileLayer 
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
-                  />
-                  {/* Recentrer la carte si nécessaire */}
-                  {mapCenter && <RecenterMap center={mapCenter} zoom={mapZoom} />}
-                  
-                  {/* Cercle de précision autour de la position */}
-                  {accuracy && (
-                    <Circle
-                      center={position}
-                      radius={accuracy}
-                      pathOptions={{
-                        color: '#4285F4',
-                        fillColor: '#4285F4',
-                        fillOpacity: 0.2,
-                        weight: 2
-                      }}
-                    />
-                  )}
-                  
-                  {/* Marqueur de position livreur */}
-                  <Marker position={position}>
-                    <Popup>
-                      <strong>📍 Votre position (Livreur)</strong>
-                      {accuracy && (
-                        <><br />Précision: ±{Math.round(accuracy)}m</>
-                      )}
-                    </Popup>
-                  </Marker>
-                  
-                  {/* Bouton de géolocalisation */}
-                  <LocationButton onLocationClick={() => {
-                    console.log('Bouton de localisation livreur cliqué');
-                    getCurrentLocation();
-                  }} />
-                  
-                  {/* Marqueurs des commandes */}
-                  {markers.map(marker => {
-                    const icon = L.icon({
-                      iconUrl: marker.type === 'my' 
-                        ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png'
-                        : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
-                      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-                      iconSize: [25, 41],
-                      iconAnchor: [12, 41],
-                      popupAnchor: [1, -34],
-                    });
-                    return (
-                      <Marker key={marker.id} position={marker.position} icon={icon}>
-                        <Popup>
-                          <strong>{marker.order.restaurant_name}</strong><br />
-                          Client: {marker.order.client_name}<br />
-                          Total: {marker.order.total_price}DT<br />
-                          <span style={{ 
-                            color: marker.type === 'my' ? '#28a745' : '#17a2b8', 
-                            fontWeight: 'bold' 
-                          }}>
-                            {marker.type === 'my' ? '🟢 Ma livraison' : '🔵 Disponible'}
-                          </span>
-                        </Popup>
-                      </Marker>
-                    );
-                  })}
-
-                  {/* Itinéraires simplifiés (ligne) entre le livreur et les livraisons en cours */}
-                  {position && myOrders.map(order => {
-                    const [livLat, livLon] = position;
-                    const targetLat =
-                      order.delivery_latitude !== undefined && order.delivery_latitude !== null
-                        ? order.delivery_latitude
-                        : order.client_lat;
-                    const targetLon =
-                      order.delivery_longitude !== undefined && order.delivery_longitude !== null
-                        ? order.delivery_longitude
-                        : order.client_lon;
-
-                    if (targetLat == null || targetLon == null) return null;
-
-                    return (
-                      <Polyline
-                        key={`route-${order.id}`}
-                        positions={[
-                          [livLat, livLon],
-                          [Number(targetLat), Number(targetLon)]
-                        ]}
+              
+              <MapContainer 
+                center={mapCenter || position || [33.8083, 10.8533]} 
+                zoom={mapZoom || 13} 
+                style={{ height: '650px', width: '100%' }}
+                scrollWheelZoom={true}
+                ref={mapRef}
+              >
+                <TileLayer 
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+                />
+                
+                {position && (
+                  <>
+                    <RecenterMap center={mapCenter || position} zoom={mapZoom || 15} />
+                    {accuracy && (
+                      <Circle
+                        center={position}
+                        radius={accuracy}
                         pathOptions={{
-                          color: '#4B6CFF',
-                          weight: 4,
-                          opacity: 0.7,
-                          dashArray: '6,4'
+                          color: '#4285F4',
+                          fillColor: '#4285F4',
+                          fillOpacity: 0.2,
+                          weight: 2
                         }}
                       />
-                    );
-                  })}
-                </MapContainer>
-                <div className="livreur-position-text">
-                  {positionLabel}
-                </div>
-              </>
-              ) : (
-                <div className="map-loading">
-                  <div className="loading-message">
-                    <p>📍 En attente de votre position...</p>
-                    <p className="loading-hint">Cliquez sur le bouton de localisation pour activer le GPS</p>
-                    <button onClick={getCurrentLocation} className="btn btn-primary">
-                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginRight: '8px', display: 'inline-block', verticalAlign: 'middle'}}>
-                        <circle cx="10" cy="10" r="2" fill="currentColor"/>
-                        <circle cx="10" cy="10" r="5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                        <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1" fill="none"/>
-                      </svg>
-                      Me localiser maintenant
-                    </button>
-                  </div>
-                  <MapContainer 
-                    center={[33.8083, 10.8533]} 
-                    zoom={13} 
-                    style={{ height: '500px', width: '100%' }}
-                    scrollWheelZoom={true}
-                  >
-                    <TileLayer 
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
-                    />
-                    <LocationButton onLocationClick={getCurrentLocation} />
-                  </MapContainer>
-                </div>
-              )}
-            </div>
-
-            <div className="orders-section">
-              <h3>Nouvelles commandes</h3>
-              <div className="orders-grid">
-                {availableOrders.map(order => (
-                  <div 
-                    key={order.id} 
-                    className="card order-card"
-                    onClick={() => setSelectedOrder(order)}
-                    style={{cursor: 'pointer'}}
-                  >
-                    <div className="order-header">
-                      <h4>{order.restaurant_name}</h4>
-                      <span className="status-badge status-pending">En attente</span>
-                    </div>
-                    <div className="order-info">
-                      <p><strong>Client:</strong> {order.client_name}</p>
-                      <p>
-                        <strong>Adresse:</strong>{' '}
-                        <span
-                          style={{ textDecoration: 'underline', color: '#007bff' }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openItineraryForOrder(order);
-                          }}
-                        >
-                          {order.delivery_address}
-                        </span>
-                      </p>
-                      <p><strong>Total:</strong> {order.total_price}DT</p>
-                      {getRouteInfoForOrder(order) && (() => {
-                        const info = getRouteInfoForOrder(order);
-                        return (
-                          <p>
-                            <strong>Distance au client:</strong>{' '}
-                            {info.distanceKm.toFixed(1)} km (~{info.travelMinutes} min)
-                          </p>
-                        );
-                      })()}
-                      <p 
-                        style={{ cursor: 'pointer', color: '#007bff', textDecoration: 'underline' }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedOrderId(expandedOrderId === order.id ? null : order.id);
-                        }}
-                      >
-                        <strong>Temps estimé:</strong>{' '}
-                        {order.estimated_delivery_time ? `${order.estimated_delivery_time} min` : 'N/A'}
-                        {expandedOrderId === order.id ? ' ▼' : ' ▶'}
-                      </p>
-                      {expandedOrderId === order.id && (
-                        <div style={{marginTop: '8px', fontSize: '0.85em', color: '#555'}}>
-                          <p>
-                            <strong>Coordonnées client:</strong>{' '}
-                            {order.delivery_latitude && order.delivery_longitude
-                              ? `${Number(order.delivery_latitude).toFixed(5)}, ${Number(order.delivery_longitude).toFixed(5)}`
-                              : 'Non disponibles'}
-                          </p>
-                          {position && (
-                            <p>
-                              <strong>Coordonnées livreur:</strong>{' '}
-                              {position[0].toFixed(5)}, {position[1].toFixed(5)}
-                            </p>
-                          )}
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openItineraryForOrder(order);
-                            }}
-                          >
-                            Ouvrir l'itinéraire Google Maps
-                          </button>
-                        </div>
-                      )}
-                      {order.items && order.items.length > 0 && (
-                        <div style={{marginTop: '8px', fontSize: '0.9em'}}>
-                          <strong>Articles:</strong>
-                          <ul style={{margin: '4px 0', paddingLeft: '20px'}}>
-                            {order.items.map((item, idx) => (
-                              <li key={idx}>{item.item_name} x{item.quantity} - {item.price}DT</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        acceptOrder(order.id);
-                      }} 
-                      className="btn btn-success btn-full"
-                    >
-                      <FiCheckCircle /> Accepter la commande
-                    </button>
-                  </div>
-                ))}
-                {availableOrders.length === 0 && (
-                  <p>Aucune commande disponible</p>
+                    )}
+                    <Marker position={position}>
+                      <Popup>
+                        <strong>📍 Votre position (Livreur)</strong>
+                        {accuracy && <><br />Précision: ±{Math.round(accuracy)}m</>}
+                      </Popup>
+                    </Marker>
+                  </>
                 )}
-              </div>
+
+                {markers.map(marker => {
+                  const icon = L.icon({
+                    iconUrl: marker.type === 'my' 
+                      ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png'
+                      : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                  });
+                  return (
+                    <Marker key={marker.id} position={marker.position} icon={icon}>
+                      <Popup>
+                        <strong>{marker.order.restaurant_name}</strong><br />
+                        Client: {marker.order.client_name}<br />
+                        Total: {marker.order.total_price}DT<br />
+                        <span style={{ color: marker.type === 'my' ? '#28a745' : '#17a2b8', fontWeight: 'bold' }}>
+                          {marker.type === 'my' ? '🟢 Ma livraison' : '🔵 Disponible'}
+                        </span>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+
+                {position && myOrders.map(order => {
+                  const [livLat, livLon] = position;
+                  const targetLat = order.delivery_latitude ?? order.client_lat;
+                  const targetLon = order.delivery_longitude ?? order.client_lon;
+                  if (targetLat == null || targetLon == null) return null;
+                  return (
+                    <Polyline
+                      key={`route-${order.id}`}
+                      positions={[[livLat, livLon], [Number(targetLat), Number(targetLon)]]}
+                      pathOptions={{ color: '#4B6CFF', weight: 4, opacity: 0.7, dashArray: '6,4' }}
+                    />
+                  );
+                })}
+              </MapContainer>
             </div>
           </div>
+        </div>
 
+        <div className="dashboard-grid-sidebar-only">
           <div className="sidebar">
             {/* Résumé des statistiques */}
             <div className="card livreur-summary-card">
@@ -803,95 +828,6 @@ function LivreurDashboard({ user, onLogout }) {
                   <span className="summary-value earnings">{stats.totalEarnings.toFixed(2)} DT</span>
                 </div>
               </div>
-            </div>
-
-            <div className="card">
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                <h3 style={{margin: 0}}>En cours</h3>
-                <button 
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowHistory(true)}
-                  style={{fontSize: '0.9em'}}
-                >
-                  📜 Historique
-                </button>
-              </div>
-              {activeOrders.length === 0 ? (
-                <p>Aucune livraison en cours</p>
-              ) : (
-                activeOrders.map(order => (
-                  <div key={order.id} className="order-item" onClick={() => setSelectedOrder(order)} style={{cursor: 'pointer'}}>
-                    <div>
-                      <strong>{order.restaurant_name}</strong>
-                      <p>Client: {order.client_name}</p>
-                      <p>Total: {order.total_price}DT</p>
-                      <p>
-                        Adresse:{' '}
-                        <span
-                          style={{ textDecoration: 'underline', color: '#007bff', cursor: 'pointer' }}
-                          onClick={() => openItineraryForOrder(order)}
-                        >
-                          {order.delivery_address || 'Adresse non disponible'}
-                        </span>
-                      </p>
-                      {getRouteInfoForOrder(order) && (() => {
-                        const info = getRouteInfoForOrder(order);
-                        return (
-                          <p>
-                            Distance au client: {info.distanceKm.toFixed(1)} km (~{info.travelMinutes} min)
-                          </p>
-                        );
-                      })()}
-                      <p>
-                        Temps estimé:{' '}
-                        {order.estimated_delivery_time ? `${order.estimated_delivery_time} min` : 'N/A'}
-                      </p>
-                      {order.items && order.items.length > 0 && (
-                        <div style={{marginTop: '8px', fontSize: '0.9em'}}>
-                          <strong>Articles:</strong>
-                          <ul style={{margin: '4px 0', paddingLeft: '20px'}}>
-                            {order.items.map((item, idx) => (
-                              <li key={idx}>{item.item_name} x{item.quantity} - {item.price}DT</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      <p style={{fontSize: '0.85em', color: '#999', marginTop: '5px'}}>
-                        {new Date(order.created_at).toLocaleString('fr-FR')}
-                      </p>
-                    </div>
-                    <div className="order-actions">
-                      <span className={`status-badge status-${order.status}`}>
-                        {order.status === 'pending' ? 'En attente' : 
-                         order.status === 'accepted' ? 'Acceptée' :
-                         order.status === 'delivering' ? 'En cours' :
-                         order.status === 'delivered' ? 'Livrée' : order.status}
-                      </span>
-                      {order.status === 'accepted' && (
-                        <button 
-                          onClick={() => updateOrderStatus(order.id, 'delivering')}
-                          className="btn btn-primary"
-                        >
-                          En route
-                        </button>
-                      )}
-                      {order.status === 'delivering' && (
-                        <button 
-                          onClick={async () => {
-                            if (window.confirm(`Confirmer la livraison de la commande ${order.id} ?\nMontant: ${order.total_price}DT\n\nCette commande sera retirée de votre liste.`)) {
-                              await updateOrderStatus(order.id, 'delivered');
-                              alert('✅ Commande marquée comme livrée avec succès!');
-                            }
-                          }}
-                          className="btn btn-success"
-                        >
-                          ✓ Marquer comme livrée
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
           </div>
         </div>
