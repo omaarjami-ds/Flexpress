@@ -1,0 +1,36 @@
+
+> Flexpress@1.0.0 electron:make
+> npm run build && electron-builder build -c ./electron-builder.config.json -p always
+
+
+> Flexpress@1.0.0 build
+> tsc && electron-rebuild
+
+- Searching dependency tree
+√ Rebuild Complete
+  • electron-builder  version=23.6.0 os=10.0.26100
+  • loaded configuration  file=c:\projet\projet delevery\frontend\electron\electron-builder.config.json
+  • electron-rebuild not required if you use electron-builder, please consider to remove excess dependency from devDependencies
+
+To ensure your native dependencies are always matched electron version, simply add script `"postinstall": "electron-builder install-app-deps" to your `package.json`
+  • packaging       platform=win32 arch=x64 electron=26.6.10 appOutDir=dist_final_keyboard\win-unpacked
+  ⨯ remove c:\projet\projet delevery\frontend\electron\dist_final_keyboard\win-unpacked\resources\app.asar: The process cannot access the file because it is being used by another process.
+github.com/develar/go-fs-util.EnsureEmptyDir
+	/Volumes/data/go/pkg/mod/github.com/develar/go-fs-util@v0.0.0-20190620175131-69a2d4542206/fs.go:98
+github.com/develar/app-builder/pkg/electron.UnpackElectron.func1.1
+	/Volumes/data/Documents/app-builder/pkg/electron/electronUnpack.go:38
+github.com/develar/app-builder/pkg/util.MapAsyncConcurrency.func2
+	/Volumes/data/Documents/app-builder/pkg/util/async.go:68
+runtime.goexit
+	/usr/local/Cellar/go/1.17/libexec/src/runtime/asm_amd64.s:1581  
+  ⨯ c:\projet\projet delevery\frontend\electron\node_modules\app-builder-bin\win\x64\app-builder.exe process failed ERR_ELECTRON_BUILDER_CANNOT_EXECUTE
+Exit code:
+1  failedTask=build stackTrace=Error: c:\projet\projet delevery\frontend\electron\node_modules\app-builder-bin\win\x64\app-builder.exe process failed ERR_ELECTRON_BUILDER_CANNOT_EXECUTE
+Exit code:
+1
+    at ChildProcess.<anonymous> (c:\projet\projet delevery\frontend\electron\node_modules\builder-util\src\util.ts:250:14)
+    at Object.onceWrapper (node:events:633:26)
+    at ChildProcess.emit (node:events:518:28)
+    at ChildProcess.cp.emit (c:\projet\projet delevery\frontend\electron\node_modules\cross-spawn\lib\enoent.js:34:29)
+    at maybeClose (node:internal/child_process:1101:16)
+    at Process.ChildProcess._handle.onexit (node:internal/child_process:304:5)

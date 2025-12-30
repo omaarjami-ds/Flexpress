@@ -1,0 +1,27 @@
+{
+  "appId": "com.flexpress.app",
+  "productName": "Flexpress",
+  "directories": {
+    "buildResources": "resources",
+    "output": "dist_final_keyboard"
+  },
+  "files": [
+    "assets/**/*",
+    "build/**/*",
+    "capacitor.config.*",
+    "app/**/*"
+  ],
+  "nsis": {
+    "allowElevation": true,
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "assets/appIcon.ico"
+  },
+  "mac": {
+    "category": "public.app-category.lifestyle",
+    "target": "dmg"
+  }
+}

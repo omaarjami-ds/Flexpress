@@ -3,7 +3,9 @@ import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { FiCheckCircle } from 'react-icons/fi';
+import WindowControls from '../components/WindowControls';
 import ProfileMenu from '../components/ProfileMenu';
+import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
 // Fix for default marker icons
@@ -79,9 +81,12 @@ function LivreurDashboard({ user, onLogout }) {
   const [showHistory, setShowHistory] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [historyDateFilter, setHistoryDateFilter] = useState('');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState(''); // all, accepted, delivering, delivered
   const [earningsDateFilter, setEarningsDateFilter] = useState('');
+  const [previousOrderCount, setPreviousOrderCount] = useState(0);
   const watchIdRef = useRef(null);
   const mapRef = useRef(null);
+  const audioRef = useRef(null);
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -242,6 +247,41 @@ function LivreurDashboard({ user, onLogout }) {
     }
   };
 
+  const playNotificationSound = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(err => {
+        console.warn('Impossible de jouer le son:', err);
+        console.log('Essai avec Web Audio API fallback');
+        playWebAudioNotification();
+      });
+    } else {
+      playWebAudioNotification();
+    }
+  };
+
+  const playWebAudioNotification = () => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (err) {
+      console.warn('Web Audio API non disponible:', err);
+    }
+  };
+
   const loadOrders = async () => {
     const token = localStorage.getItem('token');
     try {
@@ -253,8 +293,14 @@ function LivreurDashboard({ user, onLogout }) {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
-      setAvailableOrders(availableRes.data);
+      const newOrders = availableRes.data;
+      setAvailableOrders(newOrders);
       setMyOrders(myRes.data.filter(o => o.delivery_id === user.id));
+      
+      if (newOrders.length > previousOrderCount && isAvailable) {
+        playNotificationSound();
+      }
+      setPreviousOrderCount(newOrders.length);
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
     }
@@ -270,8 +316,7 @@ function LivreurDashboard({ user, onLogout }) {
       await axios.post(`${API_URL}/orders/${orderId}/accept`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      loadOrders();
-      alert('Commande acceptée!');
+      await loadOrders();
     } catch (err) {
       alert('Erreur lors de l\'acceptation');
     }
@@ -373,9 +418,15 @@ function LivreurDashboard({ user, onLogout }) {
 
   const allOrders = [...availableOrders, ...myOrders];
   
-  const activeOrders = myOrders.filter(o => ['accepted', 'delivering'].includes(o.status));
+  const activeOrders = myOrders.filter(o => ['delivering'].includes(o.status));
   const historyOrders = myOrders
-    .filter(o => ['delivered', 'cancelled'].includes(o.status))
+    .filter(o => ['accepted', 'delivering', 'delivered', 'cancelled'].includes(o.status))
+    .filter(o => {
+      if (historyStatusFilter && historyStatusFilter !== 'all' && o.status !== historyStatusFilter) {
+        return false;
+      }
+      return true;
+    })
     .filter(o => {
       if (!historyDateFilter) return true;
       try {
@@ -393,6 +444,9 @@ function LivreurDashboard({ user, onLogout }) {
 
   return (
     <div className="dashboard">
+      <audio ref={audioRef} preload="auto">
+        <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav" />
+      </audio>
       <header className="header">
         <div className="header-logo">
           <img src="/logo.png" alt="FLEXPRESS" className="main-logo" />
@@ -406,11 +460,13 @@ function LivreurDashboard({ user, onLogout }) {
           >
             {isAvailable ? '🟢 En Service' : '🔴 Hors Service'}
           </button>
+          <WindowControls />
           <ProfileMenu user={user} onLogout={onLogout} />
         </div>
       </header>
 
-      <div className="container">
+      <PullToRefresh onRefresh={loadOrders}>
+        <div className="container">
         {/* Banner Status Mobile - Très visible */}
         <div className={`mobile-status-banner ${isAvailable ? 'online' : 'offline'}`}>
           <div className="status-info">
@@ -511,7 +567,7 @@ function LivreurDashboard({ user, onLogout }) {
           ) : (
             <div className="card available-orders-card">
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                <h2 style={{margin: 0, color: '#17a2b8'}}>📦 Commandes Disponibles</h2>
+                <h2 style={{margin: 0, color: '#17a2b8'}}>📦 Commandes Disponibles ({availableOrders.length})</h2>
                 <button 
                   className="btn btn-secondary btn-sm"
                   onClick={() => setShowHistory(true)}
@@ -527,43 +583,31 @@ function LivreurDashboard({ user, onLogout }) {
                   <p className="sub-text">Restez en ligne pour recevoir des alertes.</p>
                 </div>
               ) : (
-                <div className="available-orders-list">
-                  {availableOrders.map(order => (
-                    <div key={order.id} className="order-item-available" onClick={() => setSelectedOrder(order)}>
-                      <div className="order-header-mini">
-                        <span className="dist-badge">
-                          {getRouteInfoForOrder(order) ? `${getRouteInfoForOrder(order).distanceKm.toFixed(1)} km` : 'N/A'}
-                        </span>
-                        <span className="price-tag">{order.total_price.toFixed(2)} DT</span>
+                <div className="orders-queue-list">
+                  {availableOrders.map((order, index) => (
+                    <div key={order.id} className={`queue-order-line ${index === 0 ? 'queue-first' : ''}`}>
+                      <div className="queue-order-number">#{order.id}</div>
+                      <div className="queue-order-items">
+                        {order.items && order.items.length > 0 ? (
+                          <span className="items-text">
+                            {order.items.map(item => item.item_name).join(', ')}
+                          </span>
+                        ) : (
+                          <span className="items-text">Pas d'articles</span>
+                        )}
                       </div>
-                      <h3>{order.restaurant_name}</h3>
-                      <p className="addr-text">{order.delivery_address}</p>
-                      
-                      {order.items && order.items.length > 0 && (
-                        <div className="order-items-preview" style={{
-                          marginTop: '10px',
-                          padding: '10px',
-                          backgroundColor: '#f8f9fa',
-                          borderRadius: '8px',
-                          fontSize: '0.9em'
-                        }}>
-                          <ul style={{ paddingLeft: '20px', margin: 0 }}>
-                            {order.items.map((item, idx) => (
-                              <li key={idx}>
-                                {item.item_name} <span style={{ color: '#666' }}>x{item.quantity}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); acceptOrder(order.id); }}
-                        className="btn btn-success btn-full"
-                        style={{marginTop: '15px'}}
-                      >
-                        Accepter la commande
-                      </button>
+                      <div className="queue-order-address">
+                        📍 {order.delivery_address}
+                      </div>
+                      <div className="queue-order-actions">
+                        <span className="price-tag">{order.total_price.toFixed(2)} DT</span>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); acceptOrder(order.id); }}
+                          className="btn btn-success btn-sm"
+                        >
+                          Accepter
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -846,7 +890,7 @@ function LivreurDashboard({ user, onLogout }) {
           justifyContent: 'flex-end'
         }} onClick={() => setShowHistory(false)}>
           <div style={{
-            width: '350px',
+            width: 'min(100%, 400px)',
             height: '100%',
             backgroundColor: 'white',
             boxShadow: '-2px 0 5px rgba(0,0,0,0.2)',
@@ -858,12 +902,79 @@ function LivreurDashboard({ user, onLogout }) {
               <h3 style={{margin: 0}}>📜 Historique</h3>
               <button 
                 onClick={() => setShowHistory(false)}
-                style={{background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666'}}
+                style={{background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#666', padding: '0', lineHeight: '1'}}
+                title="Retour"
               >
-                ×
+                ← 
               </button>
             </div>
             
+            <div style={{marginBottom: '15px'}}>
+              <label style={{display: 'block', marginBottom: '8px', fontSize: '0.9em', color: '#666', fontWeight: 'bold'}}>Filtrer par statut:</label>
+              <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px'}}>
+                <button 
+                  onClick={() => setHistoryStatusFilter('')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: !historyStatusFilter ? '#17a2b8' : '#f0f0f0',
+                    color: !historyStatusFilter ? 'white' : '#666',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.85em',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Tous
+                </button>
+                <button 
+                  onClick={() => setHistoryStatusFilter('accepted')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: historyStatusFilter === 'accepted' ? '#1976d2' : '#f0f0f0',
+                    color: historyStatusFilter === 'accepted' ? 'white' : '#666',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.85em',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Acceptée
+                </button>
+                <button 
+                  onClick={() => setHistoryStatusFilter('delivering')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: historyStatusFilter === 'delivering' ? '#d32f2f' : '#f0f0f0',
+                    color: historyStatusFilter === 'delivering' ? 'white' : '#666',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.85em',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  En route
+                </button>
+                <button 
+                  onClick={() => setHistoryStatusFilter('delivered')}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: historyStatusFilter === 'delivered' ? '#388e3c' : '#f0f0f0',
+                    color: historyStatusFilter === 'delivered' ? 'white' : '#666',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.85em',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Livrée
+                </button>
+              </div>
+            </div>
+
             <div style={{marginBottom: '15px'}}>
               <label style={{display: 'block', marginBottom: '5px', fontSize: '0.9em', color: '#666'}}>Filtrer par date:</label>
               <div style={{display: 'flex', gap: '10px'}}>
@@ -886,19 +997,46 @@ function LivreurDashboard({ user, onLogout }) {
             </div>
             
             {historyOrders.length === 0 ? (
-              <p style={{textAlign: 'center', color: '#888', marginTop: '20px'}}>Aucune livraison terminée.</p>
+              <p style={{textAlign: 'center', color: '#888', marginTop: '20px'}}>Aucune commande.</p>
             ) : (
               historyOrders.map(order => (
-                <div key={order.id} className="card" onClick={() => setSelectedOrder(order)} style={{marginBottom: '15px', padding: '15px', borderLeft: order.status === 'delivered' ? '4px solid #28a745' : '4px solid #dc3545', cursor: 'pointer'}}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px'}}>
+                <div key={order.id} className="card" style={{marginBottom: '15px', padding: '15px', borderLeft: order.status === 'delivered' ? '4px solid #28a745' : order.status === 'accepted' ? '4px solid #17a2b8' : order.status === 'delivering' ? '4px solid #ff7675' : '4px solid #dc3545', cursor: 'pointer'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center'}}>
                     <span style={{fontWeight: 'bold', color: '#555'}}>#{order.id}</span>
-                    <span className={`status-badge status-${order.status}`} style={{fontSize: '0.8em', padding: '2px 8px'}}>
-                      {order.status === 'delivered' ? 'Livrée' : order.status}
+                    <span className={`status-badge status-${order.status}`} style={{fontSize: '0.8em', padding: '2px 8px', backgroundColor: order.status === 'accepted' ? '#e3f2fd' : order.status === 'delivering' ? '#ffe0e0' : order.status === 'delivered' ? '#e8f5e9' : '#ffebee', color: order.status === 'accepted' ? '#1976d2' : order.status === 'delivering' ? '#d32f2f' : order.status === 'delivered' ? '#388e3c' : '#c62828'}}>
+                      {order.status === 'delivered' ? 'Livrée' : order.status === 'accepted' ? 'Acceptée' : order.status === 'delivering' ? 'En route' : order.status}
                     </span>
                   </div>
-                  <h4 style={{margin: '5px 0', fontSize: '1.1em'}}>{order.restaurant_name}</h4>
-                  <p style={{margin: '2px 0', fontSize: '0.9em', color: '#666'}}>Client: {order.client_name}</p>
-                  <p style={{margin: '2px 0', fontSize: '0.9em'}}>Total: <strong>{order.total_price} DT</strong></p>
+                  <h4 style={{margin: '5px 0', fontSize: '1.1em'}} onClick={() => setSelectedOrder(order)}>{order.restaurant_name}</h4>
+                  <p style={{margin: '2px 0', fontSize: '0.9em', color: '#666'}} onClick={() => setSelectedOrder(order)}>Client: {order.client_name}</p>
+                  <p style={{margin: '2px 0', fontSize: '0.9em'}} onClick={() => setSelectedOrder(order)}>Total: <strong>{order.total_price} DT</strong></p>
+                  
+                  {(order.status === 'accepted' || order.status === 'delivering') && (
+                    <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
+                      {order.status === 'accepted' && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, 'delivering'); }}
+                          style={{flex: 1, padding: '8px', backgroundColor: '#ff7675', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}
+                        >
+                          🚀 En route
+                        </button>
+                      )}
+                      {order.status === 'delivering' && (
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (window.confirm(`Confirmer la livraison de la commande ${order.id} ?`)) {
+                              updateOrderStatus(order.id, 'delivered');
+                            }
+                          }}
+                          style={{flex: 1, padding: '8px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}
+                        >
+                          ✅ Livrée
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  
                   <p style={{margin: '8px 0 0 0', fontSize: '0.8em', color: '#999', borderTop: '1px solid #f0f0f0', paddingTop: '5px'}}>
                     📅 {new Date(order.created_at).toLocaleString('fr-FR')}
                   </p>
@@ -1050,6 +1188,7 @@ function LivreurDashboard({ user, onLogout }) {
           </div>
         </div>
       )}
+      </PullToRefresh>
     </div>
   );
 }

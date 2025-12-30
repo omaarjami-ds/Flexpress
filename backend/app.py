@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,6 +8,13 @@ import os
 import math
 import traceback
 import json
+import io
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 app = Flask(__name__)
 # Définir le chemin vers le dossier static à la racine du projet
@@ -798,6 +805,43 @@ def update_order_status(order_id):
     conn.close()
     return jsonify({'message': 'Status updated'}), 200
 
+@app.route('/api/orders/<int:order_id>', methods=['DELETE'])
+@jwt_required()
+def cancel_order(order_id):
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    conn = get_db()
+    c = conn.cursor()
+    # On peut soit supprimer soit changer le statut à 'cancelled'
+    # Le changement de statut est préférable pour l'historique
+    c.execute('UPDATE orders SET status = "cancelled" WHERE id = ?', (order_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Order cancelled'}), 200
+
+@app.route('/api/orders/<int:order_id>/assign', methods=['POST'])
+@jwt_required()
+def assign_order(order_id):
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    delivery_id = data.get('delivery_id')
+    
+    if not delivery_id:
+        return jsonify({'error': 'Delivery ID is required'}), 400
+    
+    conn = get_db()
+    c = conn.cursor()
+    # On force l'assignation et on passe le statut à 'accepted'
+    c.execute('UPDATE orders SET delivery_id = ?, status = "accepted" WHERE id = ?', (delivery_id, order_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Order assigned successfully'}), 200
+
 # Delivery routes
 @app.route('/api/deliveries/available', methods=['GET'])
 @jwt_required()
@@ -909,6 +953,218 @@ def update_user_role(user_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'User role updated'}), 200
+
+# PDF Reports and Professional Features
+@app.route('/api/orders/<int:order_id>/pdf', methods=['GET'])
+@jwt_required()
+def generate_order_pdf(order_id):
+    current_user = get_current_user()
+    if not current_user or current_user['role'] not in ['admin', 'client', 'livreur']:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''SELECT o.*, r.name as restaurant_name, r.address as restaurant_address,
+                 u.username as client_name, u.email as client_email, u.phone as client_phone,
+                 d.username as delivery_name
+                 FROM orders o
+                 JOIN restaurants r ON o.restaurant_id = r.id
+                 JOIN users u ON o.client_id = u.id
+                 LEFT JOIN users d ON o.delivery_id = d.id
+                 WHERE o.id = ?''', (order_id,))
+    order = c.fetchone()
+
+    if not order:
+        conn.close()
+        return jsonify({'error': 'Order not found'}), 404
+
+    c.execute('SELECT * FROM order_items WHERE order_id = ?', (order_id,))
+    items = [dict(row) for row in c.fetchall()]
+    conn.close()
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Title
+    elements.append(Paragraph(f"FACTURE - Commande #{order['id']}", styles['Title']))
+    elements.append(Spacer(1, 0.2*inch))
+
+    # Info
+    elements.append(Paragraph(f"<b>Date:</b> {order['created_at']}", styles['Normal']))
+    elements.append(Paragraph(f"<b>Statut:</b> {order['status'].upper()}", styles['Normal']))
+    elements.append(Spacer(1, 0.2*inch))
+
+    # Tables for Client and Restaurant
+    data = [
+        [Paragraph("<b>RESTAURANT</b>", styles['Normal']), Paragraph("<b>CLIENT</b>", styles['Normal'])],
+        [order['restaurant_name'], order['client_name']],
+        [order['restaurant_address'], order['delivery_address']],
+        ["", order['client_phone']]
+    ]
+    t = Table(data, colWidths=[3*inch, 3*inch])
+    t.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+    ]))
+    elements.append(t)
+    elements.append(Spacer(1, 0.3*inch))
+
+    # Items Table
+    item_data = [["Article", "Quantité", "Prix Unitaire", "Total"]]
+    for item in items:
+        item_data.append([
+            item['item_name'],
+            str(item['quantity']),
+            f"{item['price']:.2f} DT",
+            f"{(item['price'] * item['quantity']):.2f} DT"
+        ])
+    
+    item_data.append(["", "", "<b>TOTAL</b>", f"<b>{order['total_price']:.2f} DT</b>"])
+    
+    item_table = Table(item_data, colWidths=[3*inch, 1*inch, 1*inch, 1*inch])
+    item_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0,0), (-1,0), 12),
+        ('BACKGROUND', (0,-1), (-1,-1), colors.beige),
+        ('GRID', (0,0), (-1,-2), 1, colors.black),
+    ]))
+    elements.append(item_table)
+    
+    if order['delivery_name']:
+        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Paragraph(f"<b>Livreur:</b> {order['delivery_name']}", styles['Normal']))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"commande_{order_id}.pdf", mimetype='application/pdf')
+
+@app.route('/api/reports/daily', methods=['GET'])
+@jwt_required()
+def generate_daily_report():
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''SELECT o.*, r.name as restaurant_name, u.username as client_name
+                 FROM orders o
+                 JOIN restaurants r ON o.restaurant_id = r.id
+                 JOIN users u ON o.client_id = u.id
+                 WHERE date(o.created_at) = date(?)''', (date_str,))
+    orders = [dict(row) for row in c.fetchall()]
+    conn.close()
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph(f"BILAN JOURNALIER - {date_str}", styles['Title']))
+    elements.append(Spacer(1, 0.2*inch))
+
+    total_revenue = sum(o['total_price'] for o in orders if o['status'] == 'delivered')
+    total_orders = len(orders)
+    delivered_orders = len([o for o in orders if o['status'] == 'delivered'])
+
+    elements.append(Paragraph(f"<b>Total commandes:</b> {total_orders}", styles['Normal']))
+    elements.append(Paragraph(f"<b>Commandes livrées:</b> {delivered_orders}", styles['Normal']))
+    elements.append(Paragraph(f"<b>Chiffre d'affaires:</b> {total_revenue:.2f} DT", styles['Normal']))
+    elements.append(Spacer(1, 0.3*inch))
+
+    if orders:
+        report_data = [["ID", "Restaurant", "Client", "Total", "Statut"]]
+        for o in orders:
+            report_data.append([
+                f"#{o['id']}",
+                o['restaurant_name'],
+                o['client_name'],
+                f"{o['total_price']:.2f} DT",
+                o['status']
+            ])
+        
+        t = Table(report_data, colWidths=[0.5*inch, 2*inch, 1.5*inch, 1*inch, 1*inch])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.darkblue),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('GRID', (0,0), (-1,-1), 1, colors.black),
+        ]))
+        elements.append(t)
+    else:
+        elements.append(Paragraph("Aucune commande pour cette journée.", styles['Normal']))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"bilan_journalier_{date_str}.pdf", mimetype='application/pdf')
+
+@app.route('/api/reports/monthly', methods=['GET'])
+@jwt_required()
+def generate_monthly_report():
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    year = request.args.get('year', datetime.now().strftime('%Y'))
+    month = request.args.get('month', datetime.now().strftime('%m'))
+    month_year = f"{year}-{month}"
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''SELECT o.*, r.name as restaurant_name
+                 FROM orders o
+                 JOIN restaurants r ON o.restaurant_id = r.id
+                 WHERE strftime('%Y-%m', o.created_at) = ?''', (month_year,))
+    orders = [dict(row) for row in c.fetchall()]
+    conn.close()
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph(f"BILAN MENSUEL - {month}/{year}", styles['Title']))
+    elements.append(Spacer(1, 0.2*inch))
+
+    delivered = [o for o in orders if o['status'] == 'delivered']
+    total_revenue = sum(o['total_price'] for o in delivered)
+    
+    elements.append(Paragraph(f"<b>Nombre total de commandes:</b> {len(orders)}", styles['Normal']))
+    elements.append(Paragraph(f"<b>Commandes livrées:</b> {len(delivered)}", styles['Normal']))
+    elements.append(Paragraph(f"<b>Chiffre d'affaires mensuel:</b> {total_revenue:.2f} DT", styles['Normal']))
+    elements.append(Spacer(1, 0.3*inch))
+
+    # Stats par restaurant
+    restaurant_stats = {}
+    for o in delivered:
+        name = o['restaurant_name']
+        restaurant_stats[name] = restaurant_stats.get(name, 0) + o['total_price']
+    
+    if restaurant_stats:
+        elements.append(Paragraph("<b>Répartition par Restaurant:</b>", styles['Heading2']))
+        elements.append(Spacer(1, 0.1*inch))
+        res_data = [["Restaurant", "Chiffre d'Affaires"]]
+        for name, rev in sorted(restaurant_stats.items(), key=lambda x: x[1], reverse=True):
+            res_data.append([name, f"{rev:.2f} DT"])
+        
+        rt = Table(res_data, colWidths=[4*inch, 2*inch])
+        rt.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.darkgreen),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('GRID', (0,0), (-1,-1), 1, colors.black),
+        ]))
+        elements.append(rt)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"bilan_mensuel_{month}_{year}.pdf", mimetype='application/pdf')
 
 @app.route('/api/users', methods=['POST'])
 @jwt_required()

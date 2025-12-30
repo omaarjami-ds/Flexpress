@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FiPlus, FiUsers, FiPackage, FiMapPin } from 'react-icons/fi';
+import { FiPlus, FiUsers, FiPackage, FiMapPin, FiFileText, FiTrash2, FiRefreshCw, FiDownload } from 'react-icons/fi';
+import WindowControls from '../components/WindowControls';
 import ProfileMenu from '../components/ProfileMenu';
+import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
 const API_URL = 'https://flexpress.onrender.com/api';
@@ -136,6 +138,92 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
+  const cancelOrder = async (orderId) => {
+    if (!window.confirm('Voulez-vous vraiment annuler cette commande ?')) return;
+    const token = localStorage.getItem('token');
+    try {
+      await axios.delete(`${API_URL}/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadData();
+      alert('Commande annulée');
+    } catch (err) {
+      alert('Erreur lors de l\'annulation');
+    }
+  };
+
+  const assignOrder = async (orderId, deliveryId) => {
+    if (!deliveryId) return;
+    const token = localStorage.getItem('token');
+    try {
+      await axios.post(`${API_URL}/orders/${orderId}/assign`, { delivery_id: deliveryId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadData();
+      alert('Commande assignée avec succès');
+    } catch (err) {
+      alert('Erreur lors de l\'assignation');
+    }
+  };
+
+  const downloadOrderPDF = async (orderId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(`${API_URL}/orders/${orderId}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `commande_${orderId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+    } catch (err) {
+      alert('Erreur lors du téléchargement du PDF');
+    }
+  };
+
+  const downloadDailyReport = async () => {
+    const token = localStorage.getItem('token');
+    const date = orderDateFilter || new Date().toISOString().split('T')[0];
+    try {
+      const response = await axios.get(`${API_URL}/reports/daily?date=${date}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `bilan_journalier_${date}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+    } catch (err) {
+      alert('Erreur lors du téléchargement du bilan journalier');
+    }
+  };
+
+  const downloadMonthlyReport = async () => {
+    const token = localStorage.getItem('token');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    try {
+      const response = await axios.get(`${API_URL}/reports/monthly?year=${year}&month=${month}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `bilan_mensuel_${month}_${year}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+    } catch (err) {
+      alert('Erreur lors du téléchargement du bilan mensuel');
+    }
+  };
+
   const stats = {
     totalOrders: orders.length,
     pendingOrders: orders.filter(o => o.status === 'pending').length,
@@ -191,11 +279,13 @@ function AdminDashboard({ user, onLogout }) {
           <h1>FLEXPRESS - Administration</h1>
         </div>
         <div className="header-actions">
+          <WindowControls />
           <ProfileMenu user={user} onLogout={onLogout} />
         </div>
       </header>
 
-      <div className="container">
+      <PullToRefresh onRefresh={loadData}>
+        <div className="container">
         <div className="stats-grid">
           <div className="stat-card">
             <FiPackage />
@@ -364,23 +454,29 @@ function AdminDashboard({ user, onLogout }) {
               <div className="admin-section">
                 <div className="admin-section-header">
                   <h2>📦 Gestion des Commandes</h2>
-                  <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                    <label style={{fontWeight: 'bold'}}>Filtrer par date :</label>
-                    <input 
-                      type="date" 
-                      value={orderDateFilter} 
-                      onChange={(e) => setOrderDateFilter(e.target.value)}
-                      className="input"
-                      style={{padding: '5px', width: 'auto'}}
-                    />
-                    {orderDateFilter && (
-                      <button 
-                        onClick={() => setOrderDateFilter('')}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        Effacer
+                  <div className="admin-actions-group">
+                    <div className="report-buttons">
+                      <button onClick={downloadDailyReport} className="btn btn-info btn-sm">
+                        <FiFileText /> Bilan Jour
                       </button>
-                    )}
+                      <button onClick={downloadMonthlyReport} className="btn btn-info btn-sm">
+                        <FiDownload /> Bilan Mois
+                      </button>
+                    </div>
+                    <div className="filter-group">
+                      <label>Date :</label>
+                      <input 
+                        type="date" 
+                        value={orderDateFilter} 
+                        onChange={(e) => setOrderDateFilter(e.target.value)}
+                        className="input-sm"
+                      />
+                      {orderDateFilter && (
+                        <button onClick={() => setOrderDateFilter('')} className="btn btn-secondary btn-sm">
+                          <FiRefreshCw />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="admin-table-container">
@@ -462,27 +558,45 @@ function AdminDashboard({ user, onLogout }) {
                                 {order.status === 'pending' ? '⏳ En attente' : 
                                  order.status === 'accepted' ? '✅ Acceptée' :
                                  order.status === 'delivering' ? '🚚 En cours' :
-                                 order.status === 'delivered' ? '✓ Livrée' : order.status}
+                                 order.status === 'delivered' ? '✓ Livrée' : 
+                                 order.status === 'cancelled' ? '❌ Annulée' : order.status}
                               </span>
                             </td>
                             <td>
-                              {order.status !== 'delivered' && (
-                                <select 
-                                  value={order.status} 
-                                  onChange={(e) => {
-                                    const token = localStorage.getItem('token');
-                                    axios.put(`${API_URL}/orders/${order.id}/status`, { status: e.target.value }, {
-                                      headers: { Authorization: `Bearer ${token}` }
-                                    }).then(() => loadData()).catch(err => alert('Erreur mise à jour statut'));
-                                  }}
-                                  className="table-select"
+                              <div className="table-actions">
+                                {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                                  <>
+                                    <select 
+                                      className="table-select-sm"
+                                      onChange={(e) => assignOrder(order.id, e.target.value)}
+                                      value={order.delivery_id || ''}
+                                    >
+                                      <option value="">Affecter Livreur</option>
+                                      {users.filter(u => u.role === 'livreur').map(u => (
+                                        <option key={u.id} value={u.id}>
+                                          {u.username} {u.is_available ? '🟢' : '🔴'}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    
+                                    <button 
+                                      onClick={() => cancelOrder(order.id)}
+                                      className="btn btn-danger btn-xs"
+                                      title="Annuler la commande"
+                                    >
+                                      <FiTrash2 />
+                                    </button>
+                                  </>
+                                )}
+                                
+                                <button 
+                                  onClick={() => downloadOrderPDF(order.id)}
+                                  className="btn btn-primary btn-xs"
+                                  title="Télécharger PDF"
                                 >
-                                  <option value="pending">En attente</option>
-                                  <option value="accepted">Acceptée</option>
-                                  <option value="delivering">En cours</option>
-                                  <option value="delivered">Livrée</option>
-                                </select>
-                              )}
+                                  <FiFileText />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -693,6 +807,7 @@ function AdminDashboard({ user, onLogout }) {
           </div>
         </div>
       </div>
+      </PullToRefresh>
     </div>
   );
 }

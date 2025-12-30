@@ -4,6 +4,8 @@ import { FiShoppingCart, FiMapPin, FiHome, FiList, FiPlusCircle, FiUser } from '
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import ProfileMenu from '../components/ProfileMenu';
+import WindowControls from '../components/WindowControls';
+import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
 // Fix for default marker icons
@@ -393,6 +395,10 @@ function ClientDashboard({ user, onLogout }) {
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
     }
+  };
+
+  const handleRefresh = async () => {
+    await Promise.all([loadOrders(), loadRestaurants(null, null)]);
   };
 
   const loadMenuItems = async (restaurantId) => {
@@ -833,11 +839,13 @@ function ClientDashboard({ user, onLogout }) {
           <button onClick={() => setShowCart(!showCart)} className="btn btn-primary" style={{marginRight: '10px'}}>
             <FiShoppingCart /> Panier ({cart.length})
           </button>
+          <WindowControls />
           <ProfileMenu user={user} onLogout={onLogout} />
         </div>
       </header>
 
-      {/* Hero Section Style Glovo */}
+      <PullToRefresh onRefresh={handleRefresh}>
+        {/* Hero Section Style Glovo */}
       {!showMyOrders && !showProfile && (
         <div className="hero-section">
           <div className="hero-content">
@@ -1695,6 +1703,8 @@ function ClientDashboard({ user, onLogout }) {
           </div>
         </div>
       )}
+
+      </PullToRefresh>
 
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav">
