@@ -964,7 +964,7 @@ def generate_order_pdf(order_id):
 
     conn = get_db()
     c = conn.cursor()
-    c.execute('''SELECT o.*, r.name as restaurant_name, r.address as restaurant_address,
+    c.execute('''SELECT o.*, r.name as restaurant_name, r.address as restaurant_address, r.phone as restaurant_phone,
                  u.username as client_name, u.email as client_email, u.phone as client_phone,
                  d.username as delivery_name
                  FROM orders o
@@ -1059,9 +1059,9 @@ def generate_order_pdf(order_id):
     
     address_data = [
         [Paragraph("<b>RESTAURANT (EXPÉDITEUR)</b>", label_style), Paragraph("<b>CLIENT (DESTINATAIRE)</b>", label_style)],
-        [Paragraph(order['restaurant_name'], styles['Normal']), Paragraph(order['client_name'], styles['Normal'])],
-        [Paragraph(order['restaurant_address'], styles['Normal']), Paragraph(order['delivery_address'], styles['Normal'])],
-        [Paragraph(f"Tel: {order.get('restaurant_phone', 'N/A')}", styles['Normal']), Paragraph(f"Tel: {order['client_phone']}", styles['Normal'])]
+        [Paragraph(str(order.get('restaurant_name', 'N/A')), styles['Normal']), Paragraph(str(order.get('client_name', 'N/A')), styles['Normal'])],
+        [Paragraph(str(order.get('restaurant_address', 'N/A')), styles['Normal']), Paragraph(str(order.get('delivery_address', 'N/A')), styles['Normal'])],
+        [Paragraph(f"Tel: {order.get('restaurant_phone', 'N/A')}", styles['Normal']), Paragraph(f"Tel: {order.get('client_phone', 'N/A')}", styles['Normal'])]
     ]
     
     address_table = Table(address_data, colWidths=[3.2*inch, 3.2*inch])
@@ -1147,10 +1147,11 @@ def generate_daily_report():
     
     conn = get_db()
     c = conn.cursor()
-    c.execute('''SELECT o.*, r.name as restaurant_name, u.username as client_name
+    c.execute('''SELECT o.*, r.name as restaurant_name, u.username as client_name, d.username as delivery_name
                  FROM orders o
                  JOIN restaurants r ON o.restaurant_id = r.id
                  JOIN users u ON o.client_id = u.id
+                 LEFT JOIN users d ON o.delivery_id = d.id
                  WHERE date(o.created_at) = date(?)''', (date_str,))
     orders = [dict(row) for row in c.fetchall()]
     conn.close()
@@ -1223,17 +1224,18 @@ def generate_daily_report():
         elements.append(Paragraph("<b>Détail des Commandes</b>", styles['Heading3']))
         elements.append(Spacer(1, 0.1*inch))
         
-        report_data = [["ID", "Restaurant", "Client", "Total", "Statut"]]
+        report_data = [["ID", "Restaurant", "Client", "Livreur", "Total", "Statut"]]
         for o in orders:
             report_data.append([
                 f"#{o['id']}",
                 o['restaurant_name'],
                 o['client_name'],
+                o.get('delivery_name') or "N/A",
                 f"{o['total_price']:.3f} DT",
                 o['status'].upper()
             ])
         
-        t = Table(report_data, colWidths=[0.6*inch, 1.9*inch, 1.5*inch, 1*inch, 1*inch])
+        t = Table(report_data, colWidths=[0.5*inch, 1.5*inch, 1.2*inch, 1.2*inch, 0.9*inch, 0.7*inch])
         t.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#2C3E50")),
             ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
@@ -1267,9 +1269,10 @@ def generate_monthly_report():
     
     conn = get_db()
     c = conn.cursor()
-    c.execute('''SELECT o.*, r.name as restaurant_name
+    c.execute('''SELECT o.*, r.name as restaurant_name, d.username as delivery_name
                  FROM orders o
                  JOIN restaurants r ON o.restaurant_id = r.id
+                 LEFT JOIN users d ON o.delivery_id = d.id
                  WHERE strftime('%Y-%m', o.created_at) = ?''', (month_year,))
     orders = [dict(row) for row in c.fetchall()]
     conn.close()
@@ -1350,17 +1353,32 @@ def generate_monthly_report():
             res_data.append([name, f"{rev:.3f} DT", f"{share:.1f}%"])
         
         rt = Table(res_data, colWidths=[3*inch, 1.5*inch, 1.5*inch])
-        rt.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#34495E")),
+        elements.append(rt)
+        elements.append(Spacer(1, 0.4*inch))
+
+        # Monthly Detailed Orders
+        elements.append(Paragraph("<b>Détail des Commandes du Mois</b>", styles['Heading3']))
+        elements.append(Spacer(1, 0.1*inch))
+        
+        m_report_data = [["ID", "Restaurant", "Livreur", "Total", "Statut"]]
+        for o in orders:
+            m_report_data.append([
+                f"#{o['id']}",
+                o['restaurant_name'],
+                o.get('delivery_name') or "N/A",
+                f"{o['total_price']:.3f} DT",
+                o['status'].upper()
+            ])
+        
+        mt = Table(m_report_data, colWidths=[0.6*inch, 2*inch, 1.4*inch, 1*inch, 1*inch])
+        mt.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#2C3E50")),
             ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('ALIGN', (0,1), (0,-1), 'LEFT'),
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-            ('FONTSIZE', (0,0), (-1,-1), 10),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
-            ('TOPPADDING', (0,0), (-1,-1), 8),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
         ]))
-        elements.append(rt)
+        elements.append(mt)
     else:
         elements.append(Paragraph("<i>Aucune donnée disponible pour ce mois.</i>", styles['Normal']))
 
