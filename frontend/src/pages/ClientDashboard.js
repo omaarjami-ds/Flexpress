@@ -1778,6 +1778,10 @@ function ClientDashboard({ user, onLogout }) {
             <div className="location-popup-actions">
               <button onClick={() => {
                 setShowLocationPopup(false);
+                setShowCart(false);
+                setShowMyOrders(false);
+                setShowProfile(false);
+                setShowManualOrder(false);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 // Ajouter un petit effet visuel sur le bouton de localisation
                 const locBtn = document.getElementById('location-btn');
