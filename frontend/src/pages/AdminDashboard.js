@@ -39,6 +39,9 @@ function AdminDashboard({ user, onLogout }) {
     role: 'livreur',
     phone: ''
   });
+  const [editingRestaurant, setEditingRestaurant] = useState(null);
+  const [editingMenuItem, setEditingMenuItem] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
   const [orderDateFilter, setOrderDateFilter] = useState('');
   const [userStatusFilter, setUserStatusFilter] = useState('all'); // 'all', 'en_service', 'hors_service'
 
@@ -145,9 +148,17 @@ function AdminDashboard({ user, onLogout }) {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`${API_URL}/restaurants/${selectedRestaurant.id}/menu`, newMenuItem, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      if (editingMenuItem) {
+        await axios.put(`${API_URL}/menu-items/${editingMenuItem.id}`, newMenuItem, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Article mis à jour!');
+      } else {
+        await axios.post(`${API_URL}/restaurants/${selectedRestaurant.id}/menu`, newMenuItem, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Article ajouté!');
+      }
       setNewMenuItem({
         name: '',
         description: '',
@@ -157,11 +168,26 @@ function AdminDashboard({ user, onLogout }) {
         is_popular: false,
         is_featured: false
       });
+      setEditingMenuItem(null);
       setShowMenuItemForm(false);
       loadMenu(selectedRestaurant.id);
     } catch (err) {
-      alert('Erreur ajout article');
+      alert('Erreur lors de l\'opération');
     }
+  };
+
+  const startEditingMenuItem = (item) => {
+    setNewMenuItem({
+      name: item.name,
+      description: item.description || '',
+      price: item.price,
+      category: item.category,
+      image_url: item.image_url || '',
+      is_popular: item.is_popular,
+      is_featured: item.is_featured
+    });
+    setEditingMenuItem(item);
+    setShowMenuItemForm(true);
   };
 
   const deleteMenuItem = async (itemId) => {
@@ -216,10 +242,19 @@ function AdminDashboard({ user, onLogout }) {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`${API_URL}/restaurants`, newRestaurant, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      if (editingRestaurant) {
+        await axios.put(`${API_URL}/restaurants/${editingRestaurant.id}`, newRestaurant, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Restaurant mis à jour!');
+      } else {
+        await axios.post(`${API_URL}/restaurants`, newRestaurant, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Restaurant créé avec succès!');
+      }
       setShowRestaurantForm(false);
+      setEditingRestaurant(null);
       setNewRestaurant({
         name: '',
         description: '',
@@ -227,10 +262,21 @@ function AdminDashboard({ user, onLogout }) {
         phone: ''
       });
       loadData();
-      alert('Restaurant créé avec succès!');
     } catch (err) {
-      alert('Erreur création restaurant');
+      alert('Erreur lors de l\'opération');
     }
+  };
+
+  const startEditingRestaurant = (restaurant) => {
+    setNewRestaurant({
+      name: restaurant.name,
+      description: restaurant.description || '',
+      address: restaurant.address || '',
+      phone: restaurant.phone || '',
+      image_url: restaurant.image_url || ''
+    });
+    setEditingRestaurant(restaurant);
+    setShowRestaurantForm(true);
   };
 
   const getStatusColor = (status) => {
@@ -275,10 +321,23 @@ function AdminDashboard({ user, onLogout }) {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`${API_URL}/users`, newUser, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      if (editingUser) {
+        // Pour la mise à jour, on ne renvoie pas le mot de passe s'il est vide
+        const updateData = { ...newUser };
+        if (!updateData.password) delete updateData.password;
+        
+        await axios.put(`${API_URL}/users/${editingUser.id}`, updateData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Utilisateur mis à jour!');
+      } else {
+        await axios.post(`${API_URL}/users`, newUser, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Utilisateur créé avec succès!');
+      }
       setShowUserForm(false);
+      setEditingUser(null);
       setNewUser({
         username: '',
         email: '',
@@ -287,10 +346,21 @@ function AdminDashboard({ user, onLogout }) {
         phone: ''
       });
       loadData();
-      alert('Utilisateur créé avec succès!');
     } catch (err) {
-      alert(err.response?.data?.error || 'Erreur création utilisateur');
+      alert(err.response?.data?.error || 'Erreur lors de l\'opération');
     }
+  };
+
+  const startEditingUser = (user) => {
+    setNewUser({
+      username: user.username,
+      email: user.email,
+      password: '', // On ne pré-remplit pas le mot de passe pour la sécurité
+      role: user.role,
+      phone: user.phone || ''
+    });
+    setEditingUser(user);
+    setShowUserForm(true);
   };
 
   const cancelOrder = async (orderId) => {
@@ -511,16 +581,20 @@ function AdminDashboard({ user, onLogout }) {
                 <div className="admin-section-header">
                   <h2>🍽️ Gestion des Restaurants</h2>
                   <button 
-                    onClick={() => setShowRestaurantForm(!showRestaurantForm)} 
+                    onClick={() => {
+                      setEditingRestaurant(null);
+                      setNewRestaurant({ name: '', description: '', address: '', phone: '', image_url: '' });
+                      setShowRestaurantForm(!showRestaurantForm);
+                    }} 
                     className="btn btn-primary"
                   >
-                    <FiPlus /> Ajouter un restaurant
+                    <FiPlus /> {showRestaurantForm ? 'Fermer' : 'Ajouter un restaurant'}
                   </button>
                 </div>
 
             {showRestaurantForm && (
               <div className="card">
-                <h3>Nouveau restaurant</h3>
+                <h3>{editingRestaurant ? 'Modifier le restaurant' : 'Nouveau restaurant'}</h3>
                 <form onSubmit={createRestaurant}>
                   <input
                     type="text"
@@ -561,10 +635,15 @@ function AdminDashboard({ user, onLogout }) {
                     {uploading && <span>Chargement...</span>}
                     {newRestaurant.image_url && <img src={getFullImageUrl(newRestaurant.image_url)} alt="Aperçu" className="image-preview-sm" />}
                   </div>
-                  <button type="submit" className="btn btn-success" disabled={uploading}>Créer</button>
+                  <button type="submit" className="btn btn-success" disabled={uploading}>
+                    {editingRestaurant ? 'Mettre à jour' : 'Créer'}
+                  </button>
                   <button 
                     type="button" 
-                    onClick={() => setShowRestaurantForm(false)}
+                    onClick={() => {
+                      setShowRestaurantForm(false);
+                      setEditingRestaurant(null);
+                    }}
                     className="btn btn-secondary"
                   >
                     Annuler
@@ -613,12 +692,20 @@ function AdminDashboard({ user, onLogout }) {
                               </span>
                             </td>
                             <td>
-                              <button 
-                                onClick={() => openMenuModal(restaurant)}
-                                className="btn btn-primary btn-sm"
-                              >
-                                <FiPlus /> Menu
-                              </button>
+                              <div className="table-actions">
+                                <button 
+                                  onClick={() => openMenuModal(restaurant)}
+                                  className="btn btn-primary btn-sm"
+                                >
+                                  <FiPlus /> Menu
+                                </button>
+                                <button 
+                                  onClick={() => startEditingRestaurant(restaurant)}
+                                  className="btn btn-info btn-sm"
+                                >
+                                  Éditer
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -804,17 +891,21 @@ function AdminDashboard({ user, onLogout }) {
                       <option value="hors_service">🔴 Livreurs Hors Service</option>
                     </select>
                     <button 
-                      onClick={() => setShowUserForm(!showUserForm)} 
+                      onClick={() => {
+                        setEditingUser(null);
+                        setNewUser({ username: '', email: '', password: '', role: 'livreur', phone: '' });
+                        setShowUserForm(!showUserForm);
+                      }} 
                       className="btn btn-primary"
                     >
-                      <FiUsers /> Ajouter un utilisateur
+                      <FiUsers /> {showUserForm ? 'Fermer' : 'Ajouter un utilisateur'}
                     </button>
                   </div>
                 </div>
 
                 {showUserForm && (
                   <div className="admin-form-card">
-                    <h3>Nouvel utilisateur</h3>
+                    <h3>{editingUser ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}</h3>
                     <form onSubmit={createUser}>
                       <div className="form-grid">
                         <input
@@ -835,10 +926,10 @@ function AdminDashboard({ user, onLogout }) {
                         />
                         <input
                           type="password"
-                          placeholder="Mot de passe"
+                          placeholder={editingUser ? "Nouveau mot de passe (laisser vide si inchangé)" : "Mot de passe"}
                           value={newUser.password}
                           onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                          required
+                          required={!editingUser}
                           className="input"
                         />
                         <input
@@ -859,10 +950,15 @@ function AdminDashboard({ user, onLogout }) {
                         </select>
                       </div>
                       <div className="form-actions">
-                        <button type="submit" className="btn btn-success">Créer</button>
+                        <button type="submit" className="btn btn-success">
+                          {editingUser ? 'Mettre à jour' : 'Créer'}
+                        </button>
                         <button 
                           type="button" 
-                          onClick={() => setShowUserForm(false)}
+                          onClick={() => {
+                            setShowUserForm(false);
+                            setEditingUser(null);
+                          }}
                           className="btn btn-secondary"
                         >
                           Annuler
@@ -957,6 +1053,12 @@ function AdminDashboard({ user, onLogout }) {
                             </td>
                             <td>
                               <div className="table-actions">
+                                <button 
+                                  onClick={() => startEditingUser(userItem)}
+                                  className="btn btn-info btn-sm"
+                                >
+                                  Modifier
+                                </button>
                                 <select 
                                   value={userItem.role} 
                                   onChange={(e) => updateUserRole(userItem.id, e.target.value)}
@@ -1000,15 +1102,20 @@ function AdminDashboard({ user, onLogout }) {
             <div className="modal-body">
               <button 
                 className="btn btn-primary" 
-                onClick={() => setShowMenuItemForm(!showMenuItemForm)}
+                onClick={() => {
+                  setEditingMenuItem(null);
+                  setNewMenuItem({ name: '', description: '', price: '', category: 'Plat', image_url: '', is_popular: false, is_featured: false });
+                  setShowMenuItemForm(!showMenuItemForm);
+                }}
                 style={{marginBottom: '15px'}}
               >
-                {showMenuItemForm ? 'Annuler' : 'Ajouter un article'}
+                {showMenuItemForm ? 'Fermer' : 'Ajouter un article'}
               </button>
 
               {showMenuItemForm && (
                 <div className="card" style={{padding: '15px', marginBottom: '20px'}}>
                   <form onSubmit={addMenuItem} className="form-grid">
+                    <h3>{editingMenuItem ? 'Modifier l\'article' : 'Nouvel article'}</h3>
                     <input
                       type="text"
                       placeholder="Nom de l'article"
@@ -1072,7 +1179,21 @@ function AdminDashboard({ user, onLogout }) {
                         Mis en avant
                       </label>
                     </div>
-                    <button type="submit" className="btn btn-success" disabled={uploading}>Ajouter</button>
+                    <button type="submit" className="btn btn-success" disabled={uploading}>
+                      {editingMenuItem ? 'Mettre à jour' : 'Ajouter'}
+                    </button>
+                    {editingMenuItem && (
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setEditingMenuItem(null);
+                          setShowMenuItemForm(false);
+                        }} 
+                        className="btn btn-secondary"
+                      >
+                        Annuler
+                      </button>
+                    )}
                   </form>
                 </div>
               )}
@@ -1117,9 +1238,20 @@ function AdminDashboard({ user, onLogout }) {
                             />
                           </td>
                           <td>
-                            <button className="btn btn-danger btn-xs" onClick={() => deleteMenuItem(item.id)}>
-                              <FiTrash2 />
-                            </button>
+                            <div className="table-actions">
+                              <button 
+                                className="btn btn-info btn-xs" 
+                                onClick={() => startEditingMenuItem(item)}
+                              >
+                                Éditer
+                              </button>
+                              <button 
+                                className="btn btn-danger btn-xs" 
+                                onClick={() => deleteMenuItem(item.id)}
+                              >
+                                <FiTrash2 />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))

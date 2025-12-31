@@ -497,6 +497,33 @@ def create_restaurant():
     
     return jsonify({'id': restaurant_id, 'message': 'Restaurant created'}), 201
 
+@app.route('/api/restaurants/<int:restaurant_id>', methods=['PUT'])
+@jwt_required()
+def update_restaurant(restaurant_id):
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    conn = get_db()
+    c = conn.cursor()
+    
+    fields = []
+    values = []
+    for key in ['name', 'description', 'latitude', 'longitude', 'address', 'phone', 'image_url', 'is_active', 'open_time', 'close_time', 'rating']:
+        if key in data:
+            fields.append(f"{key} = ?")
+            values.append(data[key])
+    
+    if not fields:
+        return jsonify({'error': 'No fields to update'}), 400
+        
+    values.append(restaurant_id)
+    c.execute(f"UPDATE restaurants SET {', '.join(fields)} WHERE id = ?", values)
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Restaurant updated'}), 200
+
 @app.route('/api/restaurants/<int:restaurant_id>/menu', methods=['GET'])
 def get_restaurant_menu(restaurant_id):
     conn = get_db()
@@ -1076,6 +1103,37 @@ def delete_user(user_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'User deleted'}), 200
+
+@app.route('/api/users/<int:user_id>', methods=['PUT'])
+@jwt_required()
+def update_user(user_id):
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    conn = get_db()
+    c = conn.cursor()
+    
+    fields = []
+    values = []
+    for key in ['username', 'email', 'role', 'phone', 'is_available']:
+        if key in data:
+            fields.append(f"{key} = ?")
+            values.append(data[key])
+    
+    if 'password' in data and data['password']:
+        fields.append("password = ?")
+        values.append(generate_password_hash(data['password']))
+        
+    if not fields:
+        return jsonify({'error': 'No fields to update'}), 400
+        
+    values.append(user_id)
+    c.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = ?", values)
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'User updated'}), 200
 
 @app.route('/api/users/<int:user_id>/role', methods=['PUT'])
 @jwt_required()
