@@ -57,6 +57,21 @@ def init_db():
         except Exception as e:
             app.logger.error(f"Migration Error: {e}")
 
+        # Migration: Add columns to menu_items if missing
+        try:
+            c.execute("PRAGMA table_info(menu_items)")
+            columns = [col[1] for col in c.fetchall()]
+            if columns:
+                if 'is_popular' not in columns:
+                    app.logger.info("Migrating database: adding is_popular to menu_items")
+                    c.execute("ALTER TABLE menu_items ADD COLUMN is_popular BOOLEAN DEFAULT 0")
+                if 'is_featured' not in columns:
+                    app.logger.info("Migrating database: adding is_featured to menu_items")
+                    c.execute("ALTER TABLE menu_items ADD COLUMN is_featured BOOLEAN DEFAULT 0")
+                conn.commit()
+        except Exception as e:
+            app.logger.error(f"Menu Items Migration Error: {e}")
+
         # Users table
         c.execute('''CREATE TABLE IF NOT EXISTS users
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -122,6 +137,8 @@ def init_db():
                       category TEXT,
                       image_url TEXT,
                       is_available BOOLEAN DEFAULT 1,
+                      is_popular BOOLEAN DEFAULT 0,
+                      is_featured BOOLEAN DEFAULT 0,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                       FOREIGN KEY (restaurant_id) REFERENCES restaurants(id))''')
         
@@ -261,6 +278,26 @@ def is_restaurant_open(open_time, close_time):
         return current_time >= open_time or current_time <= close_time
     else:
         return open_time <= current_time <= close_time
+
+@app.route('/api/upload', methods=['POST'])
+@jwt_required()
+def upload_file():
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    if file:
+        filename = datetime.now().strftime("%Y%m%d%H%M%S") + "_" + file.filename
+        file_path = os.path.join(STATIC_DIR, filename)
+        file.save(file_path)
+        return jsonify({'url': f'/static/{filename}'}), 201
 
 # Auth routes
 @app.route('/api/auth/register', methods=['POST'])
@@ -479,14 +516,68 @@ def add_menu_item(restaurant_id):
     data = request.json
     conn = get_db()
     c = conn.cursor()
-    c.execute('''INSERT INTO menu_items (restaurant_id, name, description, price, category, image_url)
-                  VALUES (?, ?, ?, ?, ?, ?)''',
+    c.execute('''INSERT INTO menu_items (restaurant_id, name, description, price, category, image_url, is_popular, is_featured)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
               (restaurant_id, data['name'], data.get('description', ''), data['price'],
-               data.get('category', 'Plat'), data.get('image_url', '')))
+               data.get('category', 'Plat'), data.get('image_url', ''), 
+               data.get('is_popular', 0), data.get('is_featured', 0)))
     conn.commit()
     item_id = c.lastrowid
     conn.close()
     return jsonify({'id': item_id, 'message': 'Menu item added'}), 201
+
+@app.route('/api/menu-items/<int:item_id>', methods=['PUT'])
+@jwt_required()
+def update_menu_item(item_id):
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    conn = get_db()
+    c = conn.cursor()
+    
+    fields = []
+    values = []
+    for key in ['name', 'description', 'price', 'category', 'image_url', 'is_available', 'is_popular', 'is_featured']:
+        if key in data:
+            fields.append(f"{key} = ?")
+            values.append(data[key])
+    
+    if not fields:
+        return jsonify({'error': 'No fields to update'}), 400
+        
+    values.append(item_id)
+    c.execute(f"UPDATE menu_items SET {', '.join(fields)} WHERE id = ?", values)
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Menu item updated'}), 200
+
+@app.route('/api/menu-items/popular', methods=['GET'])
+def get_popular_items():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''SELECT m.*, r.name as restaurant_name 
+                 FROM menu_items m 
+                 JOIN restaurants r ON m.restaurant_id = r.id 
+                 WHERE m.is_popular = 1 AND m.is_available = 1 
+                 LIMIT 10''')
+    items = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(items), 200
+
+@app.route('/api/menu-items/makloub', methods=['GET'])
+def get_makloub_items():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''SELECT m.*, r.name as restaurant_name 
+                 FROM menu_items m 
+                 JOIN restaurants r ON m.restaurant_id = r.id 
+                 WHERE (m.category LIKE '%Makloub%' OR m.name LIKE '%Makloub%') AND m.is_available = 1 
+                 LIMIT 10''')
+    items = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(items), 200
 
 # Order routes
 @app.route('/api/orders', methods=['POST'])
@@ -900,6 +991,48 @@ def get_order_details(order_id):
     
     conn.close()
     return jsonify(order_dict), 200
+
+@app.route('/api/livreur/stats', methods=['GET'])
+@jwt_required()
+def get_livreur_stats():
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'livreur':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    # Statistiques globales
+    c.execute('''SELECT COUNT(*) as total_orders, 
+                        SUM(total_price) as total_earnings,
+                        COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_orders,
+                        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders
+                 FROM orders 
+                 WHERE delivery_id = ?''', (current_user['id'],))
+    stats = dict(c.fetchone())
+    
+    # Statistiques du jour
+    c.execute('''SELECT COUNT(*) as today_orders, 
+                        SUM(total_price) as today_earnings
+                 FROM orders 
+                 WHERE delivery_id = ? AND date(created_at) = date('now')''', (current_user['id'],))
+    today_stats = dict(c.fetchone())
+    
+    stats.update(today_stats)
+    
+    # Historique récent (10 dernières)
+    c.execute('''SELECT o.*, r.name as restaurant_name 
+                 FROM orders o 
+                 JOIN restaurants r ON o.restaurant_id = r.id 
+                 WHERE o.delivery_id = ? 
+                 ORDER BY o.created_at DESC LIMIT 10''', (current_user['id'],))
+    recent_orders = [dict(row) for row in c.fetchall()]
+    
+    conn.close()
+    return jsonify({
+        'stats': stats,
+        'recent_orders': recent_orders
+    }), 200
 
 # User management routes (Admin only)
 @app.route('/api/users', methods=['GET'])

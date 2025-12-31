@@ -73,6 +73,8 @@ def init_db():
                   category TEXT,
                   image_url TEXT,
                   is_available BOOLEAN DEFAULT 1,
+                  is_popular BOOLEAN DEFAULT 0,
+                  is_featured BOOLEAN DEFAULT 0,
                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                   FOREIGN KEY (restaurant_id) REFERENCES restaurants(id))''')
     
@@ -111,37 +113,25 @@ def init_test_data():
     # Créer des plats pour chaque restaurant
     menu_items_data = [
         # Pizza Express
-        (restaurant_ids[0], 'Pizza Margherita', 'Tomate, mozzarella, basilic', 15.00, 'Pizza'),
-        (restaurant_ids[0], 'Pizza 4 Fromages', 'Mozzarella, gorgonzola, parmesan, chèvre', 18.00, 'Pizza'),
-        (restaurant_ids[0], 'Pizza Pepperoni', 'Sauce tomate, mozzarella, pepperoni', 17.00, 'Pizza'),
-        (restaurant_ids[0], 'Pizza Hawaienne', 'Jambon, ananas, mozzarella', 16.00, 'Pizza'),
-        (restaurant_ids[0], 'Tiramisu', 'Dessert italien traditionnel', 8.00, 'Dessert'),
+        (restaurant_ids[0], 'Pizza Margherita', 'Tomate, mozzarella, basilic', 15.00, 'Pizza', None, 1, 1, 1),
+        (restaurant_ids[0], 'Pizza 4 Fromages', 'Mozzarella, gorgonzola, parmesan, chèvre', 18.00, 'Pizza', None, 1, 0, 0),
+        (restaurant_ids[0], 'Pizza Pepperoni', 'Sauce tomate, mozzarella, pepperoni', 17.00, 'Pizza', None, 1, 1, 0),
         
         # Burger House
-        (restaurant_ids[1], 'Burger Classic', 'Steak, salade, tomate, oignon', 12.00, 'Burger'),
-        (restaurant_ids[1], 'Burger Cheese', 'Steak, cheddar, salade, tomate', 13.00, 'Burger'),
-        (restaurant_ids[1], 'Burger Bacon', 'Steak, bacon, cheddar, oignons frits', 15.00, 'Burger'),
-        (restaurant_ids[1], 'Frites', 'Frites maison', 5.00, 'Accompagnement'),
-        (restaurant_ids[1], 'Coca-Cola', 'Boisson fraîche', 3.00, 'Boisson'),
+        (restaurant_ids[1], 'Burger Classic', 'Steak, salade, tomate, oignon', 12.00, 'Burger', None, 1, 1, 1),
+        (restaurant_ids[1], 'Burger Cheese', 'Steak, cheddar, salade, tomate', 13.00, 'Burger', None, 1, 0, 0),
         
         # Esmiralda (Plats tunisiens)
-        (restaurant_ids[2], 'Pizza Thon', 'Tomate, mozzarella, thon, olives', 12.00, 'Pizza', '/static/logo.png'),
-        (restaurant_ids[2], 'Makloub Escalope', 'Pain maison, escalope, frites, salade, sauces', 9.00, 'Tunisien', '/static/makloub.jpg'),
-        (restaurant_ids[2], 'Sandwich Escalope Pané', 'Escalope pané croustillant, frites, salade', 8.00, 'Sandwich', '/static/logo.png'),
-        (restaurant_ids[2], 'Pizza Tonno', 'Sauce tomate, thon, oignons, câpres', 13.00, 'Pizza', '/static/logo.png'),
-        (restaurant_ids[2], 'Pgaletteizza', 'Galette pizza spéciale Esmiralda', 10.00, 'Pizza', '/static/logo.png'),
-        (restaurant_ids[2], 'Baguette Scallop', 'Baguette farcie à l\'escalope grillé', 7.50, 'Sandwich', '/static/baguette farcie.jpg'),
-        (restaurant_ids[2], 'Plat Charwarma', 'Assiette chawarma avec accompagnements', 14.00, 'Plat', '/static/chawarma.jpg'),
+        (restaurant_ids[2], 'Pizza Thon', 'Tomate, mozzarella, thon, olives', 12.00, 'Pizza', '/static/logo.png', 1, 0, 0),
+        (restaurant_ids[2], 'Makloub Escalope', 'Pain maison, escalope, frites, salade, sauces', 9.00, 'Makloub', '/static/makloub.jpg', 1, 1, 1),
+        (restaurant_ids[2], 'Sandwich Escalope Pané', 'Escalope pané croustillant, frites, salade', 8.00, 'Sandwich', '/static/logo.png', 1, 0, 0),
+        (restaurant_ids[2], 'Baguette Scallop', 'Baguette farcie à l\'escalope grillé', 7.50, 'Sandwich', '/static/baguette farcie.jpg', 1, 1, 0),
+        (restaurant_ids[2], 'Plat Charwarma', 'Assiette chawarma avec accompagnements', 14.00, 'Plat', '/static/chawarma.jpg', 1, 1, 0),
     ]
     
     for item in menu_items_data:
-        # Vérifier si l'item a une image, sinon mettre None
-        if len(item) == 5:
-            c.execute('''INSERT INTO menu_items (restaurant_id, name, description, price, category)
-                          VALUES (?, ?, ?, ?, ?)''', item)
-        else:
-            c.execute('''INSERT INTO menu_items (restaurant_id, name, description, price, category, image_url)
-                          VALUES (?, ?, ?, ?, ?, ?)''', item)
+        c.execute('''INSERT INTO menu_items (restaurant_id, name, description, price, category, image_url, is_available, is_popular, is_featured)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', item)
     
     # Créer un livreur de test
     c.execute('SELECT COUNT(*) FROM users WHERE role = ?', ('livreur',))

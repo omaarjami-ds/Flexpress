@@ -6,7 +6,7 @@ import ProfileMenu from '../components/ProfileMenu';
 import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
-const API_URL = 'https://flexpress.onrender.com/api';
+const API_URL = 'http://localhost:5000/api';
 
 function AdminDashboard({ user, onLogout }) {
   const [restaurants, setRestaurants] = useState([]);
@@ -31,12 +31,119 @@ function AdminDashboard({ user, onLogout }) {
   const [orderDateFilter, setOrderDateFilter] = useState('');
   const [userStatusFilter, setUserStatusFilter] = useState('all'); // 'all', 'en_service', 'hors_service'
 
+  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [menuItems, setMenuItems] = useState([]);
+  const [showMenuItemForm, setShowMenuItemForm] = useState(false);
+  const [newMenuItem, setNewMenuItem] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: 'Plat',
+    image_url: '',
+    is_popular: false,
+    is_featured: false
+  });
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     loadData();
     // Rafraîchissement automatique toutes les 10 secondes
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleFileUpload = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    setUploading(true);
+    const token = localStorage.getItem('token');
+    try {
+      const res = await axios.post(`${API_URL}/upload`, formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}` 
+        }
+      });
+      if (type === 'restaurant') {
+        setNewRestaurant({ ...newRestaurant, image_url: res.data.url });
+      } else {
+        setNewMenuItem({ ...newMenuItem, image_url: res.data.url });
+      }
+    } catch (err) {
+      alert('Erreur lors de l\'upload de l\'image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const loadMenu = async (restaurantId) => {
+    try {
+      const res = await axios.get(`${API_URL}/restaurants/${restaurantId}/menu`);
+      setMenuItems(res.data);
+    } catch (err) {
+      console.error('Erreur chargement menu:', err);
+    }
+  };
+
+  const openMenuModal = (restaurant) => {
+    setSelectedRestaurant(restaurant);
+    loadMenu(restaurant.id);
+    setShowMenuModal(true);
+  };
+
+  const addMenuItem = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      await axios.post(`${API_URL}/restaurants/${selectedRestaurant.id}/menu`, newMenuItem, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNewMenuItem({
+        name: '',
+        description: '',
+        price: '',
+        category: 'Plat',
+        image_url: '',
+        is_popular: false,
+        is_featured: false
+      });
+      setShowMenuItemForm(false);
+      loadMenu(selectedRestaurant.id);
+    } catch (err) {
+      alert('Erreur ajout article');
+    }
+  };
+
+  const deleteMenuItem = async (itemId) => {
+    if (!window.confirm('Supprimer cet article ?')) return;
+    const token = localStorage.getItem('token');
+    try {
+      // Pour simplifier on utilise PUT pour rendre indisponible au lieu de DELETE physique
+      await axios.put(`${API_URL}/menu-items/${itemId}`, { is_available: false }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadMenu(selectedRestaurant.id);
+    } catch (err) {
+      alert('Erreur suppression article');
+    }
+  };
+
+  const toggleItemStatus = async (item, field) => {
+    const token = localStorage.getItem('token');
+    try {
+      await axios.put(`${API_URL}/menu-items/${item.id}`, { [field]: !item[field] }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadMenu(selectedRestaurant.id);
+    } catch (err) {
+      alert('Erreur mise à jour article');
+    }
+  };
 
   const loadData = async () => {
     const token = localStorage.getItem('token');
@@ -398,7 +505,18 @@ function AdminDashboard({ user, onLogout }) {
                     onChange={(e) => setNewRestaurant({ ...newRestaurant, phone: e.target.value })}
                     className="input"
                   />
-                  <button type="submit" className="btn btn-success">Créer</button>
+                  <div className="file-input-group">
+                    <label>Photo du restaurant :</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'restaurant')}
+                      className="input"
+                    />
+                    {uploading && <span>Chargement...</span>}
+                    {newRestaurant.image_url && <img src={newRestaurant.image_url} alt="Aperçu" className="image-preview-sm" />}
+                  </div>
+                  <button type="submit" className="btn btn-success" disabled={uploading}>Créer</button>
                   <button 
                     type="button" 
                     onClick={() => setShowRestaurantForm(false)}
@@ -422,18 +540,24 @@ function AdminDashboard({ user, onLogout }) {
                         <th>Téléphone</th>
                         <th>Horaires</th>
                         <th>Statut</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {restaurants.length === 0 ? (
                         <tr>
-                          <td colSpan="7" className="table-empty">Aucun restaurant</td>
+                          <td colSpan="8" className="table-empty">Aucun restaurant</td>
                         </tr>
                       ) : (
                         restaurants.map(restaurant => (
                           <tr key={restaurant.id}>
                             <td>#{restaurant.id}</td>
-                            <td><strong>{restaurant.name}</strong></td>
+                            <td>
+                              <div className="table-cell-with-img">
+                                {restaurant.image_url && <img src={restaurant.image_url} alt="" className="table-img-sm" />}
+                                <strong>{restaurant.name}</strong>
+                              </div>
+                            </td>
                             <td>{restaurant.description || 'Aucune description'}</td>
                             <td>{restaurant.address || 'Non définie'}</td>
                             <td>{restaurant.phone || 'Non renseigné'}</td>
@@ -442,6 +566,14 @@ function AdminDashboard({ user, onLogout }) {
                               <span className={`status-badge ${restaurant.is_active ? 'status-delivered' : 'status-pending'}`}>
                                 {restaurant.is_active ? 'Actif' : 'Inactif'}
                               </span>
+                            </td>
+                            <td>
+                              <button 
+                                onClick={() => openMenuModal(restaurant)}
+                                className="btn btn-primary btn-sm"
+                              >
+                                <FiPlus /> Menu
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -811,6 +943,149 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       </div>
       </PullToRefresh>
+
+      {/* Modal de gestion du menu */}
+      {showMenuModal && selectedRestaurant && (
+        <div className="modal-overlay">
+          <div className="modal-content modal-lg">
+            <div className="modal-header">
+              <h2>Menu de {selectedRestaurant.name}</h2>
+              <button className="btn-close" onClick={() => setShowMenuModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <button 
+                className="btn btn-primary" 
+                onClick={() => setShowMenuItemForm(!showMenuItemForm)}
+                style={{marginBottom: '15px'}}
+              >
+                {showMenuItemForm ? 'Annuler' : 'Ajouter un article'}
+              </button>
+
+              {showMenuItemForm && (
+                <div className="card" style={{padding: '15px', marginBottom: '20px'}}>
+                  <form onSubmit={addMenuItem} className="form-grid">
+                    <input
+                      type="text"
+                      placeholder="Nom de l'article"
+                      value={newMenuItem.name}
+                      onChange={(e) => setNewMenuItem({ ...newMenuItem, name: e.target.value })}
+                      required
+                      className="input"
+                    />
+                    <input
+                      type="number"
+                      step="0.001"
+                      placeholder="Prix (DT)"
+                      value={newMenuItem.price}
+                      onChange={(e) => setNewMenuItem({ ...newMenuItem, price: e.target.value })}
+                      required
+                      className="input"
+                    />
+                    <select
+                      value={newMenuItem.category}
+                      onChange={(e) => setNewMenuItem({ ...newMenuItem, category: e.target.value })}
+                      className="input"
+                    >
+                      <option value="Plat">Plat</option>
+                      <option value="Pizza">Pizza</option>
+                      <option value="Makloub">Makloub</option>
+                      <option value="Burger">Burger</option>
+                      <option value="Sandwich">Sandwich</option>
+                      <option value="Boisson">Boisson</option>
+                      <option value="Dessert">Dessert</option>
+                    </select>
+                    <textarea
+                      placeholder="Description"
+                      value={newMenuItem.description}
+                      onChange={(e) => setNewMenuItem({ ...newMenuItem, description: e.target.value })}
+                      className="input"
+                    />
+                    <div className="file-input-group">
+                      <label>Photo de l'article :</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, 'menu')}
+                        className="input"
+                      />
+                    </div>
+                    <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
+                      <label style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                        <input
+                          type="checkbox"
+                          checked={newMenuItem.is_popular}
+                          onChange={(e) => setNewMenuItem({ ...newMenuItem, is_popular: e.target.checked })}
+                        />
+                        Populaire
+                      </label>
+                      <label style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                        <input
+                          type="checkbox"
+                          checked={newMenuItem.is_featured}
+                          onChange={(e) => setNewMenuItem({ ...newMenuItem, is_featured: e.target.checked })}
+                        />
+                        Mis en avant
+                      </label>
+                    </div>
+                    <button type="submit" className="btn btn-success" disabled={uploading}>Ajouter</button>
+                  </form>
+                </div>
+              )}
+
+              <div className="admin-table-container">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Image</th>
+                      <th>Nom</th>
+                      <th>Catégorie</th>
+                      <th>Prix</th>
+                      <th>Populaire</th>
+                      <th>Mis en avant</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {menuItems.length === 0 ? (
+                      <tr><td colSpan="7" className="table-empty">Aucun article dans le menu</td></tr>
+                    ) : (
+                      menuItems.map(item => (
+                        <tr key={item.id}>
+                          <td>
+                            {item.image_url && <img src={item.image_url} alt="" className="table-img-sm" />}
+                          </td>
+                          <td><strong>{item.name}</strong></td>
+                          <td>{item.category}</td>
+                          <td>{item.price.toFixed(3)} DT</td>
+                          <td>
+                            <input 
+                              type="checkbox" 
+                              checked={item.is_popular} 
+                              onChange={() => toggleItemStatus(item, 'is_popular')}
+                            />
+                          </td>
+                          <td>
+                            <input 
+                              type="checkbox" 
+                              checked={item.is_featured} 
+                              onChange={() => toggleItemStatus(item, 'is_featured')}
+                            />
+                          </td>
+                          <td>
+                            <button className="btn btn-danger btn-xs" onClick={() => deleteMenuItem(item.id)}>
+                              <FiTrash2 />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

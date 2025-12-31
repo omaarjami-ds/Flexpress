@@ -16,7 +16,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-const API_URL = 'https://flexpress.onrender.com/api';
+const API_URL = 'http://localhost:5000/api';
 
 // Custom icons
 const clientIcon = new L.Icon({
@@ -289,9 +289,26 @@ function ClientDashboard({ user, onLogout }) {
     }
   };
 
+  const [popularItems, setPopularItems] = useState([]);
+  const [makloubItems, setMakloubItems] = useState([]);
+
+  const loadPopularAndMakloub = async () => {
+    try {
+      const [popRes, makRes] = await Promise.all([
+        axios.get(`${API_URL}/menu-items/popular`),
+        axios.get(`${API_URL}/menu-items/makloub`)
+      ]);
+      setPopularItems(popRes.data);
+      setMakloubItems(makRes.data);
+    } catch (err) {
+      console.error('Erreur chargement items populaires/makloub:', err);
+    }
+  };
+
   useEffect(() => {
     loadOrders();
     loadRestaurants(null, null);
+    loadPopularAndMakloub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1019,61 +1036,75 @@ function ClientDashboard({ user, onLogout }) {
           </div>
         )}
 
-        {/* Section Suggestions Fastfood Tunisien */}
+        {/* Section Makloub & Populaires dynamique */}
         {!showMyOrders && (
           <>
-          <div className="suggestions-section">
-            <h2 className="section-title">
-              🍽️ Suggestions Populaires - Fastfood Tunisien
-            </h2>
-          <div className="suggestions-grid">
-            {tunisianFastFoodSuggestions.map((item, index) => (
-              <div 
-                key={index} 
-                className="suggestion-card"
-                onClick={() => {
-                  // Ajouter directement au panier
-                  addToCart({
-                    name: item.name,
-                    price: item.price,
-                    quantity: 1,
-                    isSuggestion: true
-                  });
-                  alert(`"${item.name}" ajouté au panier !`);
-                }}
-              >
-                <div className="suggestion-image-container">
-                  <img 
-                    src={getSuggestionImage(item.name)} 
-                    alt={item.name}
-                    className="suggestion-image"
-                    onError={(e) => {
-                      // En cas d'erreur, utiliser une image par défaut
-                      e.target.style.display = 'none';
-                      e.target.nextElementSibling.style.display = 'flex';
-                    }}
-                  />
-                  <div className="suggestion-image-fallback" style={{display: 'none'}}>
-                    <span className="suggestion-fallback-icon">🍽️</span>
-                  </div>
-                  {item.popular && (
-                    <div className="popular-badge-overlay">
-                      <span className="popular-badge-icon">⭐</span>
-                      <span className="popular-badge-text">Populaire</span>
+          {makloubItems.length > 0 && (
+            <div className="suggestions-section">
+              <h2 className="section-title">🌯 Spécialités Makloub</h2>
+              <div className="suggestions-grid">
+                {makloubItems.map((item, index) => (
+                  <div key={index} className="suggestion-card" onClick={() => {
+                    addToCart({...item, quantity: 1});
+                    alert(`"${item.name}" ajouté au panier !`);
+                  }}>
+                    <div className="suggestion-image-container">
+                      <img 
+                        src={item.image_url || getSuggestionImage(item.name)} 
+                        alt={item.name}
+                        className="suggestion-image"
+                        onError={(e) => { e.target.src = '/static/logo.png'; }}
+                      />
+                      <div className="restaurant-tag-overlay">{item.restaurant_name}</div>
                     </div>
-                  )}
-                </div>
-                <div className="suggestion-content">
-                  <h3>{item.name}</h3>
-                  <p>{item.description}</p>
-                  <div className="suggestion-footer">
-                    <span className="suggestion-price">{item.price.toFixed(2)} DT</span>
+                    <div className="suggestion-content">
+                      <h3>{item.name}</h3>
+                      <p>{item.description}</p>
+                      <div className="suggestion-footer">
+                        <span className="suggestion-price">{item.price.toFixed(3)} DT</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
+
+          {popularItems.length > 0 && (
+            <div className="suggestions-section">
+              <h2 className="section-title">⭐ Les plus populaires</h2>
+              <div className="suggestions-grid">
+                {popularItems.map((item, index) => (
+                  <div key={index} className="suggestion-card" onClick={() => {
+                    addToCart({...item, quantity: 1});
+                    alert(`"${item.name}" ajouté au panier !`);
+                  }}>
+                    <div className="suggestion-image-container">
+                      <img 
+                        src={item.image_url || getSuggestionImage(item.name)} 
+                        alt={item.name}
+                        className="suggestion-image"
+                        onError={(e) => { e.target.src = '/static/logo.png'; }}
+                      />
+                      <div className="popular-badge-overlay">
+                        <span className="popular-badge-icon">⭐</span>
+                        <span className="popular-badge-text">Populaire</span>
+                      </div>
+                      <div className="restaurant-tag-overlay">{item.restaurant_name}</div>
+                    </div>
+                    <div className="suggestion-content">
+                      <h3>{item.name}</h3>
+                      <p>{item.description}</p>
+                      <div className="suggestion-footer">
+                        <span className="suggestion-price">{item.price.toFixed(3)} DT</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
 
         {/* Suggestions supplémentaires */}
         <div className="more-suggestions-section">
@@ -1301,13 +1332,11 @@ function ClientDashboard({ user, onLogout }) {
                           )}
                         </div>
                         <div className="menu-item-actions">
-                          <span className="price">{item.price.toFixed(2)}DT</span>
+                          <span className="price">{item.price.toFixed(3)}DT</span>
                           <button 
                             onClick={() => addToCart({ 
-                              name: item.name, 
-                              price: item.price, 
-                              quantity: 1,
-                              id: item.id 
+                              ...item,
+                              quantity: 1
                             })} 
                             className="btn btn-primary"
                             disabled={!item.is_available}
@@ -1329,32 +1358,30 @@ function ClientDashboard({ user, onLogout }) {
                 Commandez rapidement vos plats favoris
               </p>
               <div className="quick-orders">
-                {tunisianFastFoodSuggestions.slice(0, 4).map((item, index) => (
+                {(popularItems.length > 0 ? popularItems : tunisianFastFoodSuggestions).slice(0, 4).map((item, index) => (
                   <button
                     key={index}
                     onClick={() => {
                       // Ajouter directement au panier
                       addToCart({
-                        name: item.name,
-                        price: item.price,
-                        quantity: 1,
-                        isSuggestion: true
+                        ...item,
+                        quantity: 1
                       });
                       alert(`"${item.name}" ajouté au panier !`);
                     }}
                     className="quick-order-btn"
                   >
                     <img 
-                      src={getSuggestionImage(item.name)} 
+                      src={item.image_url || getSuggestionImage(item.name)} 
                       alt={item.name}
                       className="quick-order-image"
                       onError={(e) => {
-                        e.target.style.display = 'none';
+                        e.target.src = '/static/logo.png';
                       }}
                     />
                     <div className="quick-order-info">
                       <span className="quick-order-name">{item.name}</span>
-                      <span className="quick-order-price">{item.price.toFixed(2)} DT</span>
+                      <span className="quick-order-price">{item.price.toFixed(3)} DT</span>
                     </div>
                   </button>
                 ))}

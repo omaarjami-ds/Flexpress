@@ -16,7 +16,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-const API_URL = 'https://flexpress.onrender.com/api';
+const API_URL = 'http://localhost:5000/api';
 
 // Calcul de distance (en km) entre deux points GPS, style Google Maps simplifié
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
@@ -87,6 +87,30 @@ function LivreurDashboard({ user, onLogout }) {
   const watchIdRef = useRef(null);
   const mapRef = useRef(null);
   const audioRef = useRef(null);
+
+  const [livreurStats, setLivreurStats] = useState({
+    stats: {
+      total_orders: 0,
+      total_earnings: 0,
+      delivered_orders: 0,
+      cancelled_orders: 0,
+      today_orders: 0,
+      today_earnings: 0
+    },
+    recent_orders: []
+  });
+
+  const fetchLivreurStats = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await axios.get(`${API_URL}/livreur/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setLivreurStats(res.data);
+    } catch (err) {
+      console.error('Erreur chargement stats livreur:', err);
+    }
+  };
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -177,9 +201,13 @@ function LivreurDashboard({ user, onLogout }) {
       }
     };
     fetchStatus();
+    fetchLivreurStats();
 
     loadOrders();
-    const interval = setInterval(loadOrders, 5000);
+    const interval = setInterval(() => {
+      loadOrders();
+      fetchLivreurStats();
+    }, 5000);
     
     return () => {
       clearInterval(interval);
@@ -481,6 +509,48 @@ function LivreurDashboard({ user, onLogout }) {
           >
             {isAvailable ? 'Déconnexion' : 'Se mettre en service'}
           </button>
+        </div>
+
+        {/* Section Rendements Professionnelle */}
+        <div className="livreur-stats-section card" style={{marginBottom: '20px', padding: '15px'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+            <h2 style={{margin: 0, fontSize: '1.2rem'}}>📈 Mes Rendements & Activité</h2>
+            <div style={{backgroundColor: '#e3f2fd', padding: '5px 12px', borderRadius: '15px', color: '#1976d2', fontWeight: 'bold'}}>
+              Total : {(livreurStats.stats.total_earnings || 0).toFixed(3)} DT
+            </div>
+          </div>
+          
+          <div className="stats-grid-livreur" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px'}}>
+            <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #4caf50'}}>
+              <div style={{fontSize: '0.8rem', color: '#666'}}>Aujourd'hui</div>
+              <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{(livreurStats.stats.today_earnings || 0).toFixed(3)} DT</div>
+              <div style={{fontSize: '0.7rem', color: '#999'}}>{livreurStats.stats.today_orders || 0} commandes</div>
+            </div>
+            <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2196f3'}}>
+              <div style={{fontSize: '0.8rem', color: '#666'}}>Livrées</div>
+              <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{livreurStats.stats.delivered_orders || 0}</div>
+              <div style={{fontSize: '0.7rem', color: '#999'}}>Sur {livreurStats.stats.total_orders || 0} totales</div>
+            </div>
+            <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #ff9800'}}>
+              <div style={{fontSize: '0.8rem', color: '#666'}}>Succès</div>
+              <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>
+                {livreurStats.stats.total_orders > 0 
+                  ? Math.round((livreurStats.stats.delivered_orders / livreurStats.stats.total_orders) * 100) 
+                  : 0}%
+              </div>
+              <div style={{fontSize: '0.7rem', color: '#999'}}>Performance</div>
+            </div>
+            <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #9c27b0'}}>
+              <div style={{fontSize: '0.8rem', color: '#666'}}>Récentes</div>
+              <button 
+                onClick={() => setShowHistory(true)} 
+                className="btn btn-xs btn-outline-primary"
+                style={{marginTop: '5px', fontSize: '0.7rem', padding: '2px 5px'}}
+              >
+                Voir travail
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Section Prioritaire : Nouvelles Commandes ou Livraison en cours */}
