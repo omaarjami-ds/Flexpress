@@ -18,6 +18,15 @@ L.Icon.Default.mergeOptions({
 
 const API_URL = 'https://flexpress.onrender.com/api';
 
+// Helper to get full image URL
+const getFullImageUrl = (url) => {
+  if (!url) return '/static/logo.png';
+  if (url.startsWith('http')) return url;
+  // Remove /api from base URL for static files
+  const baseUrl = API_URL.replace('/api', '');
+  return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 // Custom icons
 const clientIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
@@ -309,6 +318,15 @@ function ClientDashboard({ user, onLogout }) {
     loadOrders();
     loadRestaurants(null, null);
     loadPopularAndMakloub();
+    
+    // Rafraîchissement automatique toutes les 10 secondes pour voir les nouveaux articles sans se déconnecter
+    const interval = setInterval(() => {
+      loadOrders();
+      loadRestaurants(null, null);
+      loadPopularAndMakloub();
+    }, 10000);
+
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1050,7 +1068,7 @@ function ClientDashboard({ user, onLogout }) {
                   }}>
                     <div className="suggestion-image-container">
                       <img 
-                        src={item.image_url || getSuggestionImage(item.name)} 
+                        src={getFullImageUrl(item.image_url)} 
                         alt={item.name}
                         className="suggestion-image"
                         onError={(e) => { e.target.src = '/static/logo.png'; }}
@@ -1081,7 +1099,7 @@ function ClientDashboard({ user, onLogout }) {
                   }}>
                     <div className="suggestion-image-container">
                       <img 
-                        src={item.image_url || getSuggestionImage(item.name)} 
+                        src={getFullImageUrl(item.image_url)} 
                         alt={item.name}
                         className="suggestion-image"
                         onError={(e) => { e.target.src = '/static/logo.png'; }}
@@ -1235,7 +1253,7 @@ function ClientDashboard({ user, onLogout }) {
                       {/* Image du restaurant */}
                       <div className="restaurant-image-container">
                         <img 
-                          src={restaurant.image_url || getRestaurantImage()} 
+                          src={getFullImageUrl(restaurant.image_url)} 
                           alt={restaurant.name}
                           className="restaurant-image"
                           onError={(e) => {
@@ -1316,7 +1334,7 @@ function ClientDashboard({ user, onLogout }) {
                       <div key={item.id} className="menu-item">
                         {item.image_url && (
                           <img 
-                            src={item.image_url} 
+                            src={getFullImageUrl(item.image_url)} 
                             alt={item.name} 
                             className="menu-item-image"
                             onError={(e) => {

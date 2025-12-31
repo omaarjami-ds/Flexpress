@@ -8,6 +8,14 @@ import './Dashboard.css';
 
 const API_URL = 'https://flexpress.onrender.com/api';
 
+// Helper to get full image URL
+const getFullImageUrl = (url) => {
+  if (!url) return '/static/logo.png';
+  if (url.startsWith('http')) return url;
+  const baseUrl = API_URL.replace('/api', '');
+  return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 function AdminDashboard({ user, onLogout }) {
   const [restaurants, setRestaurants] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -514,7 +522,7 @@ function AdminDashboard({ user, onLogout }) {
                       className="input"
                     />
                     {uploading && <span>Chargement...</span>}
-                    {newRestaurant.image_url && <img src={newRestaurant.image_url} alt="Aperçu" className="image-preview-sm" />}
+                    {newRestaurant.image_url && <img src={getFullImageUrl(newRestaurant.image_url)} alt="Aperçu" className="image-preview-sm" />}
                   </div>
                   <button type="submit" className="btn btn-success" disabled={uploading}>Créer</button>
                   <button 
@@ -554,7 +562,7 @@ function AdminDashboard({ user, onLogout }) {
                             <td>#{restaurant.id}</td>
                             <td>
                               <div className="table-cell-with-img">
-                                {restaurant.image_url && <img src={restaurant.image_url} alt="" className="table-img-sm" />}
+                                {restaurant.image_url && <img src={getFullImageUrl(restaurant.image_url)} alt="" className="table-img-sm" />}
                                 <strong>{restaurant.name}</strong>
                               </div>
                             </td>
@@ -1052,7 +1060,7 @@ function AdminDashboard({ user, onLogout }) {
                       menuItems.map(item => (
                         <tr key={item.id}>
                           <td>
-                            {item.image_url && <img src={item.image_url} alt="" className="table-img-sm" />}
+                            {item.image_url && <img src={getFullImageUrl(item.image_url)} alt="" className="table-img-sm" />}
                           </td>
                           <td><strong>{item.name}</strong></td>
                           <td>{item.category}</td>
