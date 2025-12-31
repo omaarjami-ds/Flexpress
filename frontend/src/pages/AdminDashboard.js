@@ -33,6 +33,9 @@ function AdminDashboard({ user, onLogout }) {
 
   useEffect(() => {
     loadData();
+    // Rafraîchissement automatique toutes les 10 secondes
+    const interval = setInterval(loadData, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadData = async () => {
