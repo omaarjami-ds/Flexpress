@@ -13,7 +13,7 @@ from reportlab.lib.pagesizes import letter, A4
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 app = Flask(__name__)
@@ -983,61 +983,154 @@ def generate_order_pdf(order_id):
     conn.close()
 
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     styles = getSampleStyleSheet()
+    
+    # Custom Styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Title'],
+        fontSize=24,
+        textColor=colors.HexColor("#2C3E50"),
+        spaceAfter=20,
+        alignment=0 # Left
+    )
+    
+    header_style = ParagraphStyle(
+        'HeaderInfo',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.grey,
+        leading=12
+    )
+    
+    label_style = ParagraphStyle(
+        'Label',
+        parent=styles['Normal'],
+        fontSize=11,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor("#2C3E50"),
+        spaceAfter=5
+    )
+
     elements = []
 
-    # Title
-    elements.append(Paragraph(f"FACTURE - Commande #{order['id']}", styles['Title']))
-    elements.append(Spacer(1, 0.2*inch))
-
-    # Info
-    elements.append(Paragraph(f"<b>Date:</b> {order['created_at']}", styles['Normal']))
-    elements.append(Paragraph(f"<b>Statut:</b> {order['status'].upper()}", styles['Normal']))
-    elements.append(Spacer(1, 0.2*inch))
-
-    # Tables for Client and Restaurant
-    data = [
-        [Paragraph("<b>RESTAURANT</b>", styles['Normal']), Paragraph("<b>CLIENT</b>", styles['Normal'])],
-        [order['restaurant_name'], order['client_name']],
-        [order['restaurant_address'], order['delivery_address']],
-        ["", order['client_phone']]
+    # Header with Logo and Company Info
+    logo_path = os.path.join(STATIC_DIR, 'logo.png')
+    header_data = []
+    
+    company_info = [
+        Paragraph("<b>FLEXPRESS DELIVERY</b>", styles['Heading2']),
+        Paragraph("Service de Livraison Rapide", header_style),
+        Paragraph("Tunis, Tunisie", header_style),
+        Paragraph("Contact: +216 71 000 000", header_style),
+        Paragraph("Email: contact@flexpress.tn", header_style)
     ]
-    t = Table(data, colWidths=[3*inch, 3*inch])
-    t.setStyle(TableStyle([
+    
+    if os.path.exists(logo_path):
+        img = Image(logo_path, 1.2*inch, 1.2*inch)
+        header_data = [[company_info, img]]
+    else:
+        header_data = [[company_info, ""]]
+        
+    header_table = Table(header_data, colWidths=[4*inch, 2*inch])
+    header_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
     ]))
-    elements.append(t)
+    elements.append(header_table)
+    elements.append(Spacer(1, 0.4*inch))
+
+    # Invoice Title & Date
+    elements.append(Paragraph(f"FACTURE", title_style))
+    
+    info_data = [
+        [Paragraph(f"<b>N° Commande:</b> #{order['id']}", styles['Normal']), 
+         Paragraph(f"<b>Date:</b> {order['created_at']}", styles['Normal'])],
+        [Paragraph(f"<b>Statut:</b> {order['status'].upper()}", styles['Normal']), ""]
+    ]
+    info_table = Table(info_data, colWidths=[3*inch, 3*inch])
+    elements.append(info_table)
     elements.append(Spacer(1, 0.3*inch))
 
+    # Client & Restaurant Info
+    elements.append(Paragraph("<hr/>", styles['Normal']))
+    elements.append(Spacer(1, 0.1*inch))
+    
+    address_data = [
+        [Paragraph("<b>RESTAURANT (EXPÉDITEUR)</b>", label_style), Paragraph("<b>CLIENT (DESTINATAIRE)</b>", label_style)],
+        [Paragraph(order['restaurant_name'], styles['Normal']), Paragraph(order['client_name'], styles['Normal'])],
+        [Paragraph(order['restaurant_address'], styles['Normal']), Paragraph(order['delivery_address'], styles['Normal'])],
+        [Paragraph(f"Tel: {order.get('restaurant_phone', 'N/A')}", styles['Normal']), Paragraph(f"Tel: {order['client_phone']}", styles['Normal'])]
+    ]
+    
+    address_table = Table(address_data, colWidths=[3.2*inch, 3.2*inch])
+    address_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    elements.append(address_table)
+    elements.append(Spacer(1, 0.4*inch))
+
     # Items Table
-    item_data = [["Article", "Quantité", "Prix Unitaire", "Total"]]
+    item_data = [["Désignation", "Quantité", "Prix Unitaire", "Total"]]
     for item in items:
         item_data.append([
             item['item_name'],
             str(item['quantity']),
-            f"{item['price']:.2f} DT",
-            f"{(item['price'] * item['quantity']):.2f} DT"
+            f"{item['price']:.3f} DT",
+            f"{(item['price'] * item['quantity']):.3f} DT"
         ])
     
-    item_data.append(["", "", "<b>TOTAL</b>", f"<b>{order['total_price']:.2f} DT</b>"])
-    
-    item_table = Table(item_data, colWidths=[3*inch, 1*inch, 1*inch, 1*inch])
+    # Empty rows for better look if few items
+    while len(item_data) < 6:
+        item_data.append(["", "", "", ""])
+
+    item_table = Table(item_data, colWidths=[3.4*inch, 0.8*inch, 1.1*inch, 1.1*inch])
     item_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#2C3E50")),
         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('ALIGN', (0,0), (0,-1), 'LEFT'), # Left align designation
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 12),
         ('BOTTOMPADDING', (0,0), (-1,0), 12),
-        ('BACKGROUND', (0,-1), (-1,-1), colors.beige),
-        ('GRID', (0,0), (-1,-2), 1, colors.black),
+        ('TOPPADDING', (0,0), (-1,0), 12),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     elements.append(item_table)
     
+    # Totals
+    elements.append(Spacer(1, 0.2*inch))
+    total_data = [
+        ["", "SOUS-TOTAL", f"{order['total_price']:.3f} DT"],
+        ["", "FRAIS DE LIVRAISON", "0.000 DT"],
+        ["", "TOTAL GÉNÉRAL", f"{order['total_price']:.3f} DT"]
+    ]
+    total_table = Table(total_data, colWidths=[3.4*inch, 1.9*inch, 1.1*inch])
+    total_table.setStyle(TableStyle([
+        ('ALIGN', (1,0), (1,-1), 'RIGHT'),
+        ('ALIGN', (2,0), (2,-1), 'RIGHT'),
+        ('FONTNAME', (1,2), (2,2), 'Helvetica-Bold'),
+        ('FONTSIZE', (1,2), (2,2), 14),
+        ('BACKGROUND', (1,2), (2,2), colors.HexColor("#ECF0F1")),
+        ('TEXTCOLOR', (1,2), (2,2), colors.HexColor("#2C3E50")),
+        ('GRID', (1,2), (2,2), 1, colors.HexColor("#2C3E50")),
+        ('TOPPADDING', (1,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (1,0), (-1,-1), 5),
+    ]))
+    elements.append(total_table)
+    
     if order['delivery_name']:
-        elements.append(Spacer(1, 0.3*inch))
-        elements.append(Paragraph(f"<b>Livreur:</b> {order['delivery_name']}", styles['Normal']))
+        elements.append(Spacer(1, 0.5*inch))
+        elements.append(Paragraph(f"<b>Livreur assigné:</b> {order['delivery_name']}", styles['Normal']))
+
+    # Footer
+    elements.append(Spacer(1, 1*inch))
+    elements.append(Paragraph("<hr/>", styles['Normal']))
+    footer_text = "Merci d'avoir choisi FLEXPRESS. Pour toute réclamation, contactez le support."
+    elements.append(Paragraph(footer_text, header_style))
 
     doc.build(elements)
     buffer.seek(0)
@@ -1063,43 +1156,99 @@ def generate_daily_report():
     conn.close()
 
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle(
+        'ReportTitle',
+        parent=styles['Title'],
+        fontSize=22,
+        textColor=colors.HexColor("#2C3E50"),
+        spaceAfter=20
+    )
+    
     elements = []
 
-    elements.append(Paragraph(f"BILAN JOURNALIER - {date_str}", styles['Title']))
+    # Header
+    logo_path = os.path.join(STATIC_DIR, 'logo.png')
+    company_info = [
+        Paragraph("<b>FLEXPRESS DELIVERY</b>", styles['Heading2']),
+        Paragraph("Rapport d'Activité Journalier", styles['Normal'])
+    ]
+    
+    if os.path.exists(logo_path):
+        img = Image(logo_path, 0.8*inch, 0.8*inch)
+        header_table = Table([[company_info, img]], colWidths=[4.5*inch, 1.5*inch])
+    else:
+        header_table = Table([[company_info, ""]], colWidths=[4.5*inch, 1.5*inch])
+        
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 0.3*inch))
+
+    elements.append(Paragraph(f"BILAN JOURNALIER - {date_str}", title_style))
+    elements.append(Paragraph("<hr/>", styles['Normal']))
     elements.append(Spacer(1, 0.2*inch))
 
+    # Stats Summary
     total_revenue = sum(o['total_price'] for o in orders if o['status'] == 'delivered')
     total_orders = len(orders)
     delivered_orders = len([o for o in orders if o['status'] == 'delivered'])
+    pending_orders = total_orders - delivered_orders
 
-    elements.append(Paragraph(f"<b>Total commandes:</b> {total_orders}", styles['Normal']))
-    elements.append(Paragraph(f"<b>Commandes livrées:</b> {delivered_orders}", styles['Normal']))
-    elements.append(Paragraph(f"<b>Chiffre d'affaires:</b> {total_revenue:.2f} DT", styles['Normal']))
-    elements.append(Spacer(1, 0.3*inch))
+    stats_data = [
+        [Paragraph("<b>COMMANDES TOTALES</b>", styles['Normal']), Paragraph("<b>LIVRÉES</b>", styles['Normal']), Paragraph("<b>EN COURS</b>", styles['Normal']), Paragraph("<b>CHIFFRE D'AFFAIRES</b>", styles['Normal'])],
+        [str(total_orders), str(delivered_orders), str(pending_orders), f"{total_revenue:.3f} DT"]
+    ]
+    
+    stats_table = Table(stats_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+    stats_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#34495E")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,1), (-1,1), 14),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('GRID', (0,0), (-1,-1), 1, colors.whitesmoke),
+    ]))
+    elements.append(stats_table)
+    elements.append(Spacer(1, 0.4*inch))
 
+    # Detailed Table
     if orders:
+        elements.append(Paragraph("<b>Détail des Commandes</b>", styles['Heading3']))
+        elements.append(Spacer(1, 0.1*inch))
+        
         report_data = [["ID", "Restaurant", "Client", "Total", "Statut"]]
         for o in orders:
             report_data.append([
                 f"#{o['id']}",
                 o['restaurant_name'],
                 o['client_name'],
-                f"{o['total_price']:.2f} DT",
-                o['status']
+                f"{o['total_price']:.3f} DT",
+                o['status'].upper()
             ])
         
-        t = Table(report_data, colWidths=[0.5*inch, 2*inch, 1.5*inch, 1*inch, 1*inch])
+        t = Table(report_data, colWidths=[0.6*inch, 1.9*inch, 1.5*inch, 1*inch, 1*inch])
         t.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.darkblue),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#2C3E50")),
             ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('GRID', (0,0), (-1,-1), 1, colors.black),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ]))
         elements.append(t)
     else:
-        elements.append(Paragraph("Aucune commande pour cette journée.", styles['Normal']))
+        elements.append(Paragraph("<i>Aucune commande enregistrée pour cette journée.</i>", styles['Normal']))
+
+    # Footer
+    elements.append(Spacer(1, 0.5*inch))
+    elements.append(Paragraph(f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
 
     doc.build(elements)
     buffer.seek(0)
@@ -1126,20 +1275,64 @@ def generate_monthly_report():
     conn.close()
 
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle(
+        'ReportTitle',
+        parent=styles['Title'],
+        fontSize=22,
+        textColor=colors.HexColor("#2C3E50"),
+        spaceAfter=20
+    )
+    
     elements = []
 
-    elements.append(Paragraph(f"BILAN MENSUEL - {month}/{year}", styles['Title']))
+    # Header
+    logo_path = os.path.join(STATIC_DIR, 'logo.png')
+    company_info = [
+        Paragraph("<b>FLEXPRESS DELIVERY</b>", styles['Heading2']),
+        Paragraph("Rapport d'Activité Mensuel", styles['Normal'])
+    ]
+    
+    if os.path.exists(logo_path):
+        img = Image(logo_path, 0.8*inch, 0.8*inch)
+        header_table = Table([[company_info, img]], colWidths=[4.5*inch, 1.5*inch])
+    else:
+        header_table = Table([[company_info, ""]], colWidths=[4.5*inch, 1.5*inch])
+        
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 0.3*inch))
+
+    elements.append(Paragraph(f"BILAN MENSUEL - {month}/{year}", title_style))
+    elements.append(Paragraph("<hr/>", styles['Normal']))
     elements.append(Spacer(1, 0.2*inch))
 
     delivered = [o for o in orders if o['status'] == 'delivered']
     total_revenue = sum(o['total_price'] for o in delivered)
     
-    elements.append(Paragraph(f"<b>Nombre total de commandes:</b> {len(orders)}", styles['Normal']))
-    elements.append(Paragraph(f"<b>Commandes livrées:</b> {len(delivered)}", styles['Normal']))
-    elements.append(Paragraph(f"<b>Chiffre d'affaires mensuel:</b> {total_revenue:.2f} DT", styles['Normal']))
-    elements.append(Spacer(1, 0.3*inch))
+    # Summary Table
+    summary_data = [
+        [Paragraph("<b>TOTAL COMMANDES</b>", styles['Normal']), Paragraph("<b>LIVRÉES (SUCCÈS)</b>", styles['Normal']), Paragraph("<b>CHIFFRE D'AFFAIRES</b>", styles['Normal'])],
+        [str(len(orders)), str(len(delivered)), f"{total_revenue:.3f} DT"]
+    ]
+    
+    summary_table = Table(summary_data, colWidths=[2*inch, 2*inch, 2*inch])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#2C3E50")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTSIZE', (0,1), (-1,1), 16),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+        ('TOPPADDING', (0,0), (-1,-1), 12),
+        ('GRID', (0,0), (-1,-1), 1, colors.whitesmoke),
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 0.5*inch))
 
     # Stats par restaurant
     restaurant_stats = {}
@@ -1148,19 +1341,32 @@ def generate_monthly_report():
         restaurant_stats[name] = restaurant_stats.get(name, 0) + o['total_price']
     
     if restaurant_stats:
-        elements.append(Paragraph("<b>Répartition par Restaurant:</b>", styles['Heading2']))
+        elements.append(Paragraph("<b>Performance par Restaurant</b>", styles['Heading3']))
         elements.append(Spacer(1, 0.1*inch))
-        res_data = [["Restaurant", "Chiffre d'Affaires"]]
-        for name, rev in sorted(restaurant_stats.items(), key=lambda x: x[1], reverse=True):
-            res_data.append([name, f"{rev:.2f} DT"])
         
-        rt = Table(res_data, colWidths=[4*inch, 2*inch])
+        res_data = [["Restaurant", "Chiffre d'Affaires (DT)", "Part du Marché"]]
+        for name, rev in sorted(restaurant_stats.items(), key=lambda x: x[1], reverse=True):
+            share = (rev / total_revenue * 100) if total_revenue > 0 else 0
+            res_data.append([name, f"{rev:.3f} DT", f"{share:.1f}%"])
+        
+        rt = Table(res_data, colWidths=[3*inch, 1.5*inch, 1.5*inch])
         rt.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.darkgreen),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#34495E")),
             ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-            ('GRID', (0,0), (-1,-1), 1, colors.black),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('ALIGN', (0,1), (0,-1), 'LEFT'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('FONTSIZE', (0,0), (-1,-1), 10),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+            ('TOPPADDING', (0,0), (-1,-1), 8),
         ]))
         elements.append(rt)
+    else:
+        elements.append(Paragraph("<i>Aucune donnée disponible pour ce mois.</i>", styles['Normal']))
+
+    # Footer
+    elements.append(Spacer(1, 0.5*inch))
+    elements.append(Paragraph(f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
 
     doc.build(elements)
     buffer.seek(0)
