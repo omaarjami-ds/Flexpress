@@ -97,6 +97,7 @@ function ClientDashboard({ user, onLogout }) {
   const [showMyOrders, setShowMyOrders] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [positionLabel, setPositionLabel] = useState('📍 Position non détectée. Cliquez sur "Utiliser ma position".');
+  const [showLocationPopup, setShowLocationPopup] = useState(false);
   const [showTrackingMap, setShowTrackingMap] = useState(false);
   const [trackingOrder, setTrackingOrder] = useState(null);
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -476,6 +477,13 @@ function ClientDashboard({ user, onLogout }) {
 
   const placeOrder = async () => {
     if (cart.length === 0) return;
+
+    // Vérifier la position d'abord
+    if (!position) {
+      setShowLocationPopup(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     
     // Validation de l'adresse et du téléphone
     if (!deliveryAddress && !selectedRestaurant) {
@@ -655,6 +663,13 @@ function ClientDashboard({ user, onLogout }) {
   };
 
   const placeManualOrder = async () => {
+    // Vérifier la position d'abord
+    if (!position) {
+      setShowLocationPopup(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     // Vérifier que soit restaurant_id soit restaurant_name est rempli
     if (!manualOrderForm.use_custom_restaurant && !manualOrderForm.restaurant_id) {
       alert('Veuillez sélectionner un restaurant ou activer le mode restaurant personnalisé');
@@ -897,7 +912,7 @@ function ClientDashboard({ user, onLogout }) {
                   className="hero-input"
                   onClick={() => getCurrentLocation()}
                 />
-                <button onClick={getCurrentLocation} className="btn btn-success hero-location-btn">
+                <button id="location-btn" onClick={getCurrentLocation} className="btn btn-success hero-location-btn">
                   📍 Utiliser ma position
                 </button>
               </div>
@@ -1753,6 +1768,30 @@ function ClientDashboard({ user, onLogout }) {
       )}
 
       </PullToRefresh>
+
+      {showLocationPopup && (
+        <div className="location-popup-overlay">
+          <div className="location-popup">
+            <div className="location-popup-icon">📍</div>
+            <h3>Localisation requise</h3>
+            <p>La localisation GPS est requise pour passer une commande. Veuillez activer votre position en haut de la page.</p>
+            <div className="location-popup-actions">
+              <button onClick={() => {
+                setShowLocationPopup(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                // Ajouter un petit effet visuel sur le bouton de localisation
+                const locBtn = document.getElementById('location-btn');
+                if (locBtn) {
+                  locBtn.classList.add('pulse-highlight');
+                  setTimeout(() => locBtn.classList.remove('pulse-highlight'), 3000);
+                }
+              }} className="btn btn-success btn-full">
+                D'accord, j'y vais
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav">

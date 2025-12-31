@@ -612,6 +612,13 @@ def create_order():
             app.logger.error(f'Missing delivery_address. Data: {data}')
             return jsonify({'error': 'delivery_address is required'}), 400
         
+        # Vérifier que la localisation est fournie (ne doit pas être 0)
+        delivery_lat = float(data.get('delivery_latitude', 0))
+        delivery_lon = float(data.get('delivery_longitude', 0))
+        if delivery_lat == 0 or delivery_lon == 0:
+            app.logger.error(f'Missing or invalid location: ({delivery_lat}, {delivery_lon})')
+            return jsonify({'error': 'La localisation GPS est requise pour passer une commande. Veuillez activer votre position.'}), 400
+        
         # Vérifier items
         if 'items' not in data or not data.get('items') or len(data.get('items', [])) == 0:
             app.logger.error(f'Missing or empty items. Data: {data}')
