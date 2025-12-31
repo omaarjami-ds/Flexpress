@@ -289,6 +289,8 @@ function ClientDashboard({ user, onLogout }) {
       const address = data.display_name || '';
       if (address) {
         setPositionLabel(`📍 Ma position : ${address}`);
+        setDeliveryAddress(address);
+        setManualOrderForm(prev => ({ ...prev, delivery_address: address }));
       } else {
         setPositionLabel('📍 Ma position détectée, mais adresse introuvable.');
       }
