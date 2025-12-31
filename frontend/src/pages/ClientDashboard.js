@@ -20,11 +20,14 @@ const API_URL = 'https://flexpress.onrender.com/api';
 
 // Helper to get full image URL
 const getFullImageUrl = (url) => {
-  if (!url) return '/static/logo.png';
-  if (url.startsWith('http') || url.startsWith('data:image')) return url;
-  // Remove /api from base URL for static files
-  const baseUrl = API_URL.replace('/api', '');
-  return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  if (!url) return 'static/logo.png';
+  if (url.startsWith('data:image')) return url;
+  if (url.startsWith('http')) return url;
+  
+  // Pour les images locales fournies avec l'app (APK/Desktop)
+  // On retire le slash initial si présent pour que le chemin soit relatif au dossier public
+  const cleanPath = url.startsWith('/') ? url.substring(1) : url;
+  return cleanPath;
 };
 
 // Custom icons
@@ -126,15 +129,15 @@ function ClientDashboard({ user, onLogout }) {
   const getSuggestionImage = (name) => {
     const nameLower = name.toLowerCase().trim();
     const imageMap = {
-      'makloub': '/static/makloub.jpg',
-      'panini': '/static/panini.jpg',
-      'panuzzo': '/static/panuzzo.jpg',
-      'baguette farcie': '/static/baguette farcie.jpg',
-      'chawarma': '/static/chawarma.jpg',
-      'kaskrout': '/static/kaskrout.jpg',
-      'fricassé': '/static/fricassé.jpg',
-      'fricasse': '/static/fricassé.jpg',
-      'brik': '/static/brik.jpg',
+      'makloub': 'static/makloub.jpg',
+      'panini': 'static/panini.jpg',
+      'panuzzo': 'static/panuzzo.jpg',
+      'baguette farcie': 'static/baguette farcie.jpg',
+      'chawarma': 'static/chawarma.jpg',
+      'kaskrout': 'static/kaskrout.jpg',
+      'fricassé': 'static/fricassé.jpg',
+      'fricasse': 'static/fricassé.jpg',
+      'brik': 'static/brik.jpg',
     };
     
     // Chercher une correspondance exacte
@@ -151,7 +154,7 @@ function ClientDashboard({ user, onLogout }) {
     
     // Par défaut, essayer avec le nom directement (sans espaces)
     const fileName = nameLower.replace(/\s+/g, '').replace('é', 'e');
-    return `/static/${fileName}.jpg`;
+    return `static/${fileName}.jpg`;
   };
 
   // Suggestions de fastfood tunisien populaires

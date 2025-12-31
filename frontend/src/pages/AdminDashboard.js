@@ -10,10 +10,13 @@ const API_URL = 'https://flexpress.onrender.com/api';
 
 // Helper to get full image URL
 const getFullImageUrl = (url) => {
-  if (!url) return '/static/logo.png';
-  if (url.startsWith('http') || url.startsWith('data:image')) return url;
-  const baseUrl = API_URL.replace('/api', '');
-  return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  if (!url) return 'static/logo.png';
+  if (url.startsWith('data:image')) return url;
+  if (url.startsWith('http')) return url;
+  
+  // Pour les images locales fournies avec l'app (APK/Desktop)
+  const cleanPath = url.startsWith('/') ? url.substring(1) : url;
+  return cleanPath;
 };
 
 function AdminDashboard({ user, onLogout }) {
