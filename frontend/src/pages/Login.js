@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './Login.css';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://flexpress.onrender.com/api';
 
 function Login({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);

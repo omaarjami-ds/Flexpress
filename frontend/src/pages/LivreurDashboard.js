@@ -16,7 +16,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://flexpress.onrender.com/api';
 
 // Calcul de distance (en km) entre deux points GPS, style Google Maps simplifié
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {

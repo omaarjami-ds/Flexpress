@@ -16,7 +16,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://flexpress.onrender.com/api';
 
 // Custom icons
 const clientIcon = new L.Icon({

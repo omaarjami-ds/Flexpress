@@ -6,7 +6,7 @@ import ProfileMenu from '../components/ProfileMenu';
 import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://flexpress.onrender.com/api';
 
 function AdminDashboard({ user, onLogout }) {
   const [restaurants, setRestaurants] = useState([]);
