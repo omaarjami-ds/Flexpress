@@ -21,7 +21,7 @@ const API_URL = 'https://flexpress.onrender.com/api';
 // Helper to get full image URL
 const getFullImageUrl = (url) => {
   if (!url) return '/static/logo.png';
-  if (url.startsWith('http')) return url;
+  if (url.startsWith('http') || url.startsWith('data:image')) return url;
   // Remove /api from base URL for static files
   const baseUrl = API_URL.replace('/api', '');
   return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;

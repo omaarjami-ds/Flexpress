@@ -11,7 +11,7 @@ const API_URL = 'https://flexpress.onrender.com/api';
 // Helper to get full image URL
 const getFullImageUrl = (url) => {
   if (!url) return '/static/logo.png';
-  if (url.startsWith('http')) return url;
+  if (url.startsWith('http') || url.startsWith('data:image')) return url;
   const baseUrl = API_URL.replace('/api', '');
   return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
 };
@@ -65,26 +65,60 @@ function AdminDashboard({ user, onLogout }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-    
+    // Vérifier la taille (max 5Mo pour la sécurité du navigateur)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('L\'image est trop lourde (max 5Mo)');
+      return;
+    }
+
     setUploading(true);
-    const token = localStorage.getItem('token');
+    
     try {
-      const res = await axios.post(`${API_URL}/upload`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}` 
-        }
-      });
-      if (type === 'restaurant') {
-        setNewRestaurant({ ...newRestaurant, image_url: res.data.url });
-      } else {
-        setNewMenuItem({ ...newMenuItem, image_url: res.data.url });
-      }
+      // Conversion en Base64 avec redimensionnement pour ne pas surcharger la DB
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          // Créer un canvas pour redimensionner
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Max 800px de large/haut
+          const MAX_SIZE = 800;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Récupérer le Base64 compressé (qualité 0.7)
+          const base64String = canvas.toDataURL('image/jpeg', 0.7);
+          
+          if (type === 'restaurant') {
+            setNewRestaurant({ ...newRestaurant, image_url: base64String });
+          } else {
+            setNewMenuItem({ ...newMenuItem, image_url: base64String });
+          }
+          setUploading(false);
+        };
+      };
     } catch (err) {
-      alert('Erreur lors de l\'upload de l\'image');
-    } finally {
+      console.error('Erreur conversion image:', err);
+      alert('Erreur lors du traitement de l\'image');
       setUploading(false);
     }
   };
