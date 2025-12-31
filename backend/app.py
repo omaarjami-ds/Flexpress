@@ -973,6 +973,8 @@ def generate_order_pdf(order_id):
                  LEFT JOIN users d ON o.delivery_id = d.id
                  WHERE o.id = ?''', (order_id,))
     order = c.fetchone()
+    if order:
+        order = dict(order)
 
     if not order:
         conn.close()
