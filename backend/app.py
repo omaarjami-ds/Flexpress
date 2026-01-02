@@ -1405,37 +1405,6 @@ def generate_monthly_report():
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name=f"bilan_mensuel_{month}_{year}.pdf", mimetype='application/pdf')
 
-@app.route('/api/users', methods=['POST'])
-@jwt_required()
-def create_user():
-    """Créer un nouvel utilisateur (admin uniquement)"""
-    current_user = get_current_user()
-    if not current_user:
-        return jsonify({'error': 'Invalid token'}), 401
-    if current_user['role'] != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    data = request.json
-    try:
-        if db.users.find_one({'$or': [{'username': data['username']}, {'email': data['email']}]}):
-            return jsonify({'error': 'Username or email already exists'}), 400
-
-        password_hash = generate_password_hash(data['password'])
-        user_id = get_next_sequence_value('user_id')
-        db.users.insert_one({
-            'id': user_id,
-            'username': data['username'],
-            'email': data['email'],
-            'password': password_hash,
-            'role': data.get('role', 'client'),
-            'phone': data.get('phone', ''),
-            'is_available': False,
-            'created_at': datetime.now()
-        })
-        return jsonify({'id': user_id, 'message': 'User created successfully'}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory(STATIC_DIR, filename)
