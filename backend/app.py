@@ -1413,6 +1413,141 @@ def generate_monthly_report():
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name=f"bilan_mensuel_{month}_{year}.pdf", mimetype='application/pdf')
 
+@app.route('/api/reports/custom', methods=['GET'])
+@jwt_required()
+def generate_custom_report():
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not start_date_str or not end_date_str:
+        return jsonify({'error': 'Dates manquantes'}), 400
+
+    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+    # On ajoute un jour à la date de fin pour inclure toute la journée
+    end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+    
+    orders = list(db.orders.aggregate([
+        {'$match': {'created_at': {'$gte': start_date, '$lt': end_date}}},
+        {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
+        {'$unwind': '$restaurant'},
+        {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
+        {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
+        {'$project': {
+            '_id': 0, 'id': 1, 'total_price': 1, 'status': 1,
+            'restaurant_name': '$restaurant.name', 'delivery_name': '$driver.username'
+        }}
+    ]))
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+    styles = getSampleStyleSheet()
+    
+    header_style = ParagraphStyle(
+        'HeaderInfo',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.darkslategray,
+        leading=14
+    )
+
+    title_style = ParagraphStyle(
+        'ReportTitle',
+        parent=styles['Title'],
+        fontSize=24,
+        textColor=colors.HexColor("#1A237E"),
+        spaceAfter=25,
+        alignment=1 # Center
+    )
+    
+    elements = []
+
+    # Header
+    logo_path = os.path.join(STATIC_DIR, 'logo.png')
+    company_info = [
+        Paragraph("<b>FLEXPRESS DELIVERY</b>", styles['Heading2']),
+        Paragraph("Rapport d'Activité Personnalisé", styles['Normal']),
+        Paragraph("Contact: 22 749 748 | Email: flexpress.contact@gmail.com", header_style)
+    ]
+    
+    if os.path.exists(logo_path):
+        img = Image(logo_path, 1.2*inch, 1.2*inch)
+        header_table = Table([[company_info, img]], colWidths=[4*inch, 2*inch])
+    else:
+        header_table = Table([[company_info, ""]], colWidths=[4*inch, 2*inch])
+        
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 0.3*inch))
+
+    elements.append(Paragraph(f"BILAN DU {start_date_str} AU {end_date_str}", title_style))
+    elements.append(Paragraph("<hr/>", styles['Normal']))
+    elements.append(Spacer(1, 0.2*inch))
+
+    delivered = [o for o in orders if o['status'] == 'delivered']
+    total_revenue = sum(o['total_price'] for o in delivered)
+    
+    # Summary Table
+    summary_data = [
+        [Paragraph("<b>TOTAL COMMANDES</b>", styles['Normal']), Paragraph("<b>LIVRÉES (SUCCÈS)</b>", styles['Normal']), Paragraph("<b>CHIFFRE D'AFFAIRES</b>", styles['Normal'])],
+        [str(len(orders)), str(len(delivered)), f"{total_revenue:.3f} DT"]
+    ]
+    
+    summary_table = Table(summary_data, colWidths=[2*inch, 2*inch, 2*inch])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#2C3E50")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTSIZE', (0,1), (-1,1), 16),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+        ('TOPPADDING', (0,0), (-1,-1), 12),
+        ('GRID', (0,0), (-1,-1), 1, colors.whitesmoke),
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 0.5*inch))
+
+    if orders:
+        elements.append(Paragraph("<b>Détail des Commandes de la Période</b>", styles['Heading3']))
+        elements.append(Spacer(1, 0.1*inch))
+        
+        m_report_data = [["ID", "Restaurant", "Livreur", "Total", "Statut"]]
+        for o in orders:
+            m_report_data.append([
+                f"#{o['id']}",
+                o['restaurant_name'],
+                o.get('delivery_name') or "N/A",
+                f"{o['total_price']:.3f} DT",
+                o['status'].upper()
+            ])
+        
+        mt = Table(m_report_data, colWidths=[0.6*inch, 2*inch, 1.4*inch, 1*inch, 1*inch])
+        mt.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#2C3E50")),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+        ]))
+        elements.append(mt)
+    else:
+        elements.append(Paragraph("<i>Aucune donnée disponible pour cette période.</i>", styles['Normal']))
+
+    # Footer
+    elements.append(Spacer(1, 0.5*inch))
+    elements.append(Paragraph("<hr/>", styles['Normal']))
+    footer_text = "<b>FLEXPRESS</b> - 22 749 748 - flexpress.contact@gmail.com<br/>Document généré automatiquement le " + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    elements.append(Paragraph(footer_text, header_style))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name=f"bilan_personnalise_{start_date_str}_{end_date_str}.pdf", mimetype='application/pdf')
+
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory(STATIC_DIR, filename)

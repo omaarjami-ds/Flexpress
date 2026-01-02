@@ -60,6 +60,13 @@ function AdminDashboard({ user, onLogout }) {
     is_featured: false
   });
   const [uploading, setUploading] = useState(false);
+  const [showDailyReportModal, setShowDailyReportModal] = useState(false);
+  const [showCustomReportModal, setShowCustomReportModal] = useState(false);
+  const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
+  const [customRange, setCustomRange] = useState({
+    start: new Date().toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
 
   useEffect(() => {
     loadData();
@@ -412,41 +419,39 @@ function AdminDashboard({ user, onLogout }) {
 
   const downloadDailyReport = async () => {
     const token = localStorage.getItem('token');
-    const date = orderDateFilter || new Date().toISOString().split('T')[0];
     try {
-      const response = await axios.get(`${API_URL}/reports/daily?date=${date}`, {
+      const response = await axios.get(`${API_URL}/reports/daily?date=${reportDate}`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `bilan_journalier_${date}.pdf`);
+      link.setAttribute('download', `bilan_journalier_${reportDate}.pdf`);
       document.body.appendChild(link);
       link.click();
+      setShowDailyReportModal(false);
     } catch (err) {
       alert('Erreur lors du téléchargement du bilan journalier');
     }
   };
 
-  const downloadMonthlyReport = async () => {
+  const downloadCustomReport = async () => {
     const token = localStorage.getItem('token');
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
     try {
-      const response = await axios.get(`${API_URL}/reports/monthly?year=${year}&month=${month}`, {
+      const response = await axios.get(`${API_URL}/reports/custom?start_date=${customRange.start}&end_date=${customRange.end}`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `bilan_mensuel_${month}_${year}.pdf`);
+      link.setAttribute('download', `bilan_personnalise_${customRange.start}_${customRange.end}.pdf`);
       document.body.appendChild(link);
       link.click();
+      setShowCustomReportModal(false);
     } catch (err) {
-      alert('Erreur lors du téléchargement du bilan mensuel');
+      alert('Erreur lors du téléchargement du bilan personnalisé');
     }
   };
 
@@ -724,11 +729,11 @@ function AdminDashboard({ user, onLogout }) {
                   <h2>📦 Gestion des Commandes</h2>
                   <div className="admin-actions-group">
                     <div className="report-buttons">
-                      <button onClick={downloadDailyReport} className="btn btn-info btn-sm">
+                      <button onClick={() => setShowDailyReportModal(true)} className="btn btn-info btn-sm">
                         <FiFileText /> Bilan Jour
                       </button>
-                      <button onClick={downloadMonthlyReport} className="btn btn-info btn-sm">
-                        <FiDownload /> Bilan Mois
+                      <button onClick={() => setShowCustomReportModal(true)} className="btn btn-info btn-sm">
+                        <FiDownload /> Bilan Période
                       </button>
                     </div>
                     <div className="filter-group">
@@ -1259,6 +1264,70 @@ function AdminDashboard({ user, onLogout }) {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Bilan Journalier */}
+      {showDailyReportModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{maxWidth: '400px'}}>
+            <div className="modal-header">
+              <h3>📅 Bilan Journalier</h3>
+              <button className="close-btn" onClick={() => setShowDailyReportModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Choisir une date :</label>
+                <input 
+                  type="date" 
+                  value={reportDate}
+                  onChange={(e) => setReportDate(e.target.value)}
+                  className="form-control"
+                />
+              </div>
+              <div className="modal-actions">
+                <button className="btn btn-primary w-100" onClick={downloadDailyReport}>
+                  <FiDownload /> Télécharger PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Bilan Personnalisé */}
+      {showCustomReportModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{maxWidth: '400px'}}>
+            <div className="modal-header">
+              <h3>🗓️ Bilan par Période</h3>
+              <button className="close-btn" onClick={() => setShowCustomReportModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Date de début :</label>
+                <input 
+                  type="date" 
+                  value={customRange.start}
+                  onChange={(e) => setCustomRange({...customRange, start: e.target.value})}
+                  className="form-control"
+                />
+              </div>
+              <div className="form-group">
+                <label>Date de fin :</label>
+                <input 
+                  type="date" 
+                  value={customRange.end}
+                  onChange={(e) => setCustomRange({...customRange, end: e.target.value})}
+                  className="form-control"
+                />
+              </div>
+              <div className="modal-actions">
+                <button className="btn btn-primary w-100" onClick={downloadCustomReport}>
+                  <FiDownload /> Télécharger PDF
+                </button>
               </div>
             </div>
           </div>
