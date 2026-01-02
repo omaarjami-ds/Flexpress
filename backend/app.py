@@ -1168,6 +1168,14 @@ def generate_daily_report():
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     styles = getSampleStyleSheet()
     
+    header_style = ParagraphStyle(
+        'HeaderInfo',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.darkslategray,
+        leading=14
+    )
+    
     title_style = ParagraphStyle(
         'ReportTitle',
         parent=styles['Title'],
@@ -1299,6 +1307,14 @@ def generate_monthly_report():
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     styles = getSampleStyleSheet()
+    
+    header_style = ParagraphStyle(
+        'HeaderInfo',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.darkslategray,
+        leading=14
+    )
     
     title_style = ParagraphStyle(
         'ReportTitle',
