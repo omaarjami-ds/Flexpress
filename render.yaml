@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: flexpress
+    env: python
+    buildCommand: bash render-build.sh
+    startCommand: gunicorn backend.app:app
+    envVars:
+      - key: MONGO_URI
+        sync: false # Set this in Render Dashboard
+      - key: JWT_SECRET_KEY
+        sync: false # Set this in Render Dashboard
+      - key: PYTHON_VERSION
+        value: 3.10.0

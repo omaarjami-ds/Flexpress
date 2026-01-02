@@ -4,4 +4,6 @@ Flask-JWT-Extended==4.6.0
 Werkzeug==3.0.1
 gunicorn==21.2.0
 reportlab==4.0.8
+pymongo[srv]==4.6.1
+dnspython==2.4.2
 

@@ -6,7 +6,7 @@ import ProfileMenu from '../components/ProfileMenu';
 import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
-const API_URL = 'https://flexpress.onrender.com/api';
+const API_URL = '/api';
 
 // Helper to get full image URL
 const getFullImageUrl = (url) => {

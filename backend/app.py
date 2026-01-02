@@ -3,7 +3,8 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-import sqlite3
+from pymongo import MongoClient, ReturnDocument
+from bson import ObjectId
 import os
 import math
 import traceback
@@ -21,171 +22,104 @@ app = Flask(__name__)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC_DIR = os.path.join(PROJECT_ROOT, 'static')
 
-app.config['JWT_SECRET_KEY'] = 'your-secret-key-change-in-production'
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 CORS(app)
 jwt = JWTManager(app)
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'delivery.db')
-
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory(STATIC_DIR, filename)
-
-@app.route('/')
-def home():
-    return jsonify({
-        "status": "success",
-        "message": "FLEXPRESS API is running",
-        "version": "1.0.0"
-    })
+MONGO_URI = os.environ.get('MONGO_URI', "mongodb+srv://Omar:Jo191919@flexpress.fzmn57r.mongodb.net/?appName=Flexpress")
+client = MongoClient(MONGO_URI)
+db = client['flexpress']
 
 # Database initialization
+def get_next_sequence_value(sequence_name):
+    result = db.counters.find_one_and_update(
+        {'_id': sequence_name},
+        {'$inc': {'sequence_value': 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+    return result['sequence_value']
+
 def init_db():
     try:
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
+        # Create collections if they don't exist and ensure indexes
+        if 'users' not in db.list_collection_names():
+            db.create_collection('users')
+        db.users.create_index('username', unique=True)
+        db.users.create_index('email', unique=True)
         
-        # Migration: Add estimated_delivery_time to orders if missing
-        try:
-            c.execute("PRAGMA table_info(orders)")
-            columns = [col[1] for col in c.fetchall()]
-            if columns and 'estimated_delivery_time' not in columns:
-                app.logger.info("Migrating database: adding estimated_delivery_time to orders")
-                c.execute("ALTER TABLE orders ADD COLUMN estimated_delivery_time INTEGER DEFAULT 30")
-                conn.commit()
-        except Exception as e:
-            app.logger.error(f"Migration Error: {e}")
+        if 'restaurants' not in db.list_collection_names():
+            db.create_collection('restaurants')
+            
+        if 'orders' not in db.list_collection_names():
+            db.create_collection('orders')
+            
+        if 'order_items' not in db.list_collection_names():
+            db.create_collection('order_items')
+            
+        if 'menu_items' not in db.list_collection_names():
+            db.create_collection('menu_items')
+            
+        if 'counters' not in db.list_collection_names():
+            db.create_collection('counters')
+            # Initialize counters if they don't exist
+            for seq in ['user_id', 'restaurant_id', 'order_id', 'order_item_id', 'menu_item_id']:
+                if not db.counters.find_one({'_id': seq}):
+                    db.counters.insert_one({'_id': seq, 'sequence_value': 0})
 
-        # Migration: Add columns to menu_items if missing
-        try:
-            c.execute("PRAGMA table_info(menu_items)")
-            columns = [col[1] for col in c.fetchall()]
-            if columns:
-                if 'is_popular' not in columns:
-                    app.logger.info("Migrating database: adding is_popular to menu_items")
-                    c.execute("ALTER TABLE menu_items ADD COLUMN is_popular BOOLEAN DEFAULT 0")
-                if 'is_featured' not in columns:
-                    app.logger.info("Migrating database: adding is_featured to menu_items")
-                    c.execute("ALTER TABLE menu_items ADD COLUMN is_featured BOOLEAN DEFAULT 0")
-                conn.commit()
-        except Exception as e:
-            app.logger.error(f"Menu Items Migration Error: {e}")
-
-        # Users table
-        c.execute('''CREATE TABLE IF NOT EXISTS users
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      username TEXT UNIQUE NOT NULL,
-                      email TEXT UNIQUE NOT NULL,
-                      password TEXT NOT NULL,
-                      role TEXT NOT NULL,
-                      phone TEXT,
-                      latitude REAL,
-                      longitude REAL,
-                      is_available BOOLEAN DEFAULT 0,
-                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-        
-        # Restaurants table
-        c.execute('''CREATE TABLE IF NOT EXISTS restaurants
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      name TEXT NOT NULL,
-                      description TEXT,
-                      latitude REAL NOT NULL,
-                      longitude REAL NOT NULL,
-                      address TEXT,
-                      phone TEXT,
-                      image_url TEXT,
-                      rating REAL DEFAULT 0,
-                      is_active BOOLEAN DEFAULT 1,
-                      open_time TEXT DEFAULT '09:00',
-                      close_time TEXT DEFAULT '22:00',
-                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-        
-        # Orders table
-        c.execute('''CREATE TABLE IF NOT EXISTS orders
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      client_id INTEGER NOT NULL,
-                      restaurant_id INTEGER NOT NULL,
-                      status TEXT DEFAULT 'pending',
-                      total_price REAL NOT NULL,
-                      delivery_address TEXT NOT NULL,
-                      delivery_latitude REAL NOT NULL,
-                      delivery_longitude REAL NOT NULL,
-                      delivery_id INTEGER,
-                      estimated_delivery_time INTEGER DEFAULT 30,
-                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                      FOREIGN KEY (client_id) REFERENCES users(id),
-                      FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
-                      FOREIGN KEY (delivery_id) REFERENCES users(id))''')
-        
-        # Order items table
-        c.execute('''CREATE TABLE IF NOT EXISTS order_items
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      order_id INTEGER NOT NULL,
-                      item_name TEXT NOT NULL,
-                      quantity INTEGER NOT NULL,
-                      price REAL NOT NULL,
-                      FOREIGN KEY (order_id) REFERENCES orders(id))''')
-        
-        # Menu items table
-        c.execute('''CREATE TABLE IF NOT EXISTS menu_items
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      restaurant_id INTEGER NOT NULL,
-                      name TEXT NOT NULL,
-                      description TEXT,
-                      price REAL NOT NULL,
-                      category TEXT,
-                      image_url TEXT,
-                      is_available BOOLEAN DEFAULT 1,
-                      is_popular BOOLEAN DEFAULT 0,
-                      is_featured BOOLEAN DEFAULT 0,
-                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                      FOREIGN KEY (restaurant_id) REFERENCES restaurants(id))''')
-        
-        conn.commit()
-        conn.close()
+        app.logger.info("MongoDB initialized successfully")
     except Exception as e:
         app.logger.error(f"DB Init Error: {e}")
 
 def create_default_data():
     try:
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        
-        c.execute('SELECT COUNT(*) FROM users WHERE role = ?', ('admin',))
-        if c.fetchone()[0] == 0:
+        if db.users.count_documents({'role': 'admin'}) == 0:
             admin_password = generate_password_hash('admin123')
-            c.execute('INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
-                      ('admin', 'admin@flexpress.com', admin_password, 'admin'))
-            conn.commit()
+            db.users.insert_one({
+                'id': get_next_sequence_value('user_id'),
+                'username': 'admin',
+                'email': 'admin@flexpress.com',
+                'password': admin_password,
+                'role': 'admin',
+                'created_at': datetime.now()
+            })
         
-        c.execute('SELECT COUNT(*) FROM users WHERE role = ?', ('livreur',))
-        if c.fetchone()[0] == 0:
+        if db.users.count_documents({'role': 'livreur'}) == 0:
             livreur_password = generate_password_hash('livreur123')
-            c.execute('INSERT INTO users (username, email, password, role, phone) VALUES (?, ?, ?, ?, ?)',
-                      ('livreur', 'livreur@flexpress.com', livreur_password, 'livreur', '06 12 34 56 78'))
-            conn.commit()
+            db.users.insert_one({
+                'id': get_next_sequence_value('user_id'),
+                'username': 'livreur',
+                'email': 'livreur@flexpress.com',
+                'password': livreur_password,
+                'role': 'livreur',
+                'phone': '06 12 34 56 78',
+                'is_available': False,
+                'created_at': datetime.now()
+            })
         
-        c.execute('SELECT COUNT(*) FROM users WHERE role = ?', ('client',))
-        if c.fetchone()[0] == 0:
+        if db.users.count_documents({'role': 'client'}) == 0:
             client_password = generate_password_hash('client123')
-            c.execute('INSERT INTO users (username, email, password, role, phone) VALUES (?, ?, ?, ?, ?)',
-                      ('client', 'client@flexpress.com', client_password, 'client', '06 98 76 54 32'))
-            conn.commit()
+            db.users.insert_one({
+                'id': get_next_sequence_value('user_id'),
+                'username': 'client',
+                'email': 'client@flexpress.com',
+                'password': client_password,
+                'role': 'client',
+                'phone': '06 98 76 54 32',
+                'created_at': datetime.now()
+            })
         
-        c.execute('SELECT COUNT(*) FROM restaurants')
-        if c.fetchone()[0] == 0:
+        if db.restaurants.count_documents({}) == 0:
             restaurants = [
-                ('Pizza Express', 'Pizzas italiennes authentiques', 48.8566, 2.3522, '123 Rue de la Pizza, Paris', '01 23 45 67 89', 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400'),
-                ('Burger House', 'Les meilleurs burgers de la ville', 48.8606, 2.3376, '456 Avenue des Burgers, Paris', '01 23 45 67 90', 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400'),
-                ('Esmiralda', 'Plats tunisiens et fast-food délicieux', 48.8526, 2.3444, '789 Boulevard Esmiralda, Paris', '01 23 45 67 91', '/static/Esmiralda.png'),
+                {'name': 'Pizza Express', 'description': 'Pizzas italiennes authentiques', 'latitude': 48.8566, 'longitude': 2.3522, 'address': '123 Rue de la Pizza, Paris', 'phone': '01 23 45 67 89', 'image_url': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400', 'rating': 0, 'is_active': True, 'open_time': '09:00', 'close_time': '22:00', 'created_at': datetime.now()},
+                {'name': 'Burger House', 'description': 'Les meilleurs burgers de la ville', 'latitude': 48.8606, 'longitude': 2.3376, 'address': '456 Avenue des Burgers, Paris', 'phone': '01 23 45 67 90', 'image_url': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400', 'rating': 0, 'is_active': True, 'open_time': '09:00', 'close_time': '22:00', 'created_at': datetime.now()},
+                {'name': 'Esmiralda', 'description': 'Plats tunisiens et fast-food délicieux', 'latitude': 48.8526, 'longitude': 2.3444, 'address': '789 Boulevard Esmiralda, Paris', 'phone': '01 23 45 67 91', 'image_url': '/static/Esmiralda.png', 'rating': 0, 'is_active': True, 'open_time': '09:00', 'close_time': '22:00', 'created_at': datetime.now()},
             ]
             for restaurant in restaurants:
-                c.execute('''INSERT INTO restaurants (name, description, latitude, longitude, address, phone, image_url)
-                              VALUES (?, ?, ?, ?, ?, ?, ?)''', restaurant)
-            conn.commit()
+                restaurant['id'] = get_next_sequence_value('restaurant_id')
+                db.restaurants.insert_one(restaurant)
         
-        conn.close()
     except Exception as e:
         app.logger.error(f"Error creating default data: {e}")
 
@@ -253,11 +187,6 @@ def handle_exception(e):
 
 
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 def calculate_distance(lat1, lon1, lat2, lon2):
     """Calculate distance between two coordinates in km"""
     R = 6371  # Earth radius in km
@@ -303,49 +232,45 @@ def upload_file():
 @app.route('/api/auth/register', methods=['POST'])
 def register():
     data = request.json
-    conn = get_db()
-    c = conn.cursor()
     
     try:
         # Seuls les clients peuvent s'inscrire automatiquement
-        # Les livreurs doivent être créés par l'admin
         requested_role = data.get('role', 'client')
         if requested_role != 'client':
-            conn.close()
-            return jsonify({'error': 'Seuls les clients peuvent s\'inscrire. Les livreurs doivent être créés par un administrateur.'}), 403
+            return jsonify({'error': 'Seuls les clients peuvent s\'inscrire.'}), 403
         
+        if db.users.find_one({'$or': [{'username': data['username']}, {'email': data['email']}]}):
+            return jsonify({'error': 'Username or email already exists'}), 400
+
         password_hash = generate_password_hash(data['password'])
-        c.execute('INSERT INTO users (username, email, password, role, phone) VALUES (?, ?, ?, ?, ?)',
-                  (data['username'], data['email'], password_hash, 'client', data.get('phone', '')))
-        conn.commit()
-        user_id = c.lastrowid
-        conn.close()
+        user_id = get_next_sequence_value('user_id')
+        db.users.insert_one({
+            'id': user_id,
+            'username': data['username'],
+            'email': data['email'],
+            'password': password_hash,
+            'role': 'client',
+            'phone': data.get('phone', ''),
+            'created_at': datetime.now()
+        })
         
-        # Créer le token avec l'ID utilisateur comme identity (chaîne)
-        # Le rôle sera stocké dans les claims additionnels si nécessaire
         access_token = create_access_token(
             identity=str(user_id),
             additional_claims={'role': 'client'}
         )
         return jsonify({'token': access_token, 'user': {'id': user_id, 'username': data['username'], 'role': 'client'}}), 201
-    except sqlite3.IntegrityError:
-        conn.close()
-        return jsonify({'error': 'Username or email already exists'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
     data = request.json
-    conn = get_db()
-    c = conn.cursor()
     
     username_or_email = data.get('username', '')
-    c.execute('SELECT * FROM users WHERE username = ? OR email = ?', (username_or_email, username_or_email))
-    user = c.fetchone()
-    conn.close()
+    user = db.users.find_one({'$or': [{'username': username_or_email}, {'email': username_or_email}]})
     
     if user and check_password_hash(user['password'], data['password']):
         # Créer le token avec l'ID utilisateur comme identity (chaîne)
-        # Le rôle sera stocké dans les claims additionnels
         access_token = create_access_token(
             identity=str(user['id']),
             additional_claims={'role': user['role']}
@@ -370,14 +295,11 @@ def get_profile():
     if not current_user:
         return jsonify({'error': 'Invalid token'}), 401
     user_id = current_user['id']
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('SELECT id, username, email, role, phone, latitude, longitude, is_available FROM users WHERE id = ?', (user_id,))
-    user = c.fetchone()
-    conn.close()
+    
+    user = db.users.find_one({'id': user_id}, {'password': 0, '_id': 0})
     
     if user:
-        return jsonify(dict(user)), 200
+        return jsonify(user), 200
     return jsonify({'error': 'User not found'}), 404
 
 @app.route('/api/user/status', methods=['POST'])
@@ -395,12 +317,7 @@ def update_status():
     data = request.json
     is_available = data.get('is_available', False)
     
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('UPDATE users SET is_available = ? WHERE id = ?',
-              (is_available, user_id))
-    conn.commit()
-    conn.close()
+    db.users.update_one({'id': user_id}, {'$set': {'is_available': is_available}})
     return jsonify({'message': 'Status updated', 'is_available': is_available}), 200
 
 @app.route('/api/user/location', methods=['POST'])
@@ -411,12 +328,8 @@ def update_location():
         return jsonify({'error': 'Invalid token'}), 401
     user_id = current_user['id']
     data = request.json
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('UPDATE users SET latitude = ?, longitude = ? WHERE id = ?',
-              (data['latitude'], data['longitude'], user_id))
-    conn.commit()
-    conn.close()
+    
+    db.users.update_one({'id': user_id}, {'$set': {'latitude': data['latitude'], 'longitude': data['longitude']}})
     return jsonify({'message': 'Location updated'}), 200
 
 # Restaurant routes
@@ -426,11 +339,7 @@ def get_restaurants():
     lon = request.args.get('lon', type=float)
     only_open = request.args.get('only_open', 'false').lower() == 'true'
     
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('SELECT * FROM restaurants WHERE is_active = 1')
-    restaurants = [dict(row) for row in c.fetchall()]
-    conn.close()
+    restaurants = list(db.restaurants.find({'is_active': True}, {'_id': 0}))
     
     # Filter open restaurants if requested
     if only_open:
@@ -466,8 +375,6 @@ def create_restaurant():
         return jsonify({'error': 'Unauthorized'}), 403
     
     data = request.json
-    conn = get_db()
-    c = conn.cursor()
     
     # Utiliser des valeurs par défaut pour la Tunisie (Tunis) si non fournies
     latitude = data.get('latitude')
@@ -486,14 +393,22 @@ def create_restaurant():
         latitude = 36.8065
         longitude = 10.1815
     
-    c.execute('''INSERT INTO restaurants (name, description, latitude, longitude, address, phone, image_url, open_time, close_time)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-              (data['name'], data.get('description', ''), latitude, longitude,
-               data.get('address', ''), data.get('phone', ''), data.get('image_url', ''),
-               data.get('open_time', '09:00'), data.get('close_time', '22:00')))
-    conn.commit()
-    restaurant_id = c.lastrowid
-    conn.close()
+    restaurant_id = get_next_sequence_value('restaurant_id')
+    db.restaurants.insert_one({
+        'id': restaurant_id,
+        'name': data['name'],
+        'description': data.get('description', ''),
+        'latitude': latitude,
+        'longitude': longitude,
+        'address': data.get('address', ''),
+        'phone': data.get('phone', ''),
+        'image_url': data.get('image_url', ''),
+        'open_time': data.get('open_time', '09:00'),
+        'close_time': data.get('close_time', '22:00'),
+        'is_active': True,
+        'rating': 0,
+        'created_at': datetime.now()
+    })
     
     return jsonify({'id': restaurant_id, 'message': 'Restaurant created'}), 201
 
@@ -505,32 +420,20 @@ def update_restaurant(restaurant_id):
         return jsonify({'error': 'Unauthorized'}), 403
     
     data = request.json
-    conn = get_db()
-    c = conn.cursor()
-    
-    fields = []
-    values = []
+    update_data = {}
     for key in ['name', 'description', 'latitude', 'longitude', 'address', 'phone', 'image_url', 'is_active', 'open_time', 'close_time', 'rating']:
         if key in data:
-            fields.append(f"{key} = ?")
-            values.append(data[key])
+            update_data[key] = data[key]
     
-    if not fields:
+    if not update_data:
         return jsonify({'error': 'No fields to update'}), 400
         
-    values.append(restaurant_id)
-    c.execute(f"UPDATE restaurants SET {', '.join(fields)} WHERE id = ?", values)
-    conn.commit()
-    conn.close()
+    db.restaurants.update_one({'id': restaurant_id}, {'$set': update_data})
     return jsonify({'message': 'Restaurant updated'}), 200
 
 @app.route('/api/restaurants/<int:restaurant_id>/menu', methods=['GET'])
 def get_restaurant_menu(restaurant_id):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('SELECT * FROM menu_items WHERE restaurant_id = ? AND is_available = 1 ORDER BY category, name', (restaurant_id,))
-    menu_items = [dict(row) for row in c.fetchall()]
-    conn.close()
+    menu_items = list(db.menu_items.find({'restaurant_id': restaurant_id, 'is_available': True}, {'_id': 0}).sort([('category', 1), ('name', 1)]))
     return jsonify(menu_items), 200
 
 @app.route('/api/restaurants/<int:restaurant_id>/menu', methods=['POST'])
@@ -541,16 +444,20 @@ def add_menu_item(restaurant_id):
         return jsonify({'error': 'Unauthorized'}), 403
     
     data = request.json
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''INSERT INTO menu_items (restaurant_id, name, description, price, category, image_url, is_popular, is_featured)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-              (restaurant_id, data['name'], data.get('description', ''), data['price'],
-               data.get('category', 'Plat'), data.get('image_url', ''), 
-               data.get('is_popular', 0), data.get('is_featured', 0)))
-    conn.commit()
-    item_id = c.lastrowid
-    conn.close()
+    item_id = get_next_sequence_value('menu_item_id')
+    db.menu_items.insert_one({
+        'id': item_id,
+        'restaurant_id': restaurant_id,
+        'name': data['name'],
+        'description': data.get('description', ''),
+        'price': data['price'],
+        'category': data.get('category', 'Plat'),
+        'image_url': data.get('image_url', ''),
+        'is_popular': data.get('is_popular', False),
+        'is_featured': data.get('is_featured', False),
+        'is_available': True,
+        'created_at': datetime.now()
+    })
     return jsonify({'id': item_id, 'message': 'Menu item added'}), 201
 
 @app.route('/api/menu-items/<int:item_id>', methods=['PUT'])
@@ -561,49 +468,77 @@ def update_menu_item(item_id):
         return jsonify({'error': 'Unauthorized'}), 403
     
     data = request.json
-    conn = get_db()
-    c = conn.cursor()
-    
-    fields = []
-    values = []
+    update_data = {}
     for key in ['name', 'description', 'price', 'category', 'image_url', 'is_available', 'is_popular', 'is_featured']:
         if key in data:
-            fields.append(f"{key} = ?")
-            values.append(data[key])
+            update_data[key] = data[key]
     
-    if not fields:
+    if not update_data:
         return jsonify({'error': 'No fields to update'}), 400
         
-    values.append(item_id)
-    c.execute(f"UPDATE menu_items SET {', '.join(fields)} WHERE id = ?", values)
-    conn.commit()
-    conn.close()
+    db.menu_items.update_one({'id': item_id}, {'$set': update_data})
     return jsonify({'message': 'Menu item updated'}), 200
 
 @app.route('/api/menu-items/popular', methods=['GET'])
 def get_popular_items():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''SELECT m.*, r.name as restaurant_name 
-                 FROM menu_items m 
-                 JOIN restaurants r ON m.restaurant_id = r.id 
-                 WHERE m.is_popular = 1 AND m.is_available = 1 
-                 LIMIT 10''')
-    items = [dict(row) for row in c.fetchall()]
-    conn.close()
+    items = list(db.menu_items.aggregate([
+        {'$match': {'is_popular': True, 'is_available': True}},
+        {'$lookup': {
+            'from': 'restaurants',
+            'localField': 'restaurant_id',
+            'foreignField': 'id',
+            'as': 'restaurant'
+        }},
+        {'$unwind': '$restaurant'},
+        {'$project': {
+            '_id': 0,
+            'id': 1,
+            'restaurant_id': 1,
+            'name': 1,
+            'description': 1,
+            'price': 1,
+            'category': 1,
+            'image_url': 1,
+            'is_popular': 1,
+            'is_featured': 1,
+            'restaurant_name': '$restaurant.name'
+        }},
+        {'$limit': 10}
+    ]))
     return jsonify(items), 200
 
 @app.route('/api/menu-items/makloub', methods=['GET'])
 def get_makloub_items():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''SELECT m.*, r.name as restaurant_name 
-                 FROM menu_items m 
-                 JOIN restaurants r ON m.restaurant_id = r.id 
-                 WHERE (m.category LIKE '%Makloub%' OR m.name LIKE '%Makloub%') AND m.is_available = 1 
-                 LIMIT 10''')
-    items = [dict(row) for row in c.fetchall()]
-    conn.close()
+    items = list(db.menu_items.aggregate([
+        {'$match': {
+            '$or': [
+                {'category': {'$regex': 'Makloub', '$options': 'i'}},
+                {'name': {'$regex': 'Makloub', '$options': 'i'}}
+            ],
+            'is_available': True
+        }},
+        {'$lookup': {
+            'from': 'restaurants',
+            'localField': 'restaurant_id',
+            'foreignField': 'id',
+            'as': 'restaurant'
+        }},
+        {'$unwind': '$restaurant'},
+        {'$project': {
+            '_id': 0,
+            'id': 1,
+            'restaurant_id': 1,
+            'name': 1,
+            'description': 1,
+            'price': 1,
+            'category': 1,
+            'image_url': 1,
+            'is_popular': 1,
+            'is_featured': 1,
+            'restaurant_name': '$restaurant.name'
+        }},
+        {'$limit': 10}
+    ]))
     return jsonify(items), 200
 
 # Order routes
@@ -618,190 +553,80 @@ def create_order():
     
     try:
         data = request.json
-        
-        # Validation complète des données
         if not data:
-            app.logger.error('No data provided in request')
             return jsonify({'error': 'No data provided'}), 400
         
-        # Vérifier restaurant_id
-        if 'restaurant_id' not in data or data.get('restaurant_id') is None:
-            app.logger.error(f'Missing restaurant_id. Data: {data}')
+        restaurant_id = data.get('restaurant_id')
+        if restaurant_id is None:
             return jsonify({'error': 'restaurant_id is required'}), 400
         
-        # Vérifier total_price
-        if 'total_price' not in data or data.get('total_price') is None:
-            app.logger.error(f'Missing total_price. Data: {data}')
-            return jsonify({'error': 'total_price is required'}), 400
+        try:
+            restaurant_id = int(restaurant_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid restaurant_id format'}), 400
+
+        restaurant = db.restaurants.find_one({'id': restaurant_id})
         
-        # Vérifier delivery_address
-        if 'delivery_address' not in data or not data.get('delivery_address'):
-            app.logger.error(f'Missing delivery_address. Data: {data}')
-            return jsonify({'error': 'delivery_address is required'}), 400
-        
-        # Vérifier que la localisation est fournie (ne doit pas être 0)
+        if not restaurant:
+            delivery_lat = float(data.get('delivery_latitude', 36.8065))
+            delivery_lon = float(data.get('delivery_longitude', 10.1815))
+            delivery_addr = str(data.get('delivery_address', ''))
+            
+            restaurant_name = 'Restaurant Personnalisé'
+            if delivery_addr.startswith('[') and ']' in delivery_addr:
+                end_bracket = delivery_addr.index(']')
+                restaurant_name = delivery_addr[1:end_bracket]
+                delivery_addr = delivery_addr[end_bracket + 1:].strip()
+            
+            restaurant_id = get_next_sequence_value('restaurant_id')
+            db.restaurants.insert_one({
+                'id': restaurant_id,
+                'name': restaurant_name,
+                'description': 'Restaurant ajouté manuellement',
+                'latitude': delivery_lat,
+                'longitude': delivery_lon,
+                'address': delivery_addr,
+                'is_active': True,
+                'created_at': datetime.now()
+            })
+            restaurant = db.restaurants.find_one({'id': restaurant_id})
+
         delivery_lat = float(data.get('delivery_latitude', 0))
         delivery_lon = float(data.get('delivery_longitude', 0))
-        if delivery_lat == 0 or delivery_lon == 0:
-            app.logger.error(f'Missing or invalid location: ({delivery_lat}, {delivery_lon})')
-            return jsonify({'error': 'La localisation GPS est requise pour passer une commande. Veuillez activer votre position.'}), 400
         
-        # Vérifier items
-        if 'items' not in data or not data.get('items') or len(data.get('items', [])) == 0:
-            app.logger.error(f'Missing or empty items. Data: {data}')
-            return jsonify({'error': 'items are required'}), 400
+        estimated_delivery_time = 30
+        if restaurant and restaurant.get('latitude') and restaurant.get('longitude'):
+            distance_km = calculate_distance(restaurant['latitude'], restaurant['longitude'], delivery_lat, delivery_lon)
+            estimated_delivery_time = int(max(15, min(75, round(distance_km * 8 + 10))))
+
+        order_id = get_next_sequence_value('order_id')
+        db.orders.insert_one({
+            'id': order_id,
+            'client_id': current_user['id'],
+            'restaurant_id': restaurant_id,
+            'status': 'pending',
+            'total_price': float(data['total_price']),
+            'delivery_address': data['delivery_address'],
+            'delivery_latitude': delivery_lat,
+            'delivery_longitude': delivery_lon,
+            'delivery_id': None,
+            'estimated_delivery_time': estimated_delivery_time,
+            'created_at': datetime.now()
+        })
         
-        conn = get_db()
-        c = conn.cursor()
+        for item in data['items']:
+            db.order_items.insert_one({
+                'id': get_next_sequence_value('order_item_id'),
+                'order_id': order_id,
+                'item_name': item['name'],
+                'quantity': int(item['quantity']),
+                'price': float(item['price'])
+            })
         
-        # Désactiver temporairement les contraintes de clés étrangères
-        c.execute('PRAGMA foreign_keys = OFF')
-        
-        # Gérer le restaurant_id
-        try:
-            restaurant_id = int(data['restaurant_id'])
-        except (ValueError, TypeError) as e:
-            app.logger.error(f'Invalid restaurant_id format: {data.get("restaurant_id")}. Error: {str(e)}')
-            conn.close()
-            return jsonify({'error': f'Invalid restaurant_id format'}), 400
-        
-        # Vérifier si le restaurant existe
-        c.execute('SELECT id, latitude, longitude FROM restaurants WHERE id = ?', (restaurant_id,))
-        restaurant = c.fetchone()
-        
-        # Si le restaurant n'existe pas, créer un restaurant par défaut
-        if not restaurant:
-            try:
-                delivery_lat = float(data.get('delivery_latitude', 0))
-                delivery_lon = float(data.get('delivery_longitude', 0))
-                delivery_addr = str(data.get('delivery_address', ''))
-                
-                # Extraire le nom du restaurant de l'adresse si présent [Nom] Adresse
-                restaurant_name = 'Restaurant Personnalisé'
-                if delivery_addr.startswith('[') and ']' in delivery_addr:
-                    end_bracket = delivery_addr.index(']')
-                    restaurant_name = delivery_addr[1:end_bracket]
-                    delivery_addr = delivery_addr[end_bracket + 1:].strip()
-                
-                app.logger.info(f'Creating default restaurant: {restaurant_name}')
-                c.execute('''INSERT INTO restaurants (name, description, latitude, longitude, address, is_active)
-                              VALUES (?, ?, ?, ?, ?, ?)''',
-                          (restaurant_name, 'Restaurant ajouté manuellement', 
-                           delivery_lat, delivery_lon, delivery_addr, 1))
-                restaurant_id = c.lastrowid
-                conn.commit()
-                app.logger.info(f'Created restaurant with ID: {restaurant_id}')
-            except Exception as e:
-                conn.close()
-                app.logger.error(f'Error creating default restaurant: {str(e)}\n{traceback.format_exc()}')
-                return jsonify({'error': f'Error creating restaurant: {str(e)}'}), 500
-        
-        # Réactiver les contraintes de clés étrangères
-        c.execute('PRAGMA foreign_keys = ON')
-        
-        # Créer la commande
-        try:
-            total_price = float(data['total_price'])
-            delivery_address = str(data['delivery_address'])
-            delivery_latitude = float(data.get('delivery_latitude', 0))
-            delivery_longitude = float(data.get('delivery_longitude', 0))
-            
-            # Calculer une estimation simple du temps de livraison (en minutes)
-            try:
-                estimated_delivery_time = None
-                if restaurant and restaurant['latitude'] is not None and restaurant['longitude'] is not None:
-                    distance_km = calculate_distance(
-                        float(restaurant['latitude']),
-                        float(restaurant['longitude']),
-                        delivery_latitude,
-                        delivery_longitude
-                    )
-                    # 8 minutes par km + 10 minutes de préparation, borné entre 15 et 75 minutes
-                    estimated_delivery_time = int(max(15, min(75, round(distance_km * 8 + 10))))
-                else:
-                    estimated_delivery_time = 30
-            except Exception as e:
-                app.logger.error(f'Erreur calcul temps de livraison: {str(e)}')
-                estimated_delivery_time = 30
-            
-            app.logger.info(f'Creating order: client_id={current_user["id"]}, restaurant_id={restaurant_id}, total_price={total_price}')
-            
-            c.execute('''INSERT INTO orders (client_id, restaurant_id, total_price, delivery_address, 
-                      delivery_latitude, delivery_longitude, estimated_delivery_time, status)
-                      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')''',
-                      (current_user['id'], restaurant_id, total_price, delivery_address,
-                       delivery_latitude, delivery_longitude, estimated_delivery_time))
-            order_id = c.lastrowid
-            
-            # Ajouter les articles de la commande
-            for idx, item in enumerate(data['items']):
-                # Validation de chaque item
-                if not item.get('name'):
-                    conn.rollback()
-                    conn.close()
-                    app.logger.error(f'Item {idx} missing name: {item}')
-                    return jsonify({'error': f'Item {idx + 1}: name is required'}), 400
-                
-                if item.get('quantity') is None:
-                    conn.rollback()
-                    conn.close()
-                    app.logger.error(f'Item {idx} missing quantity: {item}')
-                    return jsonify({'error': f'Item {idx + 1}: quantity is required'}), 400
-                
-                if item.get('price') is None:
-                    conn.rollback()
-                    conn.close()
-                    app.logger.error(f'Item {idx} missing price: {item}')
-                    return jsonify({'error': f'Item {idx + 1}: price is required'}), 400
-                
-                try:
-                    item_name = str(item['name']).strip()
-                    # Convertir en float puis int pour gérer "010" -> 10
-                    item_quantity = int(float(str(item['quantity'])))
-                    item_price = float(str(item['price']))
-                    
-                    if item_quantity <= 0:
-                        conn.rollback()
-                        conn.close()
-                        return jsonify({'error': f'Item {idx + 1}: quantity must be greater than 0'}), 400
-                    
-                    if item_price < 0:
-                        conn.rollback()
-                        conn.close()
-                        return jsonify({'error': f'Item {idx + 1}: price must be >= 0'}), 400
-                    
-                    app.logger.info(f'Inserting item: name={item_name}, quantity={item_quantity}, price={item_price}')
-                    c.execute('INSERT INTO order_items (order_id, item_name, quantity, price) VALUES (?, ?, ?, ?)',
-                              (order_id, item_name, item_quantity, item_price))
-                except ValueError as e:
-                    conn.rollback()
-                    conn.close()
-                    app.logger.error(f'Invalid item {idx} data: {item}. Error: {str(e)}')
-                    return jsonify({'error': f'Item {idx + 1}: Invalid format - {str(e)}'}), 400
-            
-            conn.commit()
-            conn.close()
-            app.logger.info(f'Order created successfully: ID={order_id}')
-            return jsonify({'id': order_id, 'message': 'Order created successfully'}), 201
-            
-        except sqlite3.IntegrityError as e:
-            conn.rollback()
-            conn.close()
-            app.logger.error(f'Database integrity error: {str(e)}\n{traceback.format_exc()}')
-            return jsonify({'error': f'Database error: {str(e)}'}), 400
-        except ValueError as e:
-            conn.rollback()
-            conn.close()
-            app.logger.error(f'Value error: {str(e)}\n{traceback.format_exc()}')
-            return jsonify({'error': f'Invalid data format: {str(e)}'}), 400
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            app.logger.error(f'Error creating order: {str(e)}\n{traceback.format_exc()}')
-            return jsonify({'error': f'Error creating order: {str(e)}'}), 500
+        return jsonify({'id': order_id, 'message': 'Order created successfully'}), 201
             
     except Exception as e:
-        app.logger.error(f'Unexpected error in create_order: {str(e)}\n{traceback.format_exc()}')
+        app.logger.error(f'Error in create_order: {str(e)}\n{traceback.format_exc()}')
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/api/orders', methods=['GET'])
@@ -811,85 +636,78 @@ def get_orders():
     if not current_user:
         return jsonify({'error': 'Invalid token'}), 401
     
-    conn = get_db()
-    c = conn.cursor()
-    
+    orders = []
     if current_user['role'] == 'client':
-        c.execute('''SELECT o.*, r.name as restaurant_name, r.latitude as restaurant_latitude, r.longitude as restaurant_longitude,
-                     d.latitude as driver_lat, d.longitude as driver_lon, d.username as driver_name
-                     FROM orders o
-                     JOIN restaurants r ON o.restaurant_id = r.id
-                     LEFT JOIN users d ON o.delivery_id = d.id
-                     WHERE o.client_id = ? ORDER BY o.created_at DESC''', (current_user['id'],))
+        orders = list(db.orders.aggregate([
+            {'$match': {'client_id': current_user['id']}},
+            {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
+            {'$unwind': '$restaurant'},
+            {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
+            {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
+            {'$project': {
+                '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
+                'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
+                'estimated_delivery_time': 1, 'created_at': 1,
+                'restaurant_name': '$restaurant.name', 'restaurant_latitude': '$restaurant.latitude', 'restaurant_longitude': '$restaurant.longitude',
+                'driver_lat': '$driver.latitude', 'driver_lon': '$driver.longitude', 'driver_name': '$driver.username'
+            }},
+            {'$sort': {'created_at': -1}}
+        ]))
     elif current_user['role'] == 'livreur':
-        # Retourner toutes les commandes du livreur (y compris livrées) pour l'historique et le résumé
-        c.execute('''SELECT o.*, r.name as restaurant_name, u.username as client_name,
-                     u.latitude as client_lat, u.longitude as client_lon, u.phone as client_phone
-                     FROM orders o
-                     JOIN restaurants r ON o.restaurant_id = r.id
-                     JOIN users u ON o.client_id = u.id
-                     WHERE o.delivery_id = ?
-                     ORDER BY o.created_at DESC''', (current_user['id'],))
+        orders = list(db.orders.aggregate([
+            {'$match': {'delivery_id': current_user['id']}},
+            {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
+            {'$unwind': '$restaurant'},
+            {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
+            {'$unwind': '$client'},
+            {'$project': {
+                '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
+                'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
+                'estimated_delivery_time': 1, 'created_at': 1,
+                'restaurant_name': '$restaurant.name',
+                'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude', 'client_phone': '$client.phone'
+            }},
+            {'$sort': {'created_at': -1}}
+        ]))
     else:  # admin
-        c.execute('''SELECT o.*, r.name as restaurant_name, 
-                     u.username as client_name,
-                     u.latitude as client_lat, u.longitude as client_lon,
-                     d.username as delivery_name,
-                     d.latitude as delivery_lat, d.longitude as delivery_lon
-                     FROM orders o
-                     JOIN restaurants r ON o.restaurant_id = r.id
-                     JOIN users u ON o.client_id = u.id
-                     LEFT JOIN users d ON o.delivery_id = d.id
-                     ORDER BY o.created_at DESC''')
+        orders = list(db.orders.aggregate([
+            {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
+            {'$unwind': '$restaurant'},
+            {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
+            {'$unwind': '$client'},
+            {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
+            {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
+            {'$project': {
+                '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
+                'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
+                'estimated_delivery_time': 1, 'created_at': 1,
+                'restaurant_name': '$restaurant.name',
+                'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude',
+                'delivery_name': '$driver.username', 'delivery_lat': '$driver.latitude', 'delivery_lon': '$driver.longitude'
+            }},
+            {'$sort': {'created_at': -1}}
+        ]))
     
-    orders = [dict(row) for row in c.fetchall()]
-    
-    # Ajouter les items de chaque commande
     for order in orders:
-        c.execute('SELECT * FROM order_items WHERE order_id = ?', (order['id'],))
-        order['items'] = [dict(row) for row in c.fetchall()]
+        order['items'] = list(db.order_items.find({'order_id': order['id']}, {'_id': 0}))
     
-    conn.close()
     return jsonify(orders), 200
 
 @app.route('/api/orders/<int:order_id>/accept', methods=['POST'])
 @jwt_required()
 def accept_order(order_id):
     current_user = get_current_user()
-    if not current_user:
-        return jsonify({'error': 'Invalid token'}), 401
-    if current_user['role'] != 'livreur':
+    if not current_user or current_user['role'] != 'livreur':
         return jsonify({'error': 'Unauthorized'}), 403
     
-    conn = get_db()
-    c = conn.cursor()
+    result = db.orders.update_one(
+        {'id': order_id, 'status': 'pending', 'delivery_id': None},
+        {'$set': {'delivery_id': current_user['id'], 'status': 'accepted'}}
+    )
     
-    # Vérifier que la commande est toujours disponible (premier arrivé, premier servi)
-    c.execute('SELECT status, delivery_id FROM orders WHERE id = ?', (order_id,))
-    order = c.fetchone()
+    if result.matched_count == 0:
+        return jsonify({'error': 'Order not found or already taken'}), 400
     
-    if not order:
-        conn.close()
-        return jsonify({'error': 'Order not found'}), 404
-    
-    if order['status'] != 'pending':
-        conn.close()
-        return jsonify({'error': 'Order already taken'}), 400
-    
-    if order['delivery_id'] is not None:
-        conn.close()
-        return jsonify({'error': 'Order already accepted by another delivery person'}), 400
-    
-    # Accepter la commande (premier arrivé, premier servi)
-    c.execute('UPDATE orders SET delivery_id = ?, status = ? WHERE id = ? AND status = ? AND delivery_id IS NULL',
-              (current_user['id'], 'accepted', order_id, 'pending'))
-    
-    if c.rowcount == 0:
-        conn.close()
-        return jsonify({'error': 'Order already taken by another delivery person'}), 400
-    
-    conn.commit()
-    conn.close()
     return jsonify({'message': 'Order accepted successfully'}), 200
 
 @app.route('/api/orders/<int:order_id>/status', methods=['PUT'])
@@ -901,33 +719,23 @@ def update_order_status(order_id):
     
     data = request.json
     new_status = data.get('status')
-    conn = get_db()
-    c = conn.cursor()
     
     if current_user['role'] == 'livreur':
-        # Vérifier que la commande appartient au livreur
-        c.execute('SELECT status, delivery_id, total_price FROM orders WHERE id = ?', (order_id,))
-        order = c.fetchone()
-        
-        if not order:
-            conn.close()
-            return jsonify({'error': 'Order not found'}), 404
-        
-        if order['delivery_id'] != current_user['id']:
-            conn.close()
-            return jsonify({'error': 'Unauthorized: This order does not belong to you'}), 403
-        
-        # Si la commande est marquée comme livrée, elle sera automatiquement retirée de la liste active
-        c.execute('UPDATE orders SET status = ? WHERE id = ? AND delivery_id = ?',
-                  (new_status, order_id, current_user['id']))
+        result = db.orders.update_one(
+            {'id': order_id, 'delivery_id': current_user['id']},
+            {'$set': {'status': new_status}}
+        )
     elif current_user['role'] == 'admin':
-        c.execute('UPDATE orders SET status = ? WHERE id = ?', (new_status, order_id))
+        result = db.orders.update_one(
+            {'id': order_id},
+            {'$set': {'status': new_status}}
+        )
     else:
-        conn.close()
         return jsonify({'error': 'Unauthorized'}), 403
     
-    conn.commit()
-    conn.close()
+    if result.matched_count == 0:
+        return jsonify({'error': 'Order not found or unauthorized'}), 404
+        
     return jsonify({'message': 'Status updated'}), 200
 
 @app.route('/api/orders/<int:order_id>', methods=['DELETE'])
@@ -937,13 +745,7 @@ def cancel_order(order_id):
     if not current_user or current_user['role'] != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
     
-    conn = get_db()
-    c = conn.cursor()
-    # On peut soit supprimer soit changer le statut à 'cancelled'
-    # Le changement de statut est préférable pour l'historique
-    c.execute('UPDATE orders SET status = "cancelled" WHERE id = ?', (order_id,))
-    conn.commit()
-    conn.close()
+    db.orders.update_one({'id': order_id}, {'$set': {'status': 'cancelled'}})
     return jsonify({'message': 'Order cancelled'}), 200
 
 @app.route('/api/orders/<int:order_id>/assign', methods=['POST'])
@@ -955,16 +757,10 @@ def assign_order(order_id):
     
     data = request.json
     delivery_id = data.get('delivery_id')
-    
     if not delivery_id:
         return jsonify({'error': 'Delivery ID is required'}), 400
     
-    conn = get_db()
-    c = conn.cursor()
-    # On force l'assignation et on passe le statut à 'accepted'
-    c.execute('UPDATE orders SET delivery_id = ?, status = "accepted" WHERE id = ?', (delivery_id, order_id))
-    conn.commit()
-    conn.close()
+    db.orders.update_one({'id': order_id}, {'$set': {'delivery_id': int(delivery_id), 'status': 'accepted'}})
     return jsonify({'message': 'Order assigned successfully'}), 200
 
 # Delivery routes
@@ -977,24 +773,25 @@ def get_available_deliveries():
     if current_user['role'] != 'livreur':
         return jsonify({'error': 'Unauthorized'}), 403
     
-    conn = get_db()
-    c = conn.cursor()
-    # Ne retourner que les commandes en attente (pas les livrées)
-    c.execute('''SELECT o.*, r.name as restaurant_name, r.latitude as restaurant_lat,
-                  r.longitude as restaurant_lon, u.username as client_name,
-                  u.latitude as client_lat, u.longitude as client_lon, u.phone as client_phone
-                  FROM orders o
-                  JOIN restaurants r ON o.restaurant_id = r.id
-                  JOIN users u ON o.client_id = u.id
-                  WHERE o.status = 'pending' ORDER BY o.created_at DESC''')
-    orders = [dict(row) for row in c.fetchall()]
+    orders = list(db.orders.aggregate([
+        {'$match': {'status': 'pending'}},
+        {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
+        {'$unwind': '$restaurant'},
+        {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
+        {'$unwind': '$client'},
+        {'$project': {
+            '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
+            'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
+            'estimated_delivery_time': 1, 'created_at': 1,
+            'restaurant_name': '$restaurant.name', 'restaurant_lat': '$restaurant.latitude', 'restaurant_lon': '$restaurant.longitude',
+            'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude', 'client_phone': '$client.phone'
+        }},
+        {'$sort': {'created_at': -1}}
+    ]))
     
-    # Ajouter les items de chaque commande
     for order in orders:
-        c.execute('SELECT * FROM order_items WHERE order_id = ?', (order['id'],))
-        order['items'] = [dict(row) for row in c.fetchall()]
+        order['items'] = list(db.order_items.find({'order_id': order['id']}, {'_id': 0}))
     
-    conn.close()
     return jsonify(orders), 200
 
 @app.route('/api/orders/<int:order_id>', methods=['GET'])
@@ -1003,28 +800,27 @@ def get_order_details(order_id):
     current_user = get_current_user()
     if not current_user:
         return jsonify({'error': 'Invalid token'}), 401
-    conn = get_db()
-    c = conn.cursor()
     
-    c.execute('''SELECT o.*, r.name as restaurant_name, u.username as client_name, u.phone as client_phone
-                  FROM orders o
-                  JOIN restaurants r ON o.restaurant_id = r.id
-                  JOIN users u ON o.client_id = u.id
-                  WHERE o.id = ?''', (order_id,))
-    order = c.fetchone()
+    order = db.orders.aggregate([
+        {'$match': {'id': order_id}},
+        {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
+        {'$unwind': '$restaurant'},
+        {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
+        {'$unwind': '$client'},
+        {'$project': {
+            '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
+            'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
+            'estimated_delivery_time': 1, 'created_at': 1,
+            'restaurant_name': '$restaurant.name', 'client_name': '$client.username', 'client_phone': '$client.phone'
+        }}
+    ])
     
+    order = next(order, None)
     if not order:
-        conn.close()
         return jsonify({'error': 'Order not found'}), 404
     
-    order_dict = dict(order)
-    
-    # Ajouter les items de la commande
-    c.execute('SELECT * FROM order_items WHERE order_id = ?', (order_id,))
-    order_dict['items'] = [dict(row) for row in c.fetchall()]
-    
-    conn.close()
-    return jsonify(order_dict), 200
+    order['items'] = list(db.order_items.find({'order_id': order_id}, {'_id': 0}))
+    return jsonify(order), 200
 
 @app.route('/api/livreur/stats', methods=['GET'])
 @jwt_required()
@@ -1033,75 +829,97 @@ def get_livreur_stats():
     if not current_user or current_user['role'] != 'livreur':
         return jsonify({'error': 'Unauthorized'}), 403
     
-    conn = get_db()
-    c = conn.cursor()
-    
     # Statistiques globales
-    c.execute('''SELECT COUNT(*) as total_orders, 
-                        SUM(total_price) as total_earnings,
-                        COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_orders,
-                        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders
-                 FROM orders 
-                 WHERE delivery_id = ?''', (current_user['id'],))
-    stats = dict(c.fetchone())
+    stats_pipeline = [
+        {'$match': {'delivery_id': current_user['id']}},
+        {'$group': {
+            '_id': None,
+            'total_orders': {'$sum': 1},
+            'total_earnings': {'$sum': '$total_price'},
+            'delivered_orders': {'$sum': {'$cond': [{'$eq': ['$status', 'delivered']}, 1, 0]}},
+            'cancelled_orders': {'$sum': {'$cond': [{'$eq': ['$status', 'cancelled']}, 1, 0]}}
+        }}
+    ]
+    stats = next(db.orders.aggregate(stats_pipeline), {'total_orders': 0, 'total_earnings': 0, 'delivered_orders': 0, 'cancelled_orders': 0})
+    if '_id' in stats: del stats['_id']
     
     # Statistiques du jour
-    c.execute('''SELECT COUNT(*) as today_orders, 
-                        SUM(total_price) as today_earnings
-                 FROM orders 
-                 WHERE delivery_id = ? AND date(created_at) = date('now')''', (current_user['id'],))
-    today_stats = dict(c.fetchone())
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_stats_pipeline = [
+        {'$match': {'delivery_id': current_user['id'], 'created_at': {'$gte': today}}},
+        {'$group': {
+            '_id': None,
+            'today_orders': {'$sum': 1},
+            'today_earnings': {'$sum': '$total_price'}
+        }}
+    ]
+    today_stats = next(db.orders.aggregate(today_stats_pipeline), {'today_orders': 0, 'today_earnings': 0})
+    if '_id' in today_stats: del today_stats['_id']
     
     stats.update(today_stats)
     
-    # Historique récent (10 dernières)
-    c.execute('''SELECT o.*, r.name as restaurant_name 
-                 FROM orders o 
-                 JOIN restaurants r ON o.restaurant_id = r.id 
-                 WHERE o.delivery_id = ? 
-                 ORDER BY o.created_at DESC LIMIT 10''', (current_user['id'],))
-    recent_orders = [dict(row) for row in c.fetchall()]
+    # Historique récent
+    recent_orders = list(db.orders.aggregate([
+        {'$match': {'delivery_id': current_user['id']}},
+        {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
+        {'$unwind': '$restaurant'},
+        {'$project': {'_id': 0, 'id': 1, 'total_price': 1, 'status': 1, 'created_at': 1, 'restaurant_name': '$restaurant.name'}},
+        {'$sort': {'created_at': -1}},
+        {'$limit': 10}
+    ]))
     
-    conn.close()
-    return jsonify({
-        'stats': stats,
-        'recent_orders': recent_orders
-    }), 200
+    return jsonify({'stats': stats, 'recent_orders': recent_orders}), 200
 
 # User management routes (Admin only)
 @app.route('/api/users', methods=['GET'])
 @jwt_required()
 def get_users():
     current_user = get_current_user()
-    if not current_user:
-        return jsonify({'error': 'Invalid token'}), 401
-    if current_user['role'] != 'admin':
+    if not current_user or current_user['role'] != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
     
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('SELECT id, username, email, role, phone, latitude, longitude, is_available, created_at FROM users ORDER BY created_at DESC')
-    users = [dict(row) for row in c.fetchall()]
-    conn.close()
+    users = list(db.users.find({}, {'password': 0, '_id': 0}).sort('created_at', -1))
     return jsonify(users), 200
+
+@app.route('/api/users', methods=['POST'])
+@jwt_required()
+def create_user():
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    try:
+        if db.users.find_one({'$or': [{'username': data['username']}, {'email': data['email']}]}):
+            return jsonify({'error': 'Username or email already exists'}), 400
+
+        password_hash = generate_password_hash(data['password'])
+        user_id = get_next_sequence_value('user_id')
+        db.users.insert_one({
+            'id': user_id,
+            'username': data['username'],
+            'email': data['email'],
+            'password': password_hash,
+            'role': data.get('role', 'client'),
+            'phone': data.get('phone', ''),
+            'is_available': False,
+            'created_at': datetime.now()
+        })
+        return jsonify({'id': user_id, 'message': 'User created successfully'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/api/users/<int:user_id>', methods=['DELETE'])
 @jwt_required()
 def delete_user(user_id):
     current_user = get_current_user()
-    if not current_user:
-        return jsonify({'error': 'Invalid token'}), 401
-    if current_user['role'] != 'admin':
+    if not current_user or current_user['role'] != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
     
     if current_user['id'] == user_id:
         return jsonify({'error': 'Cannot delete your own account'}), 400
     
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('DELETE FROM users WHERE id = ?', (user_id,))
-    conn.commit()
-    conn.close()
+    db.users.delete_one({'id': user_id})
     return jsonify({'message': 'User deleted'}), 200
 
 @app.route('/api/users/<int:user_id>', methods=['PUT'])
@@ -1112,44 +930,29 @@ def update_user(user_id):
         return jsonify({'error': 'Unauthorized'}), 403
     
     data = request.json
-    conn = get_db()
-    c = conn.cursor()
-    
-    fields = []
-    values = []
+    update_data = {}
     for key in ['username', 'email', 'role', 'phone', 'is_available']:
         if key in data:
-            fields.append(f"{key} = ?")
-            values.append(data[key])
+            update_data[key] = data[key]
     
     if 'password' in data and data['password']:
-        fields.append("password = ?")
-        values.append(generate_password_hash(data['password']))
+        update_data['password'] = generate_password_hash(data['password'])
         
-    if not fields:
+    if not update_data:
         return jsonify({'error': 'No fields to update'}), 400
         
-    values.append(user_id)
-    c.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = ?", values)
-    conn.commit()
-    conn.close()
+    db.users.update_one({'id': user_id}, {'$set': update_data})
     return jsonify({'message': 'User updated'}), 200
 
 @app.route('/api/users/<int:user_id>/role', methods=['PUT'])
 @jwt_required()
 def update_user_role(user_id):
     current_user = get_current_user()
-    if not current_user:
-        return jsonify({'error': 'Invalid token'}), 401
-    if current_user['role'] != 'admin':
+    if not current_user or current_user['role'] != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
     
     data = request.json
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('UPDATE users SET role = ? WHERE id = ?', (data['role'], user_id))
-    conn.commit()
-    conn.close()
+    db.users.update_one({'id': user_id}, {'$set': {'role': data['role']}})
     return jsonify({'message': 'User role updated'}), 200
 
 # PDF Reports and Professional Features
@@ -1160,27 +963,27 @@ def generate_order_pdf(order_id):
     if not current_user or current_user['role'] not in ['admin', 'client', 'livreur']:
         return jsonify({'error': 'Unauthorized'}), 403
 
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''SELECT o.*, r.name as restaurant_name, r.address as restaurant_address, r.phone as restaurant_phone,
-                 u.username as client_name, u.email as client_email, u.phone as client_phone,
-                 d.username as delivery_name
-                 FROM orders o
-                 JOIN restaurants r ON o.restaurant_id = r.id
-                 JOIN users u ON o.client_id = u.id
-                 LEFT JOIN users d ON o.delivery_id = d.id
-                 WHERE o.id = ?''', (order_id,))
-    order = c.fetchone()
-    if order:
-        order = dict(order)
-
+    order = list(db.orders.aggregate([
+        {'$match': {'id': order_id}},
+        {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
+        {'$unwind': '$restaurant'},
+        {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
+        {'$unwind': '$client'},
+        {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
+        {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
+        {'$project': {
+            '_id': 0, 'id': 1, 'created_at': 1, 'status': 1, 'total_price': 1, 'delivery_address': 1,
+            'restaurant_name': '$restaurant.name', 'restaurant_address': '$restaurant.address', 'restaurant_phone': '$restaurant.phone',
+            'client_name': '$client.username', 'client_email': '$client.email', 'client_phone': '$client.phone',
+            'delivery_name': '$driver.username'
+        }}
+    ]))
+    
     if not order:
-        conn.close()
         return jsonify({'error': 'Order not found'}), 404
+    order = order[0]
 
-    c.execute('SELECT * FROM order_items WHERE order_id = ?', (order_id,))
-    items = [dict(row) for row in c.fetchall()]
-    conn.close()
+    items = list(db.order_items.find({'order_id': order_id}, {'_id': 0}))
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -1344,17 +1147,22 @@ def generate_daily_report():
         return jsonify({'error': 'Unauthorized'}), 403
 
     date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    start_date = datetime.strptime(date_str, '%Y-%m-%d')
+    end_date = start_date + timedelta(days=1)
     
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''SELECT o.*, r.name as restaurant_name, u.username as client_name, d.username as delivery_name
-                 FROM orders o
-                 JOIN restaurants r ON o.restaurant_id = r.id
-                 JOIN users u ON o.client_id = u.id
-                 LEFT JOIN users d ON o.delivery_id = d.id
-                 WHERE date(o.created_at) = date(?)''', (date_str,))
-    orders = [dict(row) for row in c.fetchall()]
-    conn.close()
+    orders = list(db.orders.aggregate([
+        {'$match': {'created_at': {'$gte': start_date, '$lt': end_date}}},
+        {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
+        {'$unwind': '$restaurant'},
+        {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
+        {'$unwind': '$client'},
+        {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
+        {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
+        {'$project': {
+            '_id': 0, 'id': 1, 'total_price': 1, 'status': 1,
+            'restaurant_name': '$restaurant.name', 'client_name': '$client.username', 'delivery_name': '$driver.username'
+        }}
+    ]))
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -1463,19 +1271,26 @@ def generate_monthly_report():
     if not current_user or current_user['role'] != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
 
-    year = request.args.get('year', datetime.now().strftime('%Y'))
-    month = request.args.get('month', datetime.now().strftime('%m'))
-    month_year = f"{year}-{month}"
+    year = int(request.args.get('year', datetime.now().year))
+    month = int(request.args.get('month', datetime.now().month))
     
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''SELECT o.*, r.name as restaurant_name, d.username as delivery_name
-                 FROM orders o
-                 JOIN restaurants r ON o.restaurant_id = r.id
-                 LEFT JOIN users d ON o.delivery_id = d.id
-                 WHERE strftime('%Y-%m', o.created_at) = ?''', (month_year,))
-    orders = [dict(row) for row in c.fetchall()]
-    conn.close()
+    start_date = datetime(year, month, 1)
+    if month == 12:
+        end_date = datetime(year + 1, 1, 1)
+    else:
+        end_date = datetime(year, month + 1, 1)
+    
+    orders = list(db.orders.aggregate([
+        {'$match': {'created_at': {'$gte': start_date, '$lt': end_date}}},
+        {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
+        {'$unwind': '$restaurant'},
+        {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
+        {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
+        {'$project': {
+            '_id': 0, 'id': 1, 'total_price': 1, 'status': 1,
+            'restaurant_name': '$restaurant.name', 'delivery_name': '$driver.username'
+        }}
+    ]))
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -1511,7 +1326,7 @@ def generate_monthly_report():
     elements.append(header_table)
     elements.append(Spacer(1, 0.3*inch))
 
-    elements.append(Paragraph(f"BILAN MENSUEL - {month}/{year}", title_style))
+    elements.append(Paragraph(f"BILAN MENSUEL - {month:02d}/{year}", title_style))
     elements.append(Paragraph("<hr/>", styles['Normal']))
     elements.append(Spacer(1, 0.2*inch))
 
@@ -1601,20 +1416,37 @@ def create_user():
         return jsonify({'error': 'Unauthorized'}), 403
     
     data = request.json
-    conn = get_db()
-    c = conn.cursor()
-    
     try:
+        if db.users.find_one({'$or': [{'username': data['username']}, {'email': data['email']}]}):
+            return jsonify({'error': 'Username or email already exists'}), 400
+
         password_hash = generate_password_hash(data['password'])
-        c.execute('INSERT INTO users (username, email, password, role, phone) VALUES (?, ?, ?, ?, ?)',
-                  (data['username'], data['email'], password_hash, data.get('role', 'client'), data.get('phone', '')))
-        conn.commit()
-        user_id = c.lastrowid
-        conn.close()
+        user_id = get_next_sequence_value('user_id')
+        db.users.insert_one({
+            'id': user_id,
+            'username': data['username'],
+            'email': data['email'],
+            'password': password_hash,
+            'role': data.get('role', 'client'),
+            'phone': data.get('phone', ''),
+            'is_available': False,
+            'created_at': datetime.now()
+        })
         return jsonify({'id': user_id, 'message': 'User created successfully'}), 201
-    except sqlite3.IntegrityError:
-        conn.close()
-        return jsonify({'error': 'Username or email already exists'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory(STATIC_DIR, filename)
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(os.path.join(PROJECT_ROOT, 'frontend', 'build', path)):
+        return send_from_directory(os.path.join(PROJECT_ROOT, 'frontend', 'build'), path)
+    else:
+        return send_from_directory(os.path.join(PROJECT_ROOT, 'frontend', 'build'), 'index.html')
 
 if __name__ == '__main__':
     init_db()
