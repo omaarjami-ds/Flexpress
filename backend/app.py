@@ -75,11 +75,11 @@ def init_db():
 def create_default_data():
     try:
         if db.users.count_documents({'role': 'admin'}) == 0:
-            admin_password = generate_password_hash('admin123')
+            admin_password = generate_password_hash('flexpress@1919.7et7et')
             db.users.insert_one({
                 'id': get_next_sequence_value('user_id'),
-                'username': 'admin',
-                'email': 'admin@flexpress.com',
+                'username': 'yahya',
+                'email': 'yahya@flexpress.com',
                 'password': admin_password,
                 'role': 'admin',
                 'created_at': datetime.now()
