@@ -20,14 +20,14 @@ const API_URL = '/api';
 
 // Helper to get full image URL
 const getFullImageUrl = (url) => {
-  if (!url) return 'static/logo.png';
+  if (!url) return '/static/logo.png';
   if (url.startsWith('data:image')) return url;
   if (url.startsWith('http')) return url;
   
-  // Pour les images locales fournies avec l'app (APK/Desktop)
-  // On retire le slash initial si présent pour que le chemin soit relatif au dossier public
+  // S'assurer que le chemin commence par /static/
   const cleanPath = url.startsWith('/') ? url.substring(1) : url;
-  return cleanPath;
+  if (cleanPath.startsWith('static/')) return '/' + cleanPath;
+  return `/static/${cleanPath}`;
 };
 
 // Custom icons
