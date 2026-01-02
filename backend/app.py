@@ -993,18 +993,18 @@ def generate_order_pdf(order_id):
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Title'],
-        fontSize=24,
-        textColor=colors.HexColor("#2C3E50"),
-        spaceAfter=20,
-        alignment=0 # Left
+        fontSize=28,
+        textColor=colors.HexColor("#1A237E"),
+        spaceAfter=25,
+        alignment=1 # Center
     )
     
     header_style = ParagraphStyle(
         'HeaderInfo',
         parent=styles['Normal'],
         fontSize=10,
-        textColor=colors.grey,
-        leading=12
+        textColor=colors.darkslategray,
+        leading=14
     )
     
     label_style = ParagraphStyle(
@@ -1026,8 +1026,8 @@ def generate_order_pdf(order_id):
         Paragraph("<b>FLEXPRESS DELIVERY</b>", styles['Heading2']),
         Paragraph("Service de Livraison Rapide", header_style),
         Paragraph("Tunis, Tunisie", header_style),
-        Paragraph("Contact: +216 71 000 000", header_style),
-        Paragraph("Email: contact@flexpress.tn", header_style)
+        Paragraph("Contact: <b>22 749 748</b>", header_style),
+        Paragraph("Email: <b>flexpress.contact@gmail.com</b>", header_style)
     ]
     
     if os.path.exists(logo_path):
@@ -1132,7 +1132,7 @@ def generate_order_pdf(order_id):
     # Footer
     elements.append(Spacer(1, 1*inch))
     elements.append(Paragraph("<hr/>", styles['Normal']))
-    footer_text = "Merci d'avoir choisi FLEXPRESS. Pour toute réclamation, contactez le support."
+    footer_text = "<b>FLEXPRESS</b> - 22 749 748 - flexpress.contact@gmail.com<br/>Merci d'avoir choisi FLEXPRESS. Pour toute réclamation, contactez le support."
     elements.append(Paragraph(footer_text, header_style))
 
     doc.build(elements)
@@ -1171,9 +1171,10 @@ def generate_daily_report():
     title_style = ParagraphStyle(
         'ReportTitle',
         parent=styles['Title'],
-        fontSize=22,
-        textColor=colors.HexColor("#2C3E50"),
-        spaceAfter=20
+        fontSize=24,
+        textColor=colors.HexColor("#1A237E"),
+        spaceAfter=25,
+        alignment=1 # Center
     )
     
     elements = []
@@ -1182,14 +1183,15 @@ def generate_daily_report():
     logo_path = os.path.join(STATIC_DIR, 'logo.png')
     company_info = [
         Paragraph("<b>FLEXPRESS DELIVERY</b>", styles['Heading2']),
-        Paragraph("Rapport d'Activité Journalier", styles['Normal'])
+        Paragraph("Rapport d'Activité Journalier", styles['Normal']),
+        Paragraph("Contact: 22 749 748 | Email: flexpress.contact@gmail.com", header_style)
     ]
     
     if os.path.exists(logo_path):
-        img = Image(logo_path, 0.8*inch, 0.8*inch)
-        header_table = Table([[company_info, img]], colWidths=[4.5*inch, 1.5*inch])
+        img = Image(logo_path, 1.2*inch, 1.2*inch)
+        header_table = Table([[company_info, img]], colWidths=[4*inch, 2*inch])
     else:
-        header_table = Table([[company_info, ""]], colWidths=[4.5*inch, 1.5*inch])
+        header_table = Table([[company_info, ""]], colWidths=[4*inch, 2*inch])
         
     header_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
@@ -1258,7 +1260,9 @@ def generate_daily_report():
 
     # Footer
     elements.append(Spacer(1, 0.5*inch))
-    elements.append(Paragraph(f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+    elements.append(Paragraph("<hr/>", styles['Normal']))
+    footer_text = "<b>FLEXPRESS</b> - 22 749 748 - flexpress.contact@gmail.com<br/>Document généré automatiquement le " + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    elements.append(Paragraph(footer_text, header_style))
 
     doc.build(elements)
     buffer.seek(0)
@@ -1299,9 +1303,10 @@ def generate_monthly_report():
     title_style = ParagraphStyle(
         'ReportTitle',
         parent=styles['Title'],
-        fontSize=22,
-        textColor=colors.HexColor("#2C3E50"),
-        spaceAfter=20
+        fontSize=24,
+        textColor=colors.HexColor("#1A237E"),
+        spaceAfter=25,
+        alignment=1 # Center
     )
     
     elements = []
@@ -1310,14 +1315,15 @@ def generate_monthly_report():
     logo_path = os.path.join(STATIC_DIR, 'logo.png')
     company_info = [
         Paragraph("<b>FLEXPRESS DELIVERY</b>", styles['Heading2']),
-        Paragraph("Rapport d'Activité Mensuel", styles['Normal'])
+        Paragraph("Rapport d'Activité Mensuel", styles['Normal']),
+        Paragraph("Contact: 22 749 748 | Email: flexpress.contact@gmail.com", header_style)
     ]
     
     if os.path.exists(logo_path):
-        img = Image(logo_path, 0.8*inch, 0.8*inch)
-        header_table = Table([[company_info, img]], colWidths=[4.5*inch, 1.5*inch])
+        img = Image(logo_path, 1.2*inch, 1.2*inch)
+        header_table = Table([[company_info, img]], colWidths=[4*inch, 2*inch])
     else:
-        header_table = Table([[company_info, ""]], colWidths=[4.5*inch, 1.5*inch])
+        header_table = Table([[company_info, ""]], colWidths=[4*inch, 2*inch])
         
     header_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
@@ -1399,7 +1405,9 @@ def generate_monthly_report():
 
     # Footer
     elements.append(Spacer(1, 0.5*inch))
-    elements.append(Paragraph(f"Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+    elements.append(Paragraph("<hr/>", styles['Normal']))
+    footer_text = "<b>FLEXPRESS</b> - 22 749 748 - flexpress.contact@gmail.com<br/>Document généré automatiquement le " + datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    elements.append(Paragraph(footer_text, header_style))
 
     doc.build(elements)
     buffer.seek(0)
