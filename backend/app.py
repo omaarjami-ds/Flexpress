@@ -74,7 +74,18 @@ def init_db():
 
 def create_default_data():
     try:
-        if db.users.count_documents({'role': 'admin'}) == 0:
+        if db.users.count_documents({'username': 'admin'}) == 0:
+            admin_password = generate_password_hash('admin123')
+            db.users.insert_one({
+                'id': get_next_sequence_value('user_id'),
+                'username': 'admin',
+                'email': 'admin@flexpress.com',
+                'password': admin_password,
+                'role': 'admin',
+                'created_at': datetime.now()
+            })
+        
+        if db.users.count_documents({'username': 'yahya'}) == 0:
             admin_password = generate_password_hash('flexpress@1919.7et7et')
             db.users.insert_one({
                 'id': get_next_sequence_value('user_id'),
@@ -431,6 +442,25 @@ def update_restaurant(restaurant_id):
     db.restaurants.update_one({'id': restaurant_id}, {'$set': update_data})
     return jsonify({'message': 'Restaurant updated'}), 200
 
+@app.route('/api/restaurants/<int:restaurant_id>', methods=['DELETE'])
+@jwt_required()
+def delete_restaurant(restaurant_id):
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Check if there are orders for this restaurant
+    orders_count = db.orders.count_documents({'restaurant_id': restaurant_id})
+    if orders_count > 0:
+        # If there are orders, maybe we should just deactivate it instead of hard delete
+        # but for now, let's just delete the restaurant and its menu items
+        pass
+
+    db.restaurants.delete_one({'id': restaurant_id})
+    db.menu_items.delete_many({'restaurant_id': restaurant_id})
+    
+    return jsonify({'message': 'Restaurant and its menu items deleted'}), 200
+
 @app.route('/api/restaurants/<int:restaurant_id>/menu', methods=['GET'])
 def get_restaurant_menu(restaurant_id):
     menu_items = list(db.menu_items.find({'restaurant_id': restaurant_id, 'is_available': True}, {'_id': 0}).sort([('category', 1), ('name', 1)]))
@@ -450,7 +480,7 @@ def add_menu_item(restaurant_id):
         'restaurant_id': restaurant_id,
         'name': data['name'],
         'description': data.get('description', ''),
-        'price': data['price'],
+        'price': float(data.get('price', 0)),
         'category': data.get('category', 'Plat'),
         'image_url': data.get('image_url', ''),
         'is_popular': data.get('is_popular', False),
@@ -471,7 +501,13 @@ def update_menu_item(item_id):
     update_data = {}
     for key in ['name', 'description', 'price', 'category', 'image_url', 'is_available', 'is_popular', 'is_featured']:
         if key in data:
-            update_data[key] = data[key]
+            if key == 'price':
+                try:
+                    update_data[key] = float(data[key])
+                except (ValueError, TypeError):
+                    update_data[key] = 0.0
+            else:
+                update_data[key] = data[key]
     
     if not update_data:
         return jsonify({'error': 'No fields to update'}), 400

@@ -16,7 +16,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-const API_URL = '/api';
+const API_URL = 'https://flexpress.onrender.com/api';
 
 // Helper to get full image URL
 const getFullImageUrl = (url) => {
@@ -412,15 +412,17 @@ function ClientDashboard({ user, onLogout }) {
         url += `?lat=${lat}&lon=${lon}`;
       }
       const response = await axios.get(url);
-      setAllRestaurants(response.data);
-      setRestaurants(response.data);
+      const data = Array.isArray(response.data) ? response.data : [];
+      setAllRestaurants(data);
+      setRestaurants(data);
     } catch (err) {
       console.error('Erreur chargement restaurants:', err);
       // En cas d'erreur, charger sans position pour avoir la liste
       try {
         const response = await axios.get(`${API_URL}/restaurants`);
-        setAllRestaurants(response.data);
-        setRestaurants(response.data);
+        const data = Array.isArray(response.data) ? response.data : [];
+        setAllRestaurants(data);
+        setRestaurants(data);
       } catch (err2) {
         console.error('Erreur chargement restaurants sans position:', err2);
       }
@@ -429,13 +431,17 @@ function ClientDashboard({ user, onLogout }) {
 
   const loadOrders = async () => {
     const token = localStorage.getItem('token');
+    if (!token) return;
     try {
       const response = await axios.get(`${API_URL}/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setOrders(response.data);
+      setOrders(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
+      if (err.response?.status === 401) {
+        onLogout();
+      }
     }
   };
 
@@ -1043,7 +1049,7 @@ function ClientDashboard({ user, onLogout }) {
                           <div key={idx} className="order-item-row">
                             <span className="item-quantity">{item.quantity}x</span>
                             <span className="item-name">{item.item_name}</span>
-                            <span className="item-price">{item.price.toFixed(2)} DT</span>
+                            <span className="item-price">{Number(item.price || 0).toFixed(2)} DT</span>
                           </div>
                         ))}
                       </div>
@@ -1051,7 +1057,7 @@ function ClientDashboard({ user, onLogout }) {
                     <div className="order-card-footer">
                       <div className="order-total">
                         <span className="total-label">Total:</span>
-                        <span className="total-amount">{order.total_price.toFixed(2)} DT</span>
+                        <span className="total-amount">{Number(order.total_price || 0).toFixed(2)} DT</span>
                       </div>
                       {order.delivery_address && (
                         <div className="order-address">
@@ -1100,7 +1106,7 @@ function ClientDashboard({ user, onLogout }) {
                       <h3>{item.name}</h3>
                       <p>{item.description}</p>
                       <div className="suggestion-footer">
-                        <span className="suggestion-price">{item.price.toFixed(3)} DT</span>
+                        <span className="suggestion-price">{Number(item.price || 0).toFixed(3)} DT</span>
                       </div>
                     </div>
                   </div>
@@ -1135,7 +1141,7 @@ function ClientDashboard({ user, onLogout }) {
                       <h3>{item.name}</h3>
                       <p>{item.description}</p>
                       <div className="suggestion-footer">
-                        <span className="suggestion-price">{item.price.toFixed(3)} DT</span>
+                        <span className="suggestion-price">{Number(item.price || 0).toFixed(3)} DT</span>
                       </div>
                     </div>
                   </div>
@@ -1371,7 +1377,7 @@ function ClientDashboard({ user, onLogout }) {
                           )}
                         </div>
                         <div className="menu-item-actions">
-                          <span className="price">{item.price.toFixed(3)}DT</span>
+                          <span className="price">{Number(item.price || 0).toFixed(3)}DT</span>
                           <button 
                             onClick={() => addToCart({ 
                               ...item,
@@ -1420,7 +1426,7 @@ function ClientDashboard({ user, onLogout }) {
                     />
                     <div className="quick-order-info">
                       <span className="quick-order-name">{item.name}</span>
-                      <span className="quick-order-price">{item.price.toFixed(3)} DT</span>
+                      <span className="quick-order-price">{Number(item.price || 0).toFixed(3)} DT</span>
                     </div>
                   </button>
                 ))}
@@ -1488,14 +1494,14 @@ function ClientDashboard({ user, onLogout }) {
                     </div>
                     <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                       <span style={{fontSize: '0.9em', color: '#666'}}>
-                        {item.quantity} x {item.price.toFixed(2)}DT = {(item.price * item.quantity).toFixed(2)}DT
+                        {item.quantity} x {Number(item.price || 0).toFixed(2)}DT = {(Number(item.price || 0) * item.quantity).toFixed(2)}DT
                       </span>
                       <button onClick={() => removeFromCart(item.id)} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer'}}>×</button>
                     </div>
                   </div>
                 ))}
                 <div className="cart-total">
-                  Total: {cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}DT
+                  Total: {cart.reduce((sum, item) => sum + Number(item.price || 0) * item.quantity, 0).toFixed(2)}DT
                 </div>
                 <button onClick={placeOrder} className="btn btn-success btn-full">
                   Commander
@@ -1761,7 +1767,7 @@ function ClientDashboard({ user, onLogout }) {
                     ))}
                   </ul>
                   <div style={{marginTop: '5px', fontWeight: 'bold', textAlign: 'right'}}>
-                    Total: {trackingOrder.total_price.toFixed(2)} DT
+                    Total: {Number(trackingOrder.total_price || 0).toFixed(2)} DT
                   </div>
                 </div>
               )}

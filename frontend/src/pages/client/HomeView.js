@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNotification } from '../../components/Notification';
 
 const HomeView = ({ 
   getCurrentLocation, 

@@ -6,7 +6,7 @@ import ProfileMenu from '../components/ProfileMenu';
 import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
-const API_URL = '/api';
+const API_URL = 'https://flexpress.onrender.com/api';
 
 // Helper to get full image URL
 const getFullImageUrl = (url) => {
@@ -155,14 +155,21 @@ function AdminDashboard({ user, onLogout }) {
   const addMenuItem = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
+    
+    // Convertir le prix en nombre pour éviter les erreurs d'affichage
+    const menuItemData = {
+      ...newMenuItem,
+      price: parseFloat(newMenuItem.price) || 0
+    };
+
     try {
       if (editingMenuItem) {
-        await axios.put(`${API_URL}/menu-items/${editingMenuItem.id}`, newMenuItem, {
+        await axios.put(`${API_URL}/menu-items/${editingMenuItem.id}`, menuItemData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert('Article mis à jour!');
       } else {
-        await axios.post(`${API_URL}/restaurants/${selectedRestaurant.id}/menu`, newMenuItem, {
+        await axios.post(`${API_URL}/restaurants/${selectedRestaurant.id}/menu`, menuItemData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert('Article ajouté!');
@@ -238,11 +245,15 @@ function AdminDashboard({ user, onLogout }) {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
-      setRestaurants(restaurantsRes.data);
-      setOrders(ordersRes.data);
-      setUsers(usersRes.data);
+      setRestaurants(Array.isArray(restaurantsRes.data) ? restaurantsRes.data : []);
+      setOrders(Array.isArray(ordersRes.data) ? ordersRes.data : []);
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
     } catch (err) {
       console.error('Erreur chargement données:', err);
+      if (err.response?.status === 401) {
+        // Token expiré ou invalide
+        onLogout();
+      }
     }
   };
 
@@ -285,6 +296,21 @@ function AdminDashboard({ user, onLogout }) {
     });
     setEditingRestaurant(restaurant);
     setShowRestaurantForm(true);
+  };
+
+  const deleteRestaurant = async (restaurantId) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer ce restaurant et tout son menu ?')) return;
+    
+    const token = localStorage.getItem('token');
+    try {
+      await axios.delete(`${API_URL}/restaurants/${restaurantId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadData();
+      alert('Restaurant supprimé avec succès');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erreur lors de la suppression du restaurant');
+    }
   };
 
   const getStatusColor = (status) => {
@@ -542,7 +568,7 @@ function AdminDashboard({ user, onLogout }) {
           <div className="stat-card">
             <FiUsers />
             <div>
-              <h3>{stats.totalRevenue.toFixed(2)}DT</h3>
+              <h3>{Number(stats.totalRevenue || 0).toFixed(2)}DT</h3>
               <p>Chiffre d'affaires</p>
             </div>
           </div>
@@ -711,6 +737,13 @@ function AdminDashboard({ user, onLogout }) {
                                 >
                                   Éditer
                                 </button>
+                                <button 
+                                  onClick={() => deleteRestaurant(restaurant.id)}
+                                  className="btn btn-danger btn-sm"
+                                  title="Supprimer"
+                                >
+                                  <FiTrash2 />
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -821,7 +854,7 @@ function AdminDashboard({ user, onLogout }) {
                                 </div>
                               ) : '-'}
                             </td>
-                            <td><strong>{order.total_price.toFixed(2)} DT</strong></td>
+                            <td><strong>{Number(order.total_price || 0).toFixed(2)} DT</strong></td>
                             <td>{new Date(order.created_at).toLocaleDateString('fr-FR')}</td>
                             <td>
                               <span 
@@ -1049,7 +1082,7 @@ function AdminDashboard({ user, onLogout }) {
                                   const { totalRevenue } = getDeliveryStatsForUser(userItem.id);
                                   return (
                                     <span className="delivery-amount-cell">
-                                      {totalRevenue.toFixed(2)} DT
+                                      {Number(totalRevenue || 0).toFixed(2)} DT
                                     </span>
                                   );
                                 })()
@@ -1228,7 +1261,7 @@ function AdminDashboard({ user, onLogout }) {
                           </td>
                           <td><strong>{item.name}</strong></td>
                           <td>{item.category}</td>
-                          <td>{item.price.toFixed(3)} DT</td>
+                          <td>{Number(item.price || 0).toFixed(3)} DT</td>
                           <td>
                             <input 
                               type="checkbox" 

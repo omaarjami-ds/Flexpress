@@ -15,7 +15,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-const API_URL = '/api';
+const API_URL = 'https://flexpress.onrender.com/api';
 
 // Calcul de distance (en km) entre deux points GPS, style Google Maps simplifié
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
@@ -289,6 +289,7 @@ function LivreurDashboard({ user, onLogout }) {
 
   const loadOrders = async () => {
     const token = localStorage.getItem('token');
+    if (!token) return;
     try {
       const [availableRes, myRes] = await Promise.all([
         axios.get(`${API_URL}/deliveries/available`, {
@@ -298,9 +299,10 @@ function LivreurDashboard({ user, onLogout }) {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
-      const newOrders = availableRes.data;
+      const newOrders = Array.isArray(availableRes.data) ? availableRes.data : [];
+      const ordersData = Array.isArray(myRes.data) ? myRes.data : [];
       setAvailableOrders(newOrders);
-      setMyOrders(myRes.data.filter(o => o.delivery_id === user.id));
+      setMyOrders(ordersData.filter(o => o.delivery_id === user.id));
       
       if (newOrders.length > previousOrderCount && isAvailable) {
         playNotificationSound();
@@ -308,6 +310,9 @@ function LivreurDashboard({ user, onLogout }) {
       setPreviousOrderCount(newOrders.length);
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
+      if (err.response?.status === 401) {
+        onLogout();
+      }
     }
   };
 

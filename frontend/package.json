@@ -1,6 +1,7 @@
 {
   "name": "flexpress-frontend",
   "version": "1.0.0",
+  "homepage": "./",
   "private": true,
   "dependencies": {
     "@capacitor-community/electron": "^5.0.1",

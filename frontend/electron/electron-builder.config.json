@@ -3,7 +3,7 @@
   "productName": "Flexpress",
   "directories": {
     "buildResources": "resources",
-    "output": "dist_final_keyboard"
+    "output": "dist_final_keyboard_v7"
   },
   "files": [
     "assets/**/*",
