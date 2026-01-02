@@ -8,5 +8,5 @@ pip install -r backend/requirements.txt
 # Build the frontend
 cd frontend
 npm install
-npm run build
+CI=false npm run build
 cd ..

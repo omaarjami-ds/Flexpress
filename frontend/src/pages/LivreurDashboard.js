@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { FiCheckCircle } from 'react-icons/fi';
 import WindowControls from '../components/WindowControls';
 import ProfileMenu from '../components/ProfileMenu';
 import PullToRefresh from '../components/PullToRefresh';
@@ -46,27 +45,6 @@ function RecenterMap({ center, zoom }) {
   return null;
 }
 
-// Composant bouton de géolocalisation style Google Maps
-function LocationButton({ onLocationClick }) {
-  return (
-    <div className="leaflet-bottom leaflet-right">
-      <div className="leaflet-control leaflet-bar">
-        <button 
-          className="location-button"
-          onClick={onLocationClick}
-          title="Me localiser"
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="10" cy="10" r="2" fill="#4285F4"/>
-            <circle cx="10" cy="10" r="5" stroke="#4285F4" strokeWidth="1.5" fill="none"/>
-            <circle cx="10" cy="10" r="7.5" stroke="#4285F4" strokeWidth="1" fill="none"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function LivreurDashboard({ user, onLogout }) {
   const [availableOrders, setAvailableOrders] = useState([]);
   const [myOrders, setMyOrders] = useState([]);
@@ -76,7 +54,6 @@ function LivreurDashboard({ user, onLogout }) {
   const [accuracy, setAccuracy] = useState(null);
   const [positionLabel, setPositionLabel] = useState('📍 Position livreur non détectée. Cliquez sur le bouton de localisation.');
   const [showEarningsDetails, setShowEarningsDetails] = useState(false);
-  const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [isAvailable, setIsAvailable] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
