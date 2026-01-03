@@ -774,6 +774,41 @@ def update_order_status(order_id):
         
     return jsonify({'message': 'Status updated'}), 200
 
+@app.route('/api/orders/<int:order_id>', methods=['PUT'])
+@jwt_required()
+def update_order(order_id):
+    current_user = get_current_user()
+    if not current_user or current_user['role'] != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    update_data = {}
+    
+    # Fields that can be updated by admin
+    for key in ['status', 'total_price', 'delivery_address', 'delivery_latitude', 'delivery_longitude', 'delivery_id', 'estimated_delivery_time']:
+        if key in data:
+            update_data[key] = data[key]
+            
+    if not update_data:
+        return jsonify({'error': 'No fields to update'}), 400
+        
+    db.orders.update_one({'id': order_id}, {'$set': update_data})
+    
+    # If items are provided, update them too
+    if 'items' in data:
+        db.order_items.delete_many({'order_id': order_id})
+        for item in data['items']:
+            db.order_items.insert_one({
+                'id': get_next_sequence_value('order_item_id'),
+                'order_id': order_id,
+                'item_id': item.get('item_id'),
+                'item_name': item.get('item_name'),
+                'quantity': item.get('quantity', 1),
+                'price': item.get('price', 0)
+            })
+            
+    return jsonify({'message': 'Order updated successfully'}), 200
+
 @app.route('/api/orders/<int:order_id>', methods=['DELETE'])
 @jwt_required()
 def cancel_order(order_id):

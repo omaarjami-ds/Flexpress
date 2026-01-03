@@ -96,6 +96,7 @@ function ClientDashboard({ user, onLogout }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showMyOrders, setShowMyOrders] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
   const [positionLabel, setPositionLabel] = useState('📍 Position non détectée. Cliquez sur "Utiliser ma position".');
   const [showLocationPopup, setShowLocationPopup] = useState(false);
   const [showTrackingMap, setShowTrackingMap] = useState(false);
@@ -463,8 +464,10 @@ function ClientDashboard({ user, onLogout }) {
   // Utilisée dans le JSX via onClick inline
   // eslint-disable-next-line no-unused-vars
   const handleRestaurantSelect = (restaurant) => {
+    if (!restaurant.is_open) return;
     setSelectedRestaurant(restaurant);
     loadMenuItems(restaurant.id);
+    setShowMenuModal(true);
   };
 
   const addToCart = (item) => {
@@ -1276,7 +1279,12 @@ function ClientDashboard({ user, onLogout }) {
                   const ratingCount = Math.floor(Math.random() * 300) + 20;
                   
                   return (
-                    <div key={restaurant.id} className={`glovo-restaurant-card ${!restaurant.is_open ? 'closed' : ''}`}>
+                    <div 
+                      key={restaurant.id} 
+                      className={`glovo-restaurant-card ${!restaurant.is_open ? 'closed' : ''}`}
+                      onClick={() => handleRestaurantSelect(restaurant)}
+                      style={{ cursor: restaurant.is_open ? 'pointer' : 'default' }}
+                    >
                       {/* Image du restaurant */}
                       <div className="restaurant-image-container">
                         <img 
@@ -1325,20 +1333,9 @@ function ClientDashboard({ user, onLogout }) {
                         {/* Bouton commander */}
                         {restaurant.is_open && (
                           <button 
-                            onClick={() => {
-                              setShowManualOrder(true);
-                              setManualOrderForm({
-                                restaurant_id: restaurant.id,
-                                restaurant_name: restaurant.name,
-                                use_custom_restaurant: false,
-                                delivery_address: '',
-                                phone: user?.phone || '',
-                                items: [{ name: '', quantity: 1, price: 0 }]
-                              });
-                            }} 
                             className="btn btn-primary btn-full glovo-order-btn"
                           >
-                            Commander
+                            Voir le Menu
                           </button>
                         )}
                       </div>
@@ -1895,6 +1892,220 @@ function ClientDashboard({ user, onLogout }) {
             <span>Profil</span>
         </button>
       </nav>
+
+      {/* Modal Menu Professionnel */}
+      {showMenuModal && selectedRestaurant && (
+        <div className="modal-overlay" style={{zIndex: 2000}}>
+          <div className="modal-content menu-modal-content" style={{
+            maxWidth: '1000px', 
+            width: '95%', 
+            maxHeight: '90vh', 
+            padding: 0, 
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Header du Menu */}
+            <div className="menu-modal-header" style={{
+              position: 'relative',
+              height: '200px',
+              backgroundImage: `url(${getFullImageUrl(selectedRestaurant.image_url)})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              display: 'flex',
+              alignItems: 'flex-end'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.8))'
+              }}></div>
+              <button 
+                onClick={() => setShowMenuModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: '15px',
+                  right: '15px',
+                  background: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '35px',
+                  height: '35px',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 10,
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+                }}
+              >
+                &times;
+              </button>
+              <div style={{
+                position: 'relative',
+                padding: '20px',
+                color: 'white',
+                width: '100%'
+              }}>
+                <h2 style={{margin: 0, fontSize: '28px'}}>{selectedRestaurant.name}</h2>
+                <p style={{margin: '5px 0 0', opacity: 0.9}}>{selectedRestaurant.description}</p>
+                <div style={{display: 'flex', gap: '15px', marginTop: '10px', fontSize: '14px'}}>
+                  <span>⭐ {Math.floor(Math.random() * 16) + 85}%</span>
+                  <span>⏱️ 30-45 min</span>
+                  <span>📍 {selectedRestaurant.address}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Corps du Menu */}
+            <div className="menu-modal-body" style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '20px',
+              background: '#f8f9fa'
+            }}>
+              {menuItems.length === 0 ? (
+                <div style={{textAlign: 'center', padding: '40px'}}>
+                  <div className="loader"></div>
+                  <p>Chargement du menu délicieux...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Regrouper par catégorie */}
+                  {Object.entries(
+                    menuItems.reduce((acc, item) => {
+                      const cat = item.category || 'Autres';
+                      if (!acc[cat]) acc[cat] = [];
+                      acc[cat].push(item);
+                      return acc;
+                    }, {})
+                  ).map(([category, items]) => (
+                    <div key={category} style={{marginBottom: '30px'}}>
+                      <h3 style={{
+                        borderBottom: '2px solid #FFD700',
+                        paddingBottom: '10px',
+                        marginBottom: '20px',
+                        color: '#333'
+                      }}>{category}</h3>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                        gap: '20px'
+                      }}>
+                        {items.map(item => (
+                          <div key={item.id} className="menu-item-pro-card" style={{
+                            background: 'white',
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            transition: 'transform 0.2s',
+                            border: '1px solid #eee'
+                          }}>
+                            <div style={{height: '150px', overflow: 'hidden'}}>
+                              <img 
+                                src={getFullImageUrl(item.image_url)} 
+                                alt={item.name}
+                                style={{width: '100%', height: '100%', objectFit: 'cover'}}
+                                onError={(e) => {
+                                  e.target.src = getSuggestionImage(item.name);
+                                }}
+                              />
+                            </div>
+                            <div style={{padding: '15px', flex: 1, display: 'flex', flexDirection: 'column'}}>
+                              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                                <h4 style={{margin: 0, fontSize: '18px', color: '#333'}}>{item.name}</h4>
+                                <span style={{
+                                  fontWeight: 'bold', 
+                                  color: '#28a745',
+                                  fontSize: '16px'
+                                }}>{Number(item.price || 0).toFixed(3)} DT</span>
+                              </div>
+                              <p style={{
+                                fontSize: '14px', 
+                                color: '#666', 
+                                margin: '10px 0',
+                                flex: 1,
+                                lineHeight: '1.4'
+                              }}>{item.description || 'Un plat savoureux préparé avec soin.'}</p>
+                              <button 
+                                onClick={() => {
+                                  addToCart({...item, quantity: 1});
+                                  // Petit feedback visuel
+                                  const btn = document.getElementById(`add-btn-${item.id}`);
+                                  if (btn) {
+                                    btn.innerText = '✅ Ajouté';
+                                    btn.style.background = '#28a745';
+                                    setTimeout(() => {
+                                      btn.innerText = 'Ajouter au panier';
+                                      btn.style.background = '#FFD700';
+                                    }, 1000);
+                                  }
+                                }}
+                                id={`add-btn-${item.id}`}
+                                className="btn"
+                                style={{
+                                  width: '100%',
+                                  background: '#FFD700',
+                                  color: 'black',
+                                  border: 'none',
+                                  padding: '10px',
+                                  borderRadius: '8px',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  marginTop: '10px'
+                                }}
+                              >
+                                Ajouter au panier
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+            
+            {/* Footer du Menu avec résumé panier rapide */}
+            {cart.length > 0 && (
+              <div style={{
+                padding: '15px 20px',
+                background: 'white',
+                borderTop: '1px solid #eee',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                boxShadow: '0 -4px 10px rgba(0,0,0,0.05)'
+              }}>
+                <div>
+                  <span style={{fontWeight: 'bold', fontSize: '18px'}}>{cart.length} articles</span>
+                  <span style={{margin: '0 10px', color: '#ccc'}}>|</span>
+                  <span style={{fontWeight: 'bold', color: '#28a745', fontSize: '18px'}}>
+                    {cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(3)} DT
+                  </span>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowMenuModal(false);
+                    setShowCart(true);
+                  }}
+                  className="btn btn-success"
+                  style={{padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold'}}
+                >
+                  Voir mon panier
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -31,7 +31,17 @@ function AdminDashboard({ user, onLogout }) {
     name: '',
     description: '',
     address: '',
-    phone: ''
+    phone: '',
+    open_time: '09:00',
+    close_time: '22:00'
+  });
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [newOrder, setNewOrder] = useState({
+    status: 'pending',
+    total_price: 0,
+    delivery_address: '',
+    estimated_delivery_time: 30
   });
   const [newUser, setNewUser] = useState({
     username: '',
@@ -278,7 +288,9 @@ function AdminDashboard({ user, onLogout }) {
         name: '',
         description: '',
         address: '',
-        phone: ''
+        phone: '',
+        open_time: '09:00',
+        close_time: '22:00'
       });
       loadData();
     } catch (err) {
@@ -292,7 +304,9 @@ function AdminDashboard({ user, onLogout }) {
       description: restaurant.description || '',
       address: restaurant.address || '',
       phone: restaurant.phone || '',
-      image_url: restaurant.image_url || ''
+      image_url: restaurant.image_url || '',
+      open_time: restaurant.open_time || '09:00',
+      close_time: restaurant.close_time || '22:00'
     });
     setEditingRestaurant(restaurant);
     setShowRestaurantForm(true);
@@ -512,6 +526,34 @@ function AdminDashboard({ user, onLogout }) {
     return true;
   });
 
+  const startEditingOrder = (order) => {
+    setEditingOrder(order);
+    setNewOrder({
+      status: order.status,
+      total_price: order.total_price,
+      delivery_address: order.delivery_address || '',
+      estimated_delivery_time: order.estimated_delivery_time || 30
+    });
+    setShowOrderForm(true);
+  };
+
+  const handleUpdateOrder = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      await axios.put(`${API_URL}/orders/${editingOrder.id}`, newOrder, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Commande mise à jour !');
+      setShowOrderForm(false);
+      setEditingOrder(null);
+      loadData();
+    } catch (err) {
+      console.error('Erreur mise à jour commande:', err);
+      alert('Erreur lors de la mise à jour');
+    }
+  };
+
   const openItineraryForOrder = (order) => {
     // Utiliser la position du livreur comme origine si disponible, sinon le restaurant
     const originLat = order.delivery_lat ?? order.restaurant_lat ?? null;
@@ -656,6 +698,30 @@ function AdminDashboard({ user, onLogout }) {
                     onChange={(e) => setNewRestaurant({ ...newRestaurant, phone: e.target.value })}
                     className="input"
                   />
+                  <div style={{display: 'flex', gap: '10px', marginBottom: '15px'}}>
+                    <div style={{flex: 1}}>
+                      <label style={{display: 'block', fontSize: '0.8em', color: '#666', marginBottom: '5px'}}>Heure d'ouverture</label>
+                      <input
+                        type="time"
+                        value={newRestaurant.open_time}
+                        onChange={(e) => setNewRestaurant({ ...newRestaurant, open_time: e.target.value })}
+                        required
+                        className="input"
+                        style={{width: '100%'}}
+                      />
+                    </div>
+                    <div style={{flex: 1}}>
+                      <label style={{display: 'block', fontSize: '0.8em', color: '#666', marginBottom: '5px'}}>Heure de fermeture</label>
+                      <input
+                        type="time"
+                        value={newRestaurant.close_time}
+                        onChange={(e) => setNewRestaurant({ ...newRestaurant, close_time: e.target.value })}
+                        required
+                        className="input"
+                        style={{width: '100%'}}
+                      />
+                    </div>
+                  </div>
                   <div className="file-input-group">
                     <label>Photo du restaurant :</label>
                     <input
@@ -891,6 +957,15 @@ function AdminDashboard({ user, onLogout }) {
                                       title="Annuler la commande"
                                     >
                                       <FiTrash2 />
+                                    </button>
+                                    
+                                    <button 
+                                      onClick={() => startEditingOrder(order)}
+                                      className="btn btn-warning btn-xs"
+                                      title="Modifier la commande"
+                                      style={{ color: 'white' }}
+                                    >
+                                      Modifier
                                     </button>
                                   </>
                                 )}
@@ -1363,6 +1438,73 @@ function AdminDashboard({ user, onLogout }) {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Modification Commande */}
+      {showOrderForm && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{maxWidth: '500px'}}>
+            <div className="modal-header">
+              <h3>✏️ Modifier Commande #{editingOrder.id}</h3>
+              <button className="close-btn" onClick={() => {
+                setShowOrderForm(false);
+                setEditingOrder(null);
+              }}>&times;</button>
+            </div>
+            <form onSubmit={handleUpdateOrder} className="modal-body">
+              <div style={{marginBottom: '15px'}}>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Statut</label>
+                <select 
+                  className="input" 
+                  value={newOrder.status}
+                  onChange={(e) => setNewOrder({...newOrder, status: e.target.value})}
+                  style={{width: '100%'}}
+                >
+                  <option value="pending">En attente</option>
+                  <option value="accepted">Acceptée</option>
+                  <option value="delivering">En cours de livraison</option>
+                  <option value="delivered">Livrée</option>
+                  <option value="cancelled">Annulée</option>
+                </select>
+              </div>
+              <div style={{marginBottom: '15px'}}>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Total (DT)</label>
+                <input 
+                  type="number" 
+                  step="0.001" 
+                  className="input" 
+                  value={newOrder.total_price}
+                  onChange={(e) => setNewOrder({...newOrder, total_price: parseFloat(e.target.value)})}
+                  style={{width: '100%'}}
+                />
+              </div>
+              <div style={{marginBottom: '15px'}}>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Adresse de livraison</label>
+                <input 
+                  type="text" 
+                  className="input" 
+                  value={newOrder.delivery_address}
+                  onChange={(e) => setNewOrder({...newOrder, delivery_address: e.target.value})}
+                  style={{width: '100%'}}
+                />
+              </div>
+              <div style={{marginBottom: '15px'}}>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Temps estimé (min)</label>
+                <input 
+                  type="number" 
+                  className="input" 
+                  value={newOrder.estimated_delivery_time}
+                  onChange={(e) => setNewOrder({...newOrder, estimated_delivery_time: parseInt(e.target.value)})}
+                  style={{width: '100%'}}
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="submit" className="btn btn-success" style={{width: '100%'}}>
+                  Enregistrer les modifications
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
