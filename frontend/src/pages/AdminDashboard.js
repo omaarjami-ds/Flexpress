@@ -248,6 +248,11 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
 
   const loadData = useCallback(async () => {
     const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('Token manquant');
+      onLogout();
+      return;
+    }
     try {
       const [restaurantsRes, ordersRes, usersRes] = await Promise.all([
         axios.get(`${API_URL}/restaurants`, {
@@ -266,7 +271,6 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
     } catch (err) {
       console.error('Erreur chargement données:', err);
       if (err.response?.status === 401) {
-        // Token expiré ou invalide
         onLogout();
       }
     }
