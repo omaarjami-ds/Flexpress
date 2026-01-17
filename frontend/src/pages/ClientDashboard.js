@@ -1069,7 +1069,7 @@ function ClientDashboard({ user, onLogout }) {
                     <span className="profile-menu-label">Moyens de paiement</span>
                     <span className="profile-menu-arrow">›</span>
                   </button>
-                  <button className="profile-menu-link" onClick={() => setShowComingSoon(true)}>
+                  <button className="profile-menu-link" onClick={() => setProfileSubView('help')}>
                     <div className="profile-menu-icon-wrapper icon-blue">
                       <span style={{fontSize: '16px'}}>❓</span>
                     </div>
@@ -1124,68 +1124,52 @@ function ClientDashboard({ user, onLogout }) {
               </div>
             )}
 
-            {profileSubView === 'addresses' && (
+            {profileSubView === 'help' && (
               <div className="profile-sub-section">
-                <h3>Mes adresses</h3>
+                <h3>Aide et Support</h3>
                 
-                <div className="addresses-list" style={{marginBottom: '30px'}}>
-                  {userAddresses.length === 0 ? (
-                    <p style={{color: '#666', textAlign: 'center'}}>Aucune adresse enregistrée.</p>
-                  ) : (
-                    userAddresses.map(addr => (
-                      <div key={addr.id} className="address-item" style={{
-                        background: 'white',
-                        padding: '15px',
-                        borderRadius: '12px',
-                        marginBottom: '10px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
-                      }}>
-                        <div>
-                          <strong style={{display: 'block', color: '#FFD700'}}>{addr.label}</strong>
-                          <span style={{fontSize: '14px', color: '#333'}}>{addr.address}</span>
-                        </div>
-                        <button 
-                          onClick={() => handleDeleteAddress(addr.id)}
-                          style={{background: 'none', border: 'none', color: '#ff4d4d', fontSize: '20px', cursor: 'pointer'}}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))
-                  )}
+                <div style={{marginBottom: '25px'}}>
+                  <h4 style={{color: '#FFD700', marginBottom: '10px'}}>Qu'est-ce que FLEXPRESS ?</h4>
+                  <p style={{fontSize: '14px', color: '#555', lineHeight: '1.6'}}>
+                    FLEXPRESS est votre partenaire de livraison ultra-rapide en Tunisie. 
+                    Nous connectons les clients gourmands aux meilleurs restaurants de la ville, 
+                    avec une flotte de livreurs dévoués prêts à vous servir en un temps record.
+                  </p>
                 </div>
 
-                <div style={{borderTop: '1px solid #eee', paddingTop: '20px'}}>
-                  <h4>Ajouter une adresse</h4>
-                  <form onSubmit={handleAddAddress} className="profile-form">
-                    <div className="form-group">
-                      <label>Label (ex: Maison, Bureau)</label>
-                      <input 
-                        type="text" 
-                        value={newAddress.label}
-                        onChange={(e) => setNewAddress({...newAddress, label: e.target.value})}
-                        className="input"
-                        placeholder="Maison"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Adresse complète</label>
-                      <input 
-                        type="text" 
-                        value={newAddress.address}
-                        onChange={(e) => setNewAddress({...newAddress, address: e.target.value})}
-                        className="input"
-                        placeholder="Rue, Ville, Code postal"
-                        required
-                      />
-                    </div>
-                    <button type="submit" className="btn btn-success btn-full" style={{marginTop: '15px'}}>
-                      Ajouter cette adresse
-                    </button>
-                  </form>
+                <div style={{marginBottom: '25px'}}>
+                  <h4 style={{color: '#FFD700', marginBottom: '10px'}}>Nos Fonctionnalités</h4>
+                  <ul style={{fontSize: '14px', color: '#555', paddingLeft: '20px', lineHeight: '1.8'}}>
+                    <li>🚀 <strong>Commande Rapide :</strong> Choisissez vos plats préférés en quelques clics.</li>
+                    <li>📍 <strong>Suivi en Temps Réel :</strong> Suivez votre livreur sur la carte jusqu'à votre porte.</li>
+                    <li>📱 <strong>Multi-Plateforme :</strong> Disponible sur Web, Android (APK) et PC (Electron).</li>
+                    <li>🛠️ <strong>Gestion de Profil :</strong> Personnalisez vos infos et gérez vos adresses facilement.</li>
+                  </ul>
+                </div>
+
+                <div style={{
+                  background: '#f9f9f9',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px dashed #FFD700'
+                }}>
+                  <h4 style={{margin: '0 0 10px 0'}}>Besoin d'aide ?</h4>
+                  <p style={{fontSize: '14px', margin: '0 0 15px 0'}}>
+                    Notre équipe de support est là pour vous 24/7.
+                  </p>
+                  <div style={{fontSize: '14px', color: '#333'}}>
+                    <strong>Votre Email :</strong> {user?.email}
+                  </div>
+                  <div style={{fontSize: '14px', color: '#333', marginTop: '5px'}}>
+                    <strong>Support Email :</strong> support@flexpress.tn
+                  </div>
+                  <button 
+                    className="btn btn-primary btn-full" 
+                    style={{marginTop: '15px'}}
+                    onClick={() => window.location.href = `mailto:support@flexpress.tn?subject=Aide FLEXPRESS - User: ${user?.username}`}
+                  >
+                    Nous contacter par Email
+                  </button>
                 </div>
               </div>
             )}
