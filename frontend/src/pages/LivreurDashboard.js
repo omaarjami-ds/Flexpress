@@ -83,13 +83,31 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
 
   const fetchLivreurStats = async () => {
     const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('Token manquant');
+      return;
+    }
     try {
       const res = await axios.get(`${API_URL}/livreur/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setLivreurStats(res.data);
+      if (res && res.data) {
+        setLivreurStats(res.data);
+      }
     } catch (err) {
       console.error('Erreur chargement stats livreur:', err);
+      // Initialiser avec des valeurs par défaut en cas d'erreur
+      setLivreurStats({
+        stats: {
+          total_orders: 0,
+          total_earnings: 0,
+          delivered_orders: 0,
+          cancelled_orders: 0,
+          today_orders: 0,
+          today_earnings: 0
+        },
+        recent_orders: []
+      });
     }
   };
 
@@ -166,20 +184,30 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
 
   const loadOrders = async () => {
     const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('Token manquant');
+      return;
+    }
     try {
       const [availableRes, myRes] = await Promise.all([
         axios.get(`${API_URL}/livreur/available-orders`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_URL}/livreur/my-orders`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
-      setAvailableOrders(availableRes.data);
-      setMyOrders(myRes.data);
+      setAvailableOrders(availableRes?.data || []);
+      setMyOrders(myRes?.data || []);
       
-      if (availableRes.data.length > previousOrderCount) {
-        if (audioRef.current) audioRef.current.play().catch(e => console.log('Audio error:', e));
+      const availableCount = (availableRes?.data || []).length;
+      if (availableCount > previousOrderCount) {
+        if (audioRef.current) {
+          audioRef.current.play().catch(e => console.log('Audio error:', e));
+        }
       }
-      setPreviousOrderCount(availableRes.data.length);
+      setPreviousOrderCount(availableCount);
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
+      // Initialiser avec des tableaux vides en cas d'erreur
+      setAvailableOrders([]);
+      setMyOrders([]);
     }
   };
 
@@ -210,13 +238,23 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   };
 
   useEffect(() => {
-    loadOrders();
-    fetchLivreurStats();
-    const interval = setInterval(() => {
+    try {
       loadOrders();
       fetchLivreurStats();
-    }, 10000);
-    return () => clearInterval(interval);
+      const interval = setInterval(() => {
+        try {
+          loadOrders();
+          fetchLivreurStats();
+        } catch (err) {
+          console.error('Erreur dans l\'intervalle:', err);
+        }
+      }, 10000);
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    } catch (err) {
+      console.error('Erreur dans useEffect:', err);
+    }
   }, []);
 
   const openItineraryForOrder = (order) => {
@@ -255,12 +293,18 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     return new Date(o.created_at).toISOString().split('T')[0] === earningsDateFilter;
   });
 
-  const markers = allOrders.map(order => ({
-    id: order.id,
-    position: [order.restaurant_lat || order.delivery_latitude, order.restaurant_lon || order.delivery_longitude],
-    type: order.delivery_id === user.id ? 'my' : 'available',
-    order
-  }));
+  const markers = (allOrders || []).map(order => {
+    if (!order) return null;
+    const lat = order.restaurant_lat || order.delivery_latitude;
+    const lon = order.restaurant_lon || order.delivery_longitude;
+    if (!lat || !lon) return null;
+    return {
+      id: order.id || Math.random(),
+      position: [lat, lon],
+      type: order.delivery_id === user?.id ? 'my' : 'available',
+      order
+    };
+  }).filter(m => m !== null);
 
   return (
     <div className="dashboard">
@@ -469,21 +513,39 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                 <button onClick={getCurrentLocation} className="btn btn-primary btn-locate-main">Me localiser maintenant</button>
                 {position && <div className="loc-footer-address"><p>{positionLabel}</p></div>}
                 <div className="map-view-section" style={{height: '350px', marginTop: '15px'}}>
-                  <MapContainer center={mapCenter || position || [33.8083, 10.8533]} zoom={mapZoom} style={{ height: '100%', width: '100%' }} ref={mapRef}>
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    {position && (
-                      <>
-                        <RecenterMap center={mapCenter || position} zoom={15} />
-                        <Marker position={position}><Popup>Vous êtes ici</Popup></Marker>
-                      </>
-                    )}
-                    {markers.map(marker => (
-                      <Marker key={marker.id} position={marker.position} icon={L.icon({
-                        iconUrl: marker.type === 'my' ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png' : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
-                        iconSize: [25, 41], iconAnchor: [12, 41]
-                      })}><Popup>Commande #{marker.id}</Popup></Marker>
-                    ))}
-                  </MapContainer>
+                  {typeof window !== 'undefined' && typeof L !== 'undefined' ? (
+                    <MapContainer center={mapCenter || position || [33.8083, 10.8533]} zoom={mapZoom} style={{ height: '100%', width: '100%' }} ref={mapRef}>
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      {position && Array.isArray(position) && position.length === 2 && (
+                        <>
+                          <RecenterMap center={mapCenter || position} zoom={15} />
+                          <Marker position={position}><Popup>Vous êtes ici</Popup></Marker>
+                        </>
+                      )}
+                      {(markers || []).map(marker => {
+                        if (!marker || !marker.position || !Array.isArray(marker.position) || marker.position.length !== 2) {
+                          return null;
+                        }
+                        try {
+                          return (
+                            <Marker key={marker.id} position={marker.position} icon={L.icon({
+                              iconUrl: marker.type === 'my' ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png' : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+                              iconSize: [25, 41], iconAnchor: [12, 41]
+                            })}>
+                              <Popup>Commande #{marker.id}</Popup>
+                            </Marker>
+                          );
+                        } catch (e) {
+                          console.error('Erreur création marker:', e);
+                          return null;
+                        }
+                      })}
+                    </MapContainer>
+                  ) : (
+                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0f0f0' }}>
+                      <p>Carte non disponible</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

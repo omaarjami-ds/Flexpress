@@ -5,6 +5,7 @@ import ClientDashboard from './pages/ClientDashboard';
 import LivreurDashboard from './pages/LivreurDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import SplashScreen from './components/SplashScreen';
+import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 function App() {
@@ -57,7 +58,11 @@ function App() {
           />
           <Route 
             path="/livreur" 
-            element={user?.role === 'livreur' ? <LivreurDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} /> : <Navigate to="/login" />} 
+            element={user?.role === 'livreur' ? (
+              <ErrorBoundary>
+                <LivreurDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} />
+              </ErrorBoundary>
+            ) : <Navigate to="/login" />} 
           />
           <Route 
             path="/admin" 
