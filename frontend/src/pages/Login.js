@@ -108,10 +108,6 @@ function Login({ onLogin }) {
             {isLogin ? 'Se connecter' : "S'inscrire"}
           </button>
         </form>
-
-        <div className="login-footer">
-          <p>Admin: admin / admin123</p>
-        </div>
       </div>
     </div>
   );

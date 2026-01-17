@@ -9,7 +9,7 @@ const ProfileView = ({ user, onLogout }) => {
           {user?.username?.substring(0, 2).toUpperCase() || '??'}
         </div>
         <h2 className="profile-name">{user?.username}</h2>
-        <span className="profile-email-badge">{user?.email || 'email@exemple.com'}</span>
+        <div className="profile-email" style={{color: '#666', marginTop: '5px', marginBottom: '10px'}}>{user?.email}</div>
       </div>
 
       <div className="profile-menu-section">

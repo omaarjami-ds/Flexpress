@@ -1146,8 +1146,7 @@ def get_livreur_stats():
                 }
             }, '_id': 0
         }},
-        {'$sort': {'created_at': -1}},
-        {'$limit': 10}
+        {'$sort': {'created_at': -1}}
     ]))
 
     return jsonify({'stats': stats, 'recent_orders': recent_orders}), 200

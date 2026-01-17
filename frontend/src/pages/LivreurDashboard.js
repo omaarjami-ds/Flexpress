@@ -417,7 +417,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                       {user?.username?.substring(0, 2).toUpperCase() || '??'}
                     </div>
                     <h2 className="profile-name">{user?.username}</h2>
-                    <span className="profile-email-badge">Livreur - {user?.email || 'email@exemple.com'}</span>
+                    <div className="profile-email" style={{color: '#666', marginTop: '5px', marginBottom: '10px'}}>Livreur - {user?.email}</div>
                   </div>
 
                   <div className="livreur-stats-section card" style={{marginBottom: '20px', padding: '15px'}}>
@@ -461,10 +461,11 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                       <span className="profile-menu-label">Aide et support</span>
                       <span className="profile-menu-arrow">›</span>
                     </button>
-                  </div>
-
-                  <div className="logout-button-container">
-                    <button onClick={onLogout} className="logout-full-btn">Déconnexion</button>
+                    <button className="profile-menu-link" onClick={onLogout} style={{color: '#d32f2f'}}>
+                      <div className="profile-menu-icon-wrapper" style={{backgroundColor: '#ffebee', color: '#d32f2f'}}><FiUser /></div>
+                      <span className="profile-menu-label" style={{fontWeight: 'bold'}}>Déconnexion</span>
+                      <span className="profile-menu-arrow">›</span>
+                    </button>
                   </div>
                 </>
               )}
@@ -507,12 +508,30 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                       <h3>📜 Historique des livraisons</h3>
                       <button onClick={() => setShowHistory(false)}>×</button>
                     </div>
+                    <div style={{padding: '10px 15px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                      <span style={{fontSize: '0.9rem', color: '#666'}}>Filtrer par date :</span>
+                      <input 
+                        type="date" 
+                        value={earningsDateFilter} 
+                        onChange={(e) => setEarningsDateFilter(e.target.value)}
+                        className="input"
+                        style={{padding: '5px 10px', fontSize: '0.9rem', width: 'auto'}}
+                      />
+                      {earningsDateFilter && (
+                        <button onClick={() => setEarningsDateFilter('')} className="btn btn-sm" style={{padding: '5px 10px', background: '#f0f0f0', color: '#666', border: 'none', borderRadius: '5px'}}>Effacer</button>
+                      )}
+                    </div>
                     <div className="modal-body">
                       {(livreurStats?.recent_orders || []).length === 0 ? (
                         <p style={{textAlign: 'center', padding: '20px'}}>Aucun historique disponible.</p>
                       ) : (
                         <div className="history-list">
-                          {(livreurStats.recent_orders).map(order => (
+                          {(livreurStats.recent_orders || []).filter(order => {
+                            if (!earningsDateFilter) return true;
+                            try {
+                              return new Date(order.created_at).toISOString().split('T')[0] === earningsDateFilter;
+                            } catch (e) { return true; }
+                          }).map(order => (
                             <div key={order.id} className="history-item card" style={{
                               marginBottom: '15px', 
                               padding: '15px',
@@ -539,7 +558,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                               </div>
                               <div style={{marginBottom: '15px', fontSize: '0.85rem', background: '#f0f4f8', padding: '10px', borderRadius: '8px', borderLeft: '3px solid #2196f3'}}>
                                 <div style={{marginBottom: '8px'}}>
-                                  <strong>📞 Client :</strong> {order.client_phone || 'Non disponible'}
+                                  <strong>📞 Client :</strong> <a href={`tel:${order.client_phone}`} style={{color: '#2196f3', textDecoration: 'none'}}>{order.client_phone || 'Non disponible'}</a>
                                 </div>
                                 {position && order.client_lat && order.client_lon && (
                                   <div>
