@@ -85,7 +85,15 @@ export class ElectronCapacitorApp {
 
   // Helper function to load in the app.
   private async loadMainWindow(thisRef: any) {
-    await thisRef.loadWebApp(thisRef.MainWindow);
+    if (electronIsDev) {
+      try {
+        await thisRef.MainWindow.loadURL('http://localhost:3000');
+      } catch (e) {
+        await thisRef.loadWebApp(thisRef.MainWindow);
+      }
+    } else {
+      await thisRef.loadWebApp(thisRef.MainWindow);
+    }
   }
 
   // Expose the mainWindow ref for use outside of the class.

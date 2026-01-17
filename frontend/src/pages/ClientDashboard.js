@@ -96,6 +96,74 @@ function ClientDashboard({ user, onLogout }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showMyOrders, setShowMyOrders] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [profileSubView, setProfileSubView] = useState('main'); // 'main', 'personal', 'addresses'
+  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [userAddresses, setUserAddresses] = useState([]);
+  const [personalInfoForm, setPersonalInfoForm] = useState({
+    username: user?.username || '',
+    email: user?.email || '',
+    phone: user?.phone || ''
+  });
+  const [newAddress, setNewAddress] = useState({ label: 'Maison', address: '' });
+
+  const loadUserAddresses = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(`${API_URL}/user/addresses`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUserAddresses(response.data);
+    } catch (err) {
+      console.error('Erreur chargement adresses:', err);
+    }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.put(`${API_URL}/user/profile`, personalInfoForm, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Profil mis à jour avec succès !');
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setProfileSubView('main');
+    } catch (err) {
+      alert('Erreur lors de la mise à jour du profil.');
+    }
+  };
+
+  const handleAddAddress = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      await axios.post(`${API_URL}/user/addresses`, newAddress, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNewAddress({ label: 'Maison', address: '' });
+      loadUserAddresses();
+    } catch (err) {
+      alert('Erreur lors de l\'ajout de l\'adresse.');
+    }
+  };
+
+  const handleDeleteAddress = async (addrId) => {
+    const token = localStorage.getItem('token');
+    try {
+      await axios.delete(`${API_URL}/user/addresses/${addrId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadUserAddresses();
+    } catch (err) {
+      alert('Erreur lors de la suppression.');
+    }
+  };
+
+  useEffect(() => {
+    if (showProfile && profileSubView === 'addresses') {
+      loadUserAddresses();
+    }
+  }, [showProfile, profileSubView]);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [positionLabel, setPositionLabel] = useState('📍 Position non détectée. Cliquez sur "Utiliser ma position".');
   const [showLocationPopup, setShowLocationPopup] = useState(false);
@@ -942,67 +1010,186 @@ function ClientDashboard({ user, onLogout }) {
       <div className="container">
         {showProfile ? (
           <div className="profile-page">
-            <div className="profile-header-card">
-              <div className="profile-avatar-large-page">
-                {user?.username?.substring(0, 2).toUpperCase() || '??'}
+            {profileSubView !== 'main' && (
+              <button 
+                onClick={() => setProfileSubView('main')} 
+                className="btn btn-secondary btn-sm"
+                style={{marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px'}}
+              >
+                ‹ Retour
+              </button>
+            )}
+
+            {profileSubView === 'main' && (
+              <>
+                <div className="profile-header-card">
+                  <div className="profile-avatar-large-page">
+                    {user?.username?.substring(0, 2).toUpperCase() || '??'}
+                  </div>
+                  <h2 className="profile-name">{user?.username}</h2>
+                  <span className="profile-email-badge">{user?.email || 'email@exemple.com'}</span>
+                </div>
+
+                <div className="profile-menu-section">
+                  <button className="profile-menu-link" onClick={() => setProfileSubView('personal')}>
+                    <div className="profile-menu-icon-wrapper icon-gold">
+                      <FiUser />
+                    </div>
+                    <span className="profile-menu-label">Informations personnelles</span>
+                    <span className="profile-menu-arrow">›</span>
+                  </button>
+                  <button className="profile-menu-link" onClick={() => setProfileSubView('addresses')}>
+                    <div className="profile-menu-icon-wrapper icon-blue">
+                      <FiMapPin />
+                    </div>
+                    <span className="profile-menu-label">Adresses enregistrées</span>
+                    <span className="profile-menu-arrow">›</span>
+                  </button>
+                  <button className="profile-menu-link" onClick={() => { setShowMyOrders(true); setShowProfile(false); }}>
+                    <div className="profile-menu-icon-wrapper icon-purple">
+                      <FiList />
+                    </div>
+                    <span className="profile-menu-label">Historique des commandes</span>
+                    <span className="profile-menu-arrow">›</span>
+                  </button>
+                </div>
+
+                <div className="profile-menu-section">
+                  <button className="profile-menu-link" onClick={() => setShowComingSoon(true)}>
+                    <div className="profile-menu-icon-wrapper icon-green">
+                      <span style={{fontSize: '16px'}}>🔔</span>
+                    </div>
+                    <span className="profile-menu-label">Notifications</span>
+                    <span className="profile-menu-arrow">›</span>
+                  </button>
+                  <button className="profile-menu-link" onClick={() => setShowComingSoon(true)}>
+                    <div className="profile-menu-icon-wrapper icon-gold">
+                      <span style={{fontSize: '16px'}}>💳</span>
+                    </div>
+                    <span className="profile-menu-label">Moyens de paiement</span>
+                    <span className="profile-menu-arrow">›</span>
+                  </button>
+                  <button className="profile-menu-link" onClick={() => setShowComingSoon(true)}>
+                    <div className="profile-menu-icon-wrapper icon-blue">
+                      <span style={{fontSize: '16px'}}>❓</span>
+                    </div>
+                    <span className="profile-menu-label">Aide et support</span>
+                    <span className="profile-menu-arrow">›</span>
+                  </button>
+                </div>
+
+                <div className="logout-button-container">
+                  <button onClick={onLogout} className="logout-full-btn">
+                    <FiUser /> Déconnexion
+                  </button>
+                </div>
+              </>
+            )}
+
+            {profileSubView === 'personal' && (
+              <div className="profile-sub-section">
+                <h3>Informations personnelles</h3>
+                <form onSubmit={handleUpdateProfile} className="profile-form">
+                  <div className="form-group">
+                    <label>Nom d'utilisateur</label>
+                    <input 
+                      type="text" 
+                      value={personalInfoForm.username}
+                      onChange={(e) => setPersonalInfoForm({...personalInfoForm, username: e.target.value})}
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input 
+                      type="email" 
+                      value={personalInfoForm.email}
+                      onChange={(e) => setPersonalInfoForm({...personalInfoForm, email: e.target.value})}
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Téléphone</label>
+                    <input 
+                      type="tel" 
+                      value={personalInfoForm.phone}
+                      onChange={(e) => setPersonalInfoForm({...personalInfoForm, phone: e.target.value})}
+                      className="input"
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-full" style={{marginTop: '20px'}}>
+                    Sauvegarder les modifications
+                  </button>
+                </form>
               </div>
-              <h2 className="profile-name">{user?.username}</h2>
-              <span className="profile-email-badge">{user?.email || 'email@exemple.com'}</span>
-            </div>
+            )}
 
-            <div className="profile-menu-section">
-              <button className="profile-menu-link">
-                <div className="profile-menu-icon-wrapper icon-gold">
-                  <FiUser />
+            {profileSubView === 'addresses' && (
+              <div className="profile-sub-section">
+                <h3>Mes adresses</h3>
+                
+                <div className="addresses-list" style={{marginBottom: '30px'}}>
+                  {userAddresses.length === 0 ? (
+                    <p style={{color: '#666', textAlign: 'center'}}>Aucune adresse enregistrée.</p>
+                  ) : (
+                    userAddresses.map(addr => (
+                      <div key={addr.id} className="address-item" style={{
+                        background: 'white',
+                        padding: '15px',
+                        borderRadius: '12px',
+                        marginBottom: '10px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                      }}>
+                        <div>
+                          <strong style={{display: 'block', color: '#FFD700'}}>{addr.label}</strong>
+                          <span style={{fontSize: '14px', color: '#333'}}>{addr.address}</span>
+                        </div>
+                        <button 
+                          onClick={() => handleDeleteAddress(addr.id)}
+                          style={{background: 'none', border: 'none', color: '#ff4d4d', fontSize: '20px', cursor: 'pointer'}}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
-                <span className="profile-menu-label">Informations personnelles</span>
-                <span className="profile-menu-arrow">›</span>
-              </button>
-              <button className="profile-menu-link">
-                <div className="profile-menu-icon-wrapper icon-blue">
-                  <FiMapPin />
-                </div>
-                <span className="profile-menu-label">Adresses enregistrées</span>
-                <span className="profile-menu-arrow">›</span>
-              </button>
-              <button className="profile-menu-link">
-                <div className="profile-menu-icon-wrapper icon-purple">
-                  <FiList />
-                </div>
-                <span className="profile-menu-label">Historique des commandes</span>
-                <span className="profile-menu-arrow">›</span>
-              </button>
-            </div>
 
-            <div className="profile-menu-section">
-              <button className="profile-menu-link">
-                <div className="profile-menu-icon-wrapper icon-green">
-                  <span style={{fontSize: '16px'}}>🔔</span>
+                <div style={{borderTop: '1px solid #eee', paddingTop: '20px'}}>
+                  <h4>Ajouter une adresse</h4>
+                  <form onSubmit={handleAddAddress} className="profile-form">
+                    <div className="form-group">
+                      <label>Label (ex: Maison, Bureau)</label>
+                      <input 
+                        type="text" 
+                        value={newAddress.label}
+                        onChange={(e) => setNewAddress({...newAddress, label: e.target.value})}
+                        className="input"
+                        placeholder="Maison"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Adresse complète</label>
+                      <input 
+                        type="text" 
+                        value={newAddress.address}
+                        onChange={(e) => setNewAddress({...newAddress, address: e.target.value})}
+                        className="input"
+                        placeholder="Rue, Ville, Code postal"
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="btn btn-success btn-full" style={{marginTop: '15px'}}>
+                      Ajouter cette adresse
+                    </button>
+                  </form>
                 </div>
-                <span className="profile-menu-label">Notifications</span>
-                <span className="profile-menu-arrow">›</span>
-              </button>
-              <button className="profile-menu-link">
-                <div className="profile-menu-icon-wrapper icon-gold">
-                  <span style={{fontSize: '16px'}}>💳</span>
-                </div>
-                <span className="profile-menu-label">Moyens de paiement</span>
-                <span className="profile-menu-arrow">›</span>
-              </button>
-              <button className="profile-menu-link">
-                <div className="profile-menu-icon-wrapper icon-blue">
-                  <span style={{fontSize: '16px'}}>❓</span>
-                </div>
-                <span className="profile-menu-label">Aide et support</span>
-                <span className="profile-menu-arrow">›</span>
-              </button>
-            </div>
+              </div>
+            )}
 
-            <div className="logout-button-container">
-              <button onClick={onLogout} className="logout-full-btn">
-                <FiUser /> Déconnexion
-              </button>
-            </div>
             <div style={{textAlign: 'center', marginTop: '20px', color: '#999', fontSize: '12px'}}>
               Version 1.0.0
             </div>
@@ -2103,6 +2290,24 @@ function ClientDashboard({ user, onLogout }) {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showComingSoon && (
+        <div className="modal-overlay" style={{zIndex: 3000}}>
+          <div className="modal-content" style={{maxWidth: '400px', textAlign: 'center', padding: '40px'}}>
+            <div style={{fontSize: '60px', marginBottom: '20px'}}>🚀</div>
+            <h3 style={{marginBottom: '10px'}}>Bientôt disponible !</h3>
+            <p style={{color: '#666', marginBottom: '30px'}}>
+              Cette fonctionnalité est en cours de développement et sera disponible dans la prochaine mise à jour.
+            </p>
+            <button 
+              onClick={() => setShowComingSoon(false)} 
+              className="btn btn-primary btn-full"
+            >
+              D'accord
+            </button>
           </div>
         </div>
       )}

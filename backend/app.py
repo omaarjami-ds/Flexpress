@@ -343,6 +343,82 @@ def update_location():
     db.users.update_one({'id': user_id}, {'$set': {'latitude': data['latitude'], 'longitude': data['longitude']}})
     return jsonify({'message': 'Location updated'}), 200
 
+@app.route('/api/user/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({'error': 'Invalid token'}), 401
+    user_id = current_user['id']
+    data = request.json
+    
+    update_data = {}
+    if 'email' in data:
+        update_data['email'] = data['email']
+    if 'phone' in data:
+        update_data['phone'] = data['phone']
+    if 'username' in data:
+        update_data['username'] = data['username']
+    
+    if update_data:
+        db.users.update_one({'id': user_id}, {'$set': update_data})
+        
+    updated_user = db.users.find_one({'id': user_id}, {'password': 0, '_id': 0})
+    return jsonify({'message': 'Profile updated', 'user': updated_user}), 200
+
+@app.route('/api/user/addresses', methods=['GET'])
+@jwt_required()
+def get_addresses():
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({'error': 'Invalid token'}), 401
+    user_id = current_user['id']
+    
+    user = db.users.find_one({'id': user_id}, {'addresses': 1, '_id': 0})
+    addresses = user.get('addresses', [])
+    return jsonify(addresses), 200
+
+@app.route('/api/user/addresses', methods=['POST'])
+@jwt_required()
+def add_address():
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({'error': 'Invalid token'}), 401
+    user_id = current_user['id']
+    data = request.json
+    
+    if 'address' not in data:
+        return jsonify({'error': 'Address is required'}), 400
+        
+    db.users.update_one(
+        {'id': user_id},
+        {'$push': {'addresses': {
+            'id': datetime.now().strftime('%Y%m%d%H%M%S'),
+            'label': data.get('label', 'Autre'),
+            'address': data['address'],
+            'created_at': datetime.now()
+        }}}
+    )
+    
+    user = db.users.find_one({'id': user_id}, {'addresses': 1, '_id': 0})
+    return jsonify({'message': 'Address added', 'addresses': user.get('addresses', [])}), 200
+
+@app.route('/api/user/addresses/<string:addr_id>', methods=['DELETE'])
+@jwt_required()
+def delete_address(addr_id):
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({'error': 'Invalid token'}), 401
+    user_id = current_user['id']
+    
+    db.users.update_one(
+        {'id': user_id},
+        {'$pull': {'addresses': {'id': addr_id}}}
+    )
+    
+    user = db.users.find_one({'id': user_id}, {'addresses': 1, '_id': 0})
+    return jsonify({'message': 'Address deleted', 'addresses': user.get('addresses', [])}), 200
+
 # Restaurant routes
 @app.route('/api/restaurants', methods=['GET'])
 def get_restaurants():
