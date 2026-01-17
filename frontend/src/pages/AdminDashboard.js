@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { FiPlus, FiUsers, FiPackage, FiMapPin, FiFileText, FiTrash2, FiRefreshCw, FiDownload, FiUser } from 'react-icons/fi';
+import { FiPlus, FiUsers, FiPackage, FiMapPin, FiFileText, FiTrash2, FiRefreshCw, FiDownload } from 'react-icons/fi';
 import WindowControls from '../components/WindowControls';
 import ProfileMenu from '../components/ProfileMenu';
 import PullToRefresh from '../components/PullToRefresh';
@@ -25,7 +25,6 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
   const [activeSection, setActiveSection] = useState('restaurants'); // 'restaurants', 'orders', 'users', 'profile'
-  const [showProfile, setShowProfile] = useState(false);
   const [personalInfoForm, setPersonalInfoForm] = useState({
     username: user?.username || '',
     email: user?.email || '',
@@ -89,7 +88,7 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
     // Rafraîchissement automatique toutes les 10 secondes
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadData]);
 
   const handleFileUpload = async (e, type) => {
     const file = e.target.files[0];
@@ -247,7 +246,7 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
     }
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const token = localStorage.getItem('token');
     try {
       const [restaurantsRes, ordersRes, usersRes] = await Promise.all([
@@ -271,7 +270,7 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
         onLogout();
       }
     }
-  };
+  }, [onLogout]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -282,7 +281,6 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
       });
       alert('Profil mis à jour avec succès !');
       if (onUpdateUser) onUpdateUser(response.data.user);
-      setShowProfile(false);
       setActiveSection('restaurants');
     } catch (err) {
       console.error('Erreur mise à jour profil:', err);

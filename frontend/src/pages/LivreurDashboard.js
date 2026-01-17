@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { FiUser, FiMapPin, FiList, FiHelpCircle, FiSettings } from 'react-icons/fi';
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
+import { FiUser, FiList, FiHelpCircle } from 'react-icons/fi';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import WindowControls from '../components/WindowControls';
 import ProfileMenu from '../components/ProfileMenu';
@@ -51,17 +51,12 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   const [myOrders, setMyOrders] = useState([]);
   const [position, setPosition] = useState(null);
   const [mapCenter, setMapCenter] = useState(null);
-  const [mapZoom, setMapZoom] = useState(13);
-  const [accuracy, setAccuracy] = useState(null);
   const [positionLabel, setPositionLabel] = useState('📍 Position livreur non détectée. Cliquez sur le bouton de localisation.');
   const [showEarningsDetails, setShowEarningsDetails] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [historyDateFilter, setHistoryDateFilter] = useState('');
-  const [historyStatusFilter, setHistoryStatusFilter] = useState(''); // all, accepted, delivering, delivered
   const [earningsDateFilter, setEarningsDateFilter] = useState('');
   const [previousOrderCount, setPreviousOrderCount] = useState(0);
   const [profileSubView, setProfileSubView] = useState('main'); // 'main', 'personal', 'help'
@@ -70,7 +65,6 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     email: user?.email || '',
     phone: user?.phone || ''
   });
-  const watchIdRef = useRef(null);
   const mapRef = useRef(null);
   const audioRef = useRef(null);
 
@@ -86,7 +80,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     recent_orders: []
   });
 
-  const fetchLivreurStats = async () => {
+  const fetchLivreurStats = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) {
       console.error('Token manquant');
@@ -114,7 +108,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
         recent_orders: []
       });
     }
-  };
+  }, []);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -187,7 +181,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     }
   };
 
-  const loadOrders = async (status = 'accepted,delivering') => {
+  const loadOrders = useCallback(async (status = 'accepted,delivering') => {
     // Si status est un objet (cas du PullToRefresh), on utilise la valeur par défaut
     const finalStatus = typeof status === 'string' ? status : 'accepted,delivering';
     const token = localStorage.getItem('token');
@@ -215,7 +209,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
       setAvailableOrders([]);
       setMyOrders([]);
     }
-  };
+  }, [previousOrderCount]);
 
   const acceptOrder = async (orderId) => {
     if (!isAvailable) {
@@ -268,7 +262,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     if (showEarningsDetails) {
       loadOrders('accepted,delivering,delivered');
     }
-  }, [showEarningsDetails]);
+  }, [showEarningsDetails, loadOrders]);
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -303,7 +297,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     } catch (err) {
       console.error('Erreur dans useEffect:', err);
     }
-  }, []);
+  }, [loadOrders, fetchLivreurStats]);
 
   const openItineraryForOrder = (order) => {
     const destLat = order.delivery_latitude || order.client_lat;
@@ -316,16 +310,6 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     }
   };
 
-  const getRouteInfoForOrder = (order) => {
-    const destLat = order.delivery_latitude || order.client_lat;
-    const destLon = order.delivery_longitude || order.client_lon;
-    if (destLat && destLon && position) {
-      const dist = calculateDistanceKm(position[0], position[1], destLat, destLon);
-      return { distanceKm: dist, travelMinutes: Math.round(dist * 3 + 2) };
-    }
-    return null;
-  };
-
   const stats = {
     totalAccepted: livreurStats?.stats?.total_orders || 0,
     totalDelivered: livreurStats?.stats?.delivered_orders || 0,
@@ -335,7 +319,6 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   };
 
   const allOrders = [...(availableOrders || []), ...(myOrders || [])];
-  const activeOrders = (myOrders || []).filter(o => o && ['accepted', 'delivering'].includes(o.status));
   const deliveredOrders = (myOrders || []).filter(o => o?.status === 'delivered').filter(o => {
     if (!earningsDateFilter || !o?.created_at) return true;
     try {

@@ -349,7 +349,7 @@ def update_status():
     db.users.update_one({'id': user_id}, {'$set': {'is_available': is_available}})
     return jsonify({'message': 'Status updated', 'is_available': is_available}), 200
 
-@app.route('/api/user/location', methods=['POST'])
+@app.route('/api/user/location', methods=['POST', 'PUT'])
 @jwt_required()
 def update_location():
     current_user = get_current_user()
@@ -808,7 +808,21 @@ def get_orders():
             {'$project': {
                 '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
                 'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
-                'estimated_delivery_time': 1, 'created_at': 1, 'items': 1,
+                'estimated_delivery_time': 1, 'created_at': 1,
+                'items': {
+                    '$map': {
+                        'input': '$items',
+                        'as': 'item',
+                        'in': {
+                            'id': '$$item.id',
+                            'order_id': '$$item.order_id',
+                            'item_id': '$$item.item_id',
+                            'item_name': '$$item.item_name',
+                            'quantity': '$$item.quantity',
+                            'price': '$$item.price'
+                        }
+                    }
+                },
                 'restaurant_name': '$restaurant.name',
                 'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude', 'client_phone': '$client.phone'
             }},
@@ -837,7 +851,21 @@ def get_orders():
             {'$project': {
                 '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
                 'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
-                'estimated_delivery_time': 1, 'created_at': 1, 'items': 1,
+                'estimated_delivery_time': 1, 'created_at': 1,
+                'items': {
+                    '$map': {
+                        'input': '$items',
+                        'as': 'item',
+                        'in': {
+                            'id': '$$item.id',
+                            'order_id': '$$item.order_id',
+                            'item_id': '$$item.item_id',
+                            'item_name': '$$item.item_name',
+                            'quantity': '$$item.quantity',
+                            'price': '$$item.price'
+                        }
+                    }
+                },
                 'restaurant_name': '$restaurant.name',
                 'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude',
                 'delivery_name': '$driver.username', 'delivery_lat': '$driver.latitude', 'delivery_lon': '$driver.longitude'
@@ -973,7 +1001,21 @@ def get_available_deliveries():
         {'$project': {
             '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
             'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
-            'estimated_delivery_time': 1, 'created_at': 1, 'items': {'_id': 0, 'id': 1, 'order_id': 1, 'item_id': 1, 'item_name': 1, 'quantity': 1, 'price': 1},
+            'estimated_delivery_time': 1, 'created_at': 1,
+            'items': {
+                '$map': {
+                    'input': '$items',
+                    'as': 'item',
+                    'in': {
+                        'id': '$$item.id',
+                        'order_id': '$$item.order_id',
+                        'item_id': '$$item.item_id',
+                        'item_name': '$$item.item_name',
+                        'quantity': '$$item.quantity',
+                        'price': '$$item.price'
+                    }
+                }
+            },
             'restaurant_name': '$restaurant.name', 'restaurant_lat': '$restaurant.latitude', 'restaurant_lon': '$restaurant.longitude',
             'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude', 'client_phone': '$client.phone'
         }},
@@ -999,7 +1041,21 @@ def get_order_details(order_id):
         {'$project': {
             '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
             'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
-            'estimated_delivery_time': 1, 'created_at': 1, 'items': {'_id': 0, 'id': 1, 'order_id': 1, 'item_id': 1, 'item_name': 1, 'quantity': 1, 'price': 1},
+            'estimated_delivery_time': 1, 'created_at': 1,
+            'items': {
+                '$map': {
+                    'input': '$items',
+                    'as': 'item',
+                    'in': {
+                        'id': '$$item.id',
+                        'order_id': '$$item.order_id',
+                        'item_id': '$$item.item_id',
+                        'item_name': '$$item.item_name',
+                        'quantity': '$$item.quantity',
+                        'price': '$$item.price'
+                    }
+                }
+            },
             'restaurant_name': '$restaurant.name', 'client_name': '$client.username', 'client_phone': '$client.phone'
         }}
     ])
@@ -1052,7 +1108,24 @@ def get_livreur_stats():
         {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
         {'$unwind': '$restaurant'},
         {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
-        {'$project': {'_id': 0, 'id': 1, 'total_price': 1, 'status': 1, 'created_at': 1, 'restaurant_name': '$restaurant.name', 'items': {'_id': 0, 'id': 1, 'order_id': 1, 'item_id': 1, 'item_name': 1, 'quantity': 1, 'price': 1}}},
+        {'$project': {
+            '_id': 0, 'id': 1, 'total_price': 1, 'status': 1, 'created_at': 1, 
+            'restaurant_name': '$restaurant.name', 
+            'items': {
+                '$map': {
+                    'input': '$items',
+                    'as': 'item',
+                    'in': {
+                        'id': '$$item.id',
+                        'order_id': '$$item.order_id',
+                        'item_id': '$$item.item_id',
+                        'item_name': '$$item.item_name',
+                        'quantity': '$$item.quantity',
+                        'price': '$$item.price'
+                    }
+                }
+            }
+        }},
         {'$sort': {'created_at': -1}},
         {'$limit': 10}
     ]))

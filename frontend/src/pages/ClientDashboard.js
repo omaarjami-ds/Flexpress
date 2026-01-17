@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { FiShoppingCart, FiMapPin, FiHome, FiList, FiPlusCircle, FiUser } from 'react-icons/fi';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -392,90 +392,23 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     }
   };
 
-  useEffect(() => {
-    loadOrders();
-    loadRestaurants(null, null);
-    loadPopularAndMakloub();
-    
-    // Rafraîchissement automatique toutes les 10 secondes pour voir les nouveaux articles sans se déconnecter
-    const interval = setInterval(() => {
-      loadOrders();
-      loadRestaurants(null, null);
-      loadPopularAndMakloub();
-    }, 10000);
-
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    // Filtrer les restaurants selon les filtres
-    let filtered = [...allRestaurants];
-    
-    // Filtre par statut ouvert/fermé
-    if (filterOpenOnly) {
-      filtered = filtered.filter(r => r.is_open);
-    }
-    
-    // Filtre par catégorie (basé sur le nom ou la description)
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(r => {
-        const nameLower = r.name?.toLowerCase() || '';
-        const descLower = r.description?.toLowerCase() || '';
-        const combined = `${nameLower} ${descLower}`;
-        
-        switch(selectedCategory) {
-          case 'tunisian':
-            return combined.includes('tunisien') || combined.includes('makloub') || combined.includes('chawarma') || combined.includes('fricassé') || combined.includes('brik');
-          case 'sandwich':
-            return combined.includes('sandwich') || combined.includes('panini') || combined.includes('baguette');
-          case 'burger':
-            return combined.includes('burger') || combined.includes('hamburger');
-          case 'pizza':
-            return combined.includes('pizza') || combined.includes('pizzeria');
-          case 'snacks':
-            return combined.includes('snack') || combined.includes('frites') || combined.includes('nuggets');
-          case 'salad':
-            return combined.includes('salade') || combined.includes('salad');
-          case 'chicken':
-            return combined.includes('poulet') || combined.includes('chicken');
-          case 'pasta':
-            return combined.includes('pâte') || combined.includes('pasta') || combined.includes('carbonara') || combined.includes('bolognaise');
-          case 'asian':
-            return combined.includes('sushi') || combined.includes('chinois') || combined.includes('japonais') || combined.includes('thaï');
-          case 'sushi':
-            return combined.includes('sushi') || combined.includes('sashimi');
-          case 'grill':
-            return combined.includes('grill') || combined.includes('broche');
-          case 'breakfast':
-            return combined.includes('petit-déjeuner') || combined.includes('breakfast') || combined.includes('croissant');
-          case 'oriental':
-            return combined.includes('oriental') || combined.includes('shawarma') || combined.includes('kebab');
-          case 'sweets':
-            return combined.includes('dessert') || combined.includes('gâteau') || combined.includes('glace');
-          case 'italian':
-            return combined.includes('italien') || combined.includes('italian') || combined.includes('lasagne');
-          default:
-            return true;
-        }
-      });
-    }
-    
-    setRestaurants(filtered);
-  }, [filterOpenOnly, selectedCategory, allRestaurants]);
-
-  const updateLocation = async (lat, lon) => {
+  const loadOrders = useCallback(async () => {
     const token = localStorage.getItem('token');
+    if (!token) return;
     try {
-      await axios.post(`${API_URL}/user/location`, { latitude: lat, longitude: lon }, {
+      const response = await axios.get(`${API_URL}/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      setOrders(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      console.error('Erreur mise à jour position:', err);
+      console.error('Erreur chargement commandes:', err);
+      if (err.response?.status === 401) {
+        onLogout();
+      }
     }
-  };
+  }, [onLogout]);
 
-  const loadRestaurants = async (lat, lon) => {
+  const loadRestaurants = useCallback(async (lat, lon) => {
     try {
       // Construire l'URL avec ou sans coordonnées
       let url = `${API_URL}/restaurants`;
@@ -498,23 +431,35 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         console.error('Erreur chargement restaurants sans position:', err2);
       }
     }
-  };
+  }, []);
 
-  const loadOrders = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+  const loadPopularAndMakloub = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_URL}/orders`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setOrders(Array.isArray(response.data) ? response.data : []);
+      const [popRes, makRes] = await Promise.all([
+        axios.get(`${API_URL}/menu-items/popular`),
+        axios.get(`${API_URL}/menu-items/makloub`)
+      ]);
+      setPopularItems(popRes.data);
+      setMakloubItems(makRes.data);
     } catch (err) {
-      console.error('Erreur chargement commandes:', err);
-      if (err.response?.status === 401) {
-        onLogout();
-      }
+      console.error('Erreur chargement items populaires/makloub:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadOrders();
+    loadRestaurants(null, null);
+    loadPopularAndMakloub();
+    
+    // Rafraîchissement automatique toutes les 10 secondes pour voir les nouveaux articles sans se déconnecter
+    const interval = setInterval(() => {
+      loadOrders();
+      loadRestaurants(null, null);
+      loadPopularAndMakloub();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [loadOrders, loadRestaurants, loadPopularAndMakloub]);
 
   const handleRefresh = async () => {
     await Promise.all([loadOrders(), loadRestaurants(null, null)]);
