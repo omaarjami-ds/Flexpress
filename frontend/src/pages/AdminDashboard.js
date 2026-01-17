@@ -520,7 +520,7 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
     totalOrders: orders.length,
     pendingOrders: orders.filter(o => o.status === 'pending').length,
     activeRestaurants: restaurants.filter(r => r.is_active).length,
-    totalRevenue: orders.filter(o => o.status === 'delivered').reduce((sum, o) => sum + o.total_price, 0)
+    totalRevenue: Number(orders.filter(o => o.status === 'delivered').reduce((sum, o) => sum + (o.total_price || 0), 0) || 0)
   };
 
   // Statistiques par livreur (basées sur les vraies commandes)
@@ -528,7 +528,7 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
     const userOrders = orders.filter(o => o.delivery_id === userId);
     const deliveredOrders = userOrders.filter(o => o.status === 'delivered');
     const totalDelivered = deliveredOrders.length;
-    const totalRevenue = deliveredOrders.reduce((sum, o) => sum + o.total_price, 0);
+    const totalRevenue = deliveredOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
     return { totalDelivered, totalRevenue };
   };
 
@@ -647,33 +647,36 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
             <div className="admin-sidebar-header">
               <h3>📊 Navigation</h3>
             </div>
+            <div className="mobile-back-link" style={{display: 'none', padding: '10px 15px', borderBottom: '1px solid #eee'}}>
+               <button onClick={() => window.location.href='/'} className="btn btn-sm btn-secondary">‹ Retour Accueil</button>
+            </div>
             <nav className="admin-nav">
               <button 
                 className={`admin-nav-item ${activeSection === 'restaurants' ? 'active' : ''}`}
                 onClick={() => setActiveSection('restaurants')}
               >
-                <FiMapPin /> Restaurants
+                <FiMapPin /> <span>Restaurants</span>
                 <span className="nav-badge">{restaurants.length}</span>
               </button>
               <button 
                 className={`admin-nav-item ${activeSection === 'orders' ? 'active' : ''}`}
                 onClick={() => setActiveSection('orders')}
               >
-                <FiPackage /> Commandes
+                <FiPackage /> <span>Commandes</span>
                 <span className="nav-badge">{orders.length}</span>
               </button>
               <button 
                 className={`admin-nav-item ${activeSection === 'users' ? 'active' : ''}`}
                 onClick={() => setActiveSection('users')}
               >
-                <FiUsers /> Utilisateurs
+                <FiUsers /> <span>Utilisateurs</span>
                 <span className="nav-badge">{users.length}</span>
               </button>
               <button 
                 className={`admin-nav-item ${activeSection === 'profile' ? 'active' : ''}`}
                 onClick={() => setActiveSection('profile')}
               >
-                <FiUser /> Mon Profil
+                <FiUser /> <span>Mon Profil</span>
               </button>
             </nav>
           </div>

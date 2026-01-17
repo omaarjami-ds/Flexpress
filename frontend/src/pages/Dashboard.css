@@ -33,8 +33,15 @@
 /* Élargir le contenu et le coller un peu plus à gauche uniquement pour l'admin */
 .admin-dashboard-page .container {
   max-width: 1400px;
-  margin: 0 20px 40px 20px; /* marges gauche/droite réduites */
-  padding: 20px 0;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .admin-dashboard-page .container {
+    padding: 10px;
+    margin: 0;
+  }
 }
 
 /* Hero Section Style Glovo */
@@ -2021,6 +2028,13 @@
   margin-top: 30px;
 }
 
+@media (max-width: 992px) {
+  .admin-dashboard-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
 .admin-sidebar {
   background: white;
   border-radius: 20px;
@@ -2030,6 +2044,13 @@
   height: fit-content;
   position: sticky;
   top: 20px;
+}
+
+@media (max-width: 992px) {
+  .admin-sidebar {
+    position: static;
+    border-radius: 12px;
+  }
 }
 
 .admin-sidebar-header {
