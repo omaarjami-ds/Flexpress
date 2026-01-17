@@ -39,7 +39,9 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 function RecenterMap({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
+    if (center && Array.isArray(center) && center.length === 2 && !isNaN(center[0]) && !isNaN(center[1])) {
+      map.setView(center, zoom);
+    }
   }, [center, zoom, map]);
   return null;
 }
@@ -192,8 +194,8 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     }
     try {
       const [availableRes, myRes] = await Promise.all([
-        axios.get(`${API_URL}/livreur/available-orders`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_URL}/livreur/my-orders`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API_URL}/deliveries/available`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/orders`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setAvailableOrders(availableRes?.data || []);
       setMyOrders(myRes?.data || []);
@@ -380,7 +382,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
                       <h2 style={{margin: 0, fontSize: '1.2rem'}}>📈 Mes Rendements</h2>
                       <div style={{backgroundColor: '#e3f2fd', padding: '5px 12px', borderRadius: '15px', color: '#1976d2', fontWeight: 'bold'}}>
-                        Total : {stats.totalEarnings.toFixed(3)} DT
+                        Total : {(stats.totalEarnings || 0).toFixed(3)} DT
                       </div>
                     </div>
                     
@@ -476,7 +478,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                       <div key={order.id} className="order-item-active" onClick={() => setSelectedOrder(order)}>
                         <div className="order-main-info">
                           <div className="restaurant-badge">{order.restaurant_name}</div>
-                          <div className="order-price-badge">{order.total_price.toFixed(2)} DT</div>
+                          <div className="order-price-badge">{(order.total_price || 0).toFixed(2)} DT</div>
                         </div>
                         <div className="order-details-mini">
                           <p>📍 {order.delivery_address}</p>
@@ -504,7 +506,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                           <div key={order.id} className="queue-order-line">
                             <div className="queue-order-address">📍 {order.delivery_address}</div>
                             <div className="queue-order-actions">
-                              <span className="price-tag">{order.total_price.toFixed(2)} DT</span>
+                              <span className="price-tag">{(order.total_price || 0).toFixed(2)} DT</span>
                               <button onClick={() => acceptOrder(order.id)} className="btn btn-success btn-sm">Accepter</button>
                             </div>
                           </div>
@@ -565,7 +567,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                 <div className="stats-grid">
                   <div className="stat-card-livreur"><h3>{stats.totalAccepted}</h3><p>Acceptées</p></div>
                   <div className="stat-card-livreur"><h3>{stats.totalDelivered}</h3><p>Livrées</p></div>
-                  <div className="stat-card-livreur" onClick={() => setShowEarningsDetails(true)}><h3>{stats.totalEarnings.toFixed(2)} DT</h3><p>Gagné</p></div>
+                  <div className="stat-card-livreur" onClick={() => setShowEarningsDetails(true)}><h3>{(stats.totalEarnings || 0).toFixed(2)} DT</h3><p>Gagné</p></div>
                 </div>
               </div>
             </>
@@ -588,7 +590,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                 <thead><tr><th>ID</th><th>Total</th><th>Date</th></tr></thead>
                 <tbody>
                   {deliveredOrders.map(order => (
-                    <tr key={order.id}><td>#{order.id}</td><td>{order.total_price.toFixed(2)} DT</td><td>{new Date(order.created_at).toLocaleDateString()}</td></tr>
+                    <tr key={order.id}><td>#{order.id}</td><td>{(order.total_price || 0).toFixed(2)} DT</td><td>{order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</td></tr>
                   ))}
                 </tbody>
               </table>
