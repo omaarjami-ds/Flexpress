@@ -1,6 +1,31 @@
-.dashboard {
-  min-height: 100vh;
-  background: #f5f5f5;
+.queue-order-line-pro {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.queue-order-line-pro:active {
+  transform: scale(0.98);
+}
+
+.offline-notice {
+  border: 1px solid #ffcdd2;
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.1);
+}
+
+.btn-outline-info {
+  background: transparent;
+  border: 1px solid #17a2b8;
+  color: #17a2b8;
+}
+
+.btn-outline-info:active {
+  background: #17a2b8;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .livreur-priority-section {
+    padding: 10px;
+  }
 }
 
 /* Mise en page par défaut : centré (client, livreur) – le max-width vient de .container dans App.css */

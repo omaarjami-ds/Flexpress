@@ -58,6 +58,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   const [isAvailable, setIsAvailable] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [historyDateFilter, setHistoryDateFilter] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState(''); // all, accepted, delivering, delivered
@@ -216,6 +217,10 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   };
 
   const acceptOrder = async (orderId) => {
+    if (!isAvailable) {
+      alert('Vous devez être "En Service" pour accepter des commandes.');
+      return;
+    }
     const token = localStorage.getItem('token');
     try {
       await axios.post(`${API_URL}/orders/${orderId}/accept`, {}, {
@@ -223,6 +228,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
       });
       loadOrders();
       fetchLivreurStats();
+      setShowProfile(false); // S'assurer qu'on voit la commande active
     } catch (err) {
       alert(err.response?.data?.error || 'Erreur acceptation commande');
     }
@@ -242,7 +248,22 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   };
 
   useEffect(() => {
+    const fetchStatus = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const res = await axios.get(`${API_URL}/user/status`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setIsAvailable(res.data.is_available);
+        } catch (err) {
+          console.error('Erreur chargement statut:', err);
+        }
+      }
+    };
+
     try {
+      fetchStatus();
       loadOrders();
       fetchLivreurStats();
       const interval = setInterval(() => {
@@ -505,7 +526,14 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
               </div>
 
               <div className="livreur-priority-section">
-                {activeOrders.length > 0 ? (
+                {!isAvailable ? (
+                  <div className="card offline-notice" style={{textAlign: 'center', padding: '30px', background: '#fff0f0'}}>
+                    <div style={{fontSize: '3rem', marginBottom: '15px'}}>😴</div>
+                    <h2 style={{color: '#d32f2f'}}>Vous êtes Hors Service</h2>
+                    <p>Mettez-vous en service pour voir et accepter des commandes.</p>
+                    <button onClick={toggleStatus} className="btn btn-success btn-full" style={{marginTop: '20px'}}>Se mettre en ligne</button>
+                  </div>
+                ) : activeOrders.length > 0 ? (
                   <div className="card active-order-card">
                     <h2 style={{color: '#28a745', marginBottom: '15px'}}>🚚 Livraison en cours</h2>
                     {activeOrders.map(order => (
@@ -540,26 +568,62 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                   </div>
                 ) : (
                   <div className="card available-orders-card">
-                    <h2 style={{color: '#17a2b8', marginBottom: '15px'}}>📦 Commandes Disponibles ({availableOrders.length})</h2>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                      <h2 style={{color: '#17a2b8', margin: 0}}>📦 Commandes ({availableOrders.length})</h2>
+                      <button onClick={loadOrders} className="btn btn-sm btn-outline-info" style={{borderRadius: '20px'}}>🔄 Actualiser</button>
+                    </div>
                     {availableOrders.length === 0 ? (
-                      <div className="empty-state"><p>Aucune nouvelle commande.</p></div>
+                      <div className="empty-state">
+                        <div style={{fontSize: '2.5rem', marginBottom: '10px'}}>🔍</div>
+                        <p>Recherche de nouvelles commandes...</p>
+                      </div>
                     ) : (
                       <div className="orders-queue-list">
-                        {availableOrders.map(order => (
-                          <div key={order.id} className="queue-order-line" style={{flexDirection: 'column', alignItems: 'flex-start', padding: '15px'}}>
-                            <div style={{width: '100%', display: 'flex', justifyContent: 'space-between', marginBottom: '10px'}}>
-                              <div className="restaurant-badge" style={{fontSize: '0.8rem'}}>{order.restaurant_name}</div>
-                              <span className="price-tag">{(order.total_price || 0).toFixed(2)} DT</span>
-                            </div>
-                            <div className="queue-order-address" style={{marginBottom: '10px'}}>📍 {order.delivery_address}</div>
-                            
-                            <div className="order-items-preview" style={{width: '100%', marginBottom: '10px', fontSize: '0.85rem', color: '#666'}}>
-                              <strong>Articles :</strong> {(order.items || []).map(item => `${item.quantity}x ${item.item_name}`).join(', ')}
+                        {availableOrders.map((order, index) => (
+                          <div key={order.id} className="queue-order-line-pro" style={{
+                            background: '#fff',
+                            borderRadius: '12px',
+                            padding: '15px',
+                            marginBottom: '15px',
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                            border: '1px solid #eee'
+                          }}>
+                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
+                              <span style={{
+                                background: '#17a2b8',
+                                color: '#fff',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                fontSize: '0.8rem',
+                                fontWeight: 'bold'
+                              }}>Commande {index + 1}</span>
+                              <span style={{fontWeight: 'bold', color: '#28a745'}}>{(order.total_price || 0).toFixed(2)} DT</span>
                             </div>
 
-                            <div className="queue-order-actions" style={{width: '100%'}}>
-                              <button onClick={() => acceptOrder(order.id)} className="btn btn-success btn-full">Accepter cette commande</button>
+                            <div style={{marginBottom: '10px'}}>
+                              <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#333'}}>🏨 {order.restaurant_name}</div>
+                              <div style={{fontSize: '0.9rem', color: '#666', marginTop: '4px'}}>📍 {order.delivery_address}</div>
                             </div>
+                            
+                            <div style={{
+                              background: '#f8f9fa',
+                              padding: '10px',
+                              borderRadius: '8px',
+                              marginBottom: '15px'
+                            }}>
+                              <div style={{fontSize: '0.85rem', fontWeight: 'bold', color: '#555', marginBottom: '5px'}}>🛒 Articles :</div>
+                              <div style={{fontSize: '0.85rem', color: '#444'}}>
+                                {(order.items || []).map(item => `${item.quantity}x ${item.item_name}`).join(', ')}
+                              </div>
+                            </div>
+
+                            <button 
+                              onClick={() => acceptOrder(order.id)} 
+                              className="btn btn-success btn-full"
+                              style={{padding: '12px', fontWeight: 'bold', fontSize: '1rem', borderRadius: '10px'}}
+                            >
+                              Accepter et acheter
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -569,48 +633,62 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
               </div>
 
               <div className="livreur-location-section card" style={{marginTop: '20px'}}>
-                <button onClick={getCurrentLocation} className="btn btn-primary btn-locate-main">Me localiser maintenant</button>
-                {position && <div className="loc-footer-address"><p>{positionLabel}</p></div>}
-                <div className="map-view-section" style={{height: '350px', marginTop: '15px'}}>
-                  {typeof window !== 'undefined' && typeof L !== 'undefined' ? (
-                    <MapContainer 
-                      center={(Array.isArray(mapCenter) && mapCenter.length === 2) ? mapCenter : (Array.isArray(position) && position.length === 2) ? position : [33.8083, 10.8533]} 
-                      zoom={mapZoom} 
-                      style={{ height: '100%', width: '100%' }} 
-                      ref={mapRef}
-                    >
-                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                      {Array.isArray(position) && position.length === 2 && !isNaN(position[0]) && !isNaN(position[1]) && (
-                        <>
-                          <RecenterMap center={mapCenter || position} zoom={15} />
-                          <Marker position={position}><Popup>Vous êtes ici</Popup></Marker>
-                        </>
-                      )}
-                      {(markers || []).map(marker => {
-                        if (!marker || !marker.position || !Array.isArray(marker.position) || marker.position.length !== 2) {
-                          return null;
-                        }
-                        try {
-                          return (
-                            <Marker key={marker.id} position={marker.position} icon={L.icon({
-                              iconUrl: marker.type === 'my' ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png' : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
-                              iconSize: [25, 41], iconAnchor: [12, 41]
-                            })}>
-                              <Popup>Commande #{marker.id}</Popup>
-                            </Marker>
-                          );
-                        } catch (e) {
-                          console.error('Erreur création marker:', e);
-                          return null;
-                        }
-                      })}
-                    </MapContainer>
-                  ) : (
-                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0f0f0' }}>
-                      <p>Carte non disponible</p>
-                    </div>
-                  )}
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
+                  <h3 style={{margin: 0}}>🗺️ Carte de livraison</h3>
+                  <button 
+                    onClick={() => setShowMap(!showMap)} 
+                    className={`btn btn-sm ${showMap ? 'btn-secondary' : 'btn-info'}`}
+                  >
+                    {showMap ? 'Masquer la carte' : 'Afficher la carte'}
+                  </button>
                 </div>
+                
+                {showMap && (
+                  <>
+                    <button onClick={getCurrentLocation} className="btn btn-primary btn-locate-main" style={{marginBottom: '10px'}}>Me localiser maintenant</button>
+                    {position && <div className="loc-footer-address"><p>{positionLabel}</p></div>}
+                    <div className="map-view-section" style={{height: '350px', marginTop: '15px'}}>
+                      {typeof window !== 'undefined' && typeof L !== 'undefined' ? (
+                        <MapContainer 
+                          center={(Array.isArray(mapCenter) && mapCenter.length === 2) ? mapCenter : (Array.isArray(position) && position.length === 2) ? position : [33.8083, 10.8533]} 
+                          zoom={mapZoom} 
+                          style={{ height: '100%', width: '100%' }} 
+                          ref={mapRef}
+                        >
+                          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                          {Array.isArray(position) && position.length === 2 && !isNaN(position[0]) && !isNaN(position[1]) && (
+                            <>
+                              <RecenterMap center={mapCenter || position} zoom={15} />
+                              <Marker position={position}><Popup>Vous êtes ici</Popup></Marker>
+                            </>
+                          )}
+                          {(markers || []).map(marker => {
+                            if (!marker || !marker.position || !Array.isArray(marker.position) || marker.position.length !== 2) {
+                              return null;
+                            }
+                            try {
+                              return (
+                                <Marker key={marker.id} position={marker.position} icon={L.icon({
+                                  iconUrl: marker.type === 'my' ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png' : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+                                  iconSize: [25, 41], iconAnchor: [12, 41]
+                                })}>
+                                  <Popup>Commande #{marker.id}</Popup>
+                                </Marker>
+                              );
+                            } catch (e) {
+                              console.error('Erreur création marker:', e);
+                              return null;
+                            }
+                          })}
+                        </MapContainer>
+                      ) : (
+                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0f0f0' }}>
+                          <p>Carte non disponible</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="livreur-stats-dashboard" style={{marginTop: '20px'}}>

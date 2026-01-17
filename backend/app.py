@@ -313,13 +313,17 @@ def get_profile():
         return jsonify(user), 200
     return jsonify({'error': 'User not found'}), 404
 
-@app.route('/api/user/status', methods=['POST', 'PUT'])
+@app.route('/api/user/status', methods=['GET', 'POST', 'PUT'])
 @jwt_required()
 def update_status():
     current_user = get_current_user()
     if not current_user:
         return jsonify({'error': 'Invalid token'}), 401
     
+    if request.method == 'GET':
+        user = db.users.find_one({'id': current_user['id']}, {'_id': 0, 'is_available': 1})
+        return jsonify({'is_available': user.get('is_available', False)}), 200
+        
     # Seuls les livreurs peuvent changer leur statut de disponibilité
     if current_user['role'] != 'livreur':
         return jsonify({'error': 'Unauthorized'}), 403
