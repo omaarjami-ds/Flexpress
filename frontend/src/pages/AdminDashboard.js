@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FiPlus, FiUsers, FiPackage, FiMapPin, FiFileText, FiTrash2, FiRefreshCw, FiDownload } from 'react-icons/fi';
+import { FiPlus, FiUsers, FiPackage, FiMapPin, FiFileText, FiTrash2, FiRefreshCw, FiDownload, FiUser } from 'react-icons/fi';
 import WindowControls from '../components/WindowControls';
 import ProfileMenu from '../components/ProfileMenu';
 import PullToRefresh from '../components/PullToRefresh';
