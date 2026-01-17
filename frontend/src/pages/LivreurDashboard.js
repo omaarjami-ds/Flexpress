@@ -187,7 +187,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     }
   };
 
-  const loadOrders = async () => {
+  const loadOrders = async (status = 'accepted,delivering') => {
     const token = localStorage.getItem('token');
     if (!token) {
       console.error('Token manquant');
@@ -196,7 +196,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     try {
       const [availableRes, myRes] = await Promise.all([
         axios.get(`${API_URL}/deliveries/available`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_URL}/orders`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API_URL}/orders?status=${status}`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setAvailableOrders(availableRes?.data || []);
       setMyOrders(myRes?.data || []);
@@ -210,7 +210,6 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
       setPreviousOrderCount(availableCount);
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
-      // Initialiser avec des tableaux vides en cas d'erreur
       setAvailableOrders([]);
       setMyOrders([]);
     }
@@ -221,19 +220,34 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
       alert('Vous devez être "En Service" pour accepter des commandes.');
       return;
     }
+    
+    // Optimistic update
+    const orderToAccept = availableOrders.find(o => o.id === orderId);
+    if (orderToAccept) {
+      setAvailableOrders(prev => prev.filter(o => o.id !== orderId));
+      setMyOrders(prev => [{ ...orderToAccept, status: 'accepted', delivery_id: user.id }, ...prev]);
+    }
+
     const token = localStorage.getItem('token');
     try {
       await axios.post(`${API_URL}/orders/${orderId}/accept`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      // No need to call loadOrders() immediately if optimistic update worked, 
+      // but we do it to ensure sync with server
       loadOrders();
       fetchLivreurStats();
     } catch (err) {
+      // Rollback on error
+      loadOrders();
       alert(err.response?.data?.error || 'Erreur acceptation commande');
     }
   };
 
   const updateOrderStatus = async (orderId, status) => {
+    // Optimistic update
+    setMyOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+    
     const token = localStorage.getItem('token');
     try {
       await axios.put(`${API_URL}/orders/${orderId}/status`, { status }, {
@@ -242,9 +256,17 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
       loadOrders();
       fetchLivreurStats();
     } catch (err) {
+      // Rollback on error
+      loadOrders();
       alert('Erreur mise à jour statut');
     }
   };
+
+  useEffect(() => {
+    if (showEarningsDetails) {
+      loadOrders('accepted,delivering,delivered');
+    }
+  }, [showEarningsDetails]);
 
   useEffect(() => {
     const fetchStatus = async () => {

@@ -48,25 +48,39 @@ def init_db():
             db.create_collection('users')
         db.users.create_index('username', unique=True)
         db.users.create_index('email', unique=True)
+        db.users.create_index('id', unique=True)
+        db.users.create_index('role')
         
         if 'restaurants' not in db.list_collection_names():
             db.create_collection('restaurants')
+        db.restaurants.create_index('id', unique=True)
             
         if 'orders' not in db.list_collection_names():
             db.create_collection('orders')
+        db.orders.create_index('id', unique=True)
+        db.orders.create_index('delivery_id')
+        db.orders.create_index('client_id')
+        db.orders.create_index('restaurant_id')
+        db.orders.create_index('status')
+        db.orders.create_index('created_at')
             
         if 'order_items' not in db.list_collection_names():
             db.create_collection('order_items')
+        db.order_items.create_index('id', unique=True)
+        db.order_items.create_index('order_id')
             
         if 'menu_items' not in db.list_collection_names():
             db.create_collection('menu_items')
+        db.menu_items.create_index('id', unique=True)
+        db.menu_items.create_index('restaurant_id')
             
         if 'counters' not in db.list_collection_names():
             db.create_collection('counters')
-            # Initialize counters if they don't exist
-            for seq in ['user_id', 'restaurant_id', 'order_id', 'order_item_id', 'menu_item_id']:
-                if not db.counters.find_one({'_id': seq}):
-                    db.counters.insert_one({'_id': seq, 'sequence_value': 0})
+        
+        # Initialize counters if they don't exist
+        for seq in ['user_id', 'restaurant_id', 'order_id', 'order_item_id', 'menu_item_id']:
+            if not db.counters.find_one({'_id': seq}):
+                db.counters.insert_one({'_id': seq, 'sequence_value': 0})
 
         app.logger.info("MongoDB initialized successfully")
     except Exception as e:
@@ -752,60 +766,85 @@ def get_orders():
     if not current_user:
         return jsonify({'error': 'Invalid token'}), 401
     
+    status_filter = request.args.get('status')
+    
     orders = []
     if current_user['role'] == 'client':
+        match_query = {'client_id': current_user['id']}
+        if status_filter:
+            match_query['status'] = status_filter
+            
         orders = list(db.orders.aggregate([
-            {'$match': {'client_id': current_user['id']}},
+            {'$match': match_query},
             {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
             {'$unwind': '$restaurant'},
             {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
             {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
+            {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
             {'$project': {
                 '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
                 'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
-                'estimated_delivery_time': 1, 'created_at': 1,
+                'estimated_delivery_time': 1, 'created_at': 1, 'items': 1,
                 'restaurant_name': '$restaurant.name', 'restaurant_latitude': '$restaurant.latitude', 'restaurant_longitude': '$restaurant.longitude',
                 'driver_lat': '$driver.latitude', 'driver_lon': '$driver.longitude', 'driver_name': '$driver.username'
             }},
             {'$sort': {'created_at': -1}}
         ]))
     elif current_user['role'] == 'livreur':
+        match_query = {'delivery_id': current_user['id']}
+        if status_filter:
+            if ',' in status_filter:
+                match_query['status'] = {'$in': status_filter.split(',')}
+            else:
+                match_query['status'] = status_filter
+        
         orders = list(db.orders.aggregate([
-            {'$match': {'delivery_id': current_user['id']}},
+            {'$match': match_query},
             {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
             {'$unwind': '$restaurant'},
             {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
             {'$unwind': '$client'},
+            {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
             {'$project': {
                 '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
                 'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
-                'estimated_delivery_time': 1, 'created_at': 1,
+                'estimated_delivery_time': 1, 'created_at': 1, 'items': 1,
                 'restaurant_name': '$restaurant.name',
                 'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude', 'client_phone': '$client.phone'
             }},
             {'$sort': {'created_at': -1}}
         ]))
     else:  # admin
-        orders = list(db.orders.aggregate([
+        match_query = {}
+        if status_filter:
+            if ',' in status_filter:
+                match_query['status'] = {'$in': status_filter.split(',')}
+            else:
+                match_query['status'] = status_filter
+                
+        pipeline = []
+        if match_query:
+            pipeline.append({'$match': match_query})
+            
+        pipeline.extend([
             {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
             {'$unwind': '$restaurant'},
             {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
             {'$unwind': '$client'},
             {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
             {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
+            {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
             {'$project': {
                 '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
                 'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
-                'estimated_delivery_time': 1, 'created_at': 1,
+                'estimated_delivery_time': 1, 'created_at': 1, 'items': 1,
                 'restaurant_name': '$restaurant.name',
                 'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude',
                 'delivery_name': '$driver.username', 'delivery_lat': '$driver.latitude', 'delivery_lon': '$driver.longitude'
             }},
             {'$sort': {'created_at': -1}}
-        ]))
-    
-    for order in orders:
-        order['items'] = list(db.order_items.find({'order_id': order['id']}, {'_id': 0}))
+        ])
+        orders = list(db.orders.aggregate(pipeline))
     
     return jsonify(orders), 200
 
@@ -930,18 +969,16 @@ def get_available_deliveries():
         {'$unwind': '$restaurant'},
         {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
         {'$unwind': '$client'},
+        {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
         {'$project': {
             '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
             'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
-            'estimated_delivery_time': 1, 'created_at': 1,
+            'estimated_delivery_time': 1, 'created_at': 1, 'items': 1,
             'restaurant_name': '$restaurant.name', 'restaurant_lat': '$restaurant.latitude', 'restaurant_lon': '$restaurant.longitude',
             'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude', 'client_phone': '$client.phone'
         }},
         {'$sort': {'created_at': -1}}
     ]))
-    
-    for order in orders:
-        order['items'] = list(db.order_items.find({'order_id': order['id']}, {'_id': 0}))
     
     return jsonify(orders), 200
 
@@ -958,10 +995,11 @@ def get_order_details(order_id):
         {'$unwind': '$restaurant'},
         {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
         {'$unwind': '$client'},
+        {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
         {'$project': {
             '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
             'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
-            'estimated_delivery_time': 1, 'created_at': 1,
+            'estimated_delivery_time': 1, 'created_at': 1, 'items': 1,
             'restaurant_name': '$restaurant.name', 'client_name': '$client.username', 'client_phone': '$client.phone'
         }}
     ])
@@ -970,7 +1008,6 @@ def get_order_details(order_id):
     if not order:
         return jsonify({'error': 'Order not found'}), 404
     
-    order['items'] = list(db.order_items.find({'order_id': order_id}, {'_id': 0}))
     return jsonify(order), 200
 
 @app.route('/api/livreur/stats', methods=['GET'])
@@ -1014,14 +1051,12 @@ def get_livreur_stats():
         {'$match': {'delivery_id': current_user['id']}},
         {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
         {'$unwind': '$restaurant'},
-        {'$project': {'_id': 0, 'id': 1, 'total_price': 1, 'status': 1, 'created_at': 1, 'restaurant_name': '$restaurant.name'}},
+        {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
+        {'$project': {'_id': 0, 'id': 1, 'total_price': 1, 'status': 1, 'created_at': 1, 'restaurant_name': '$restaurant.name', 'items': 1}},
         {'$sort': {'created_at': -1}},
         {'$limit': 10}
     ]))
 
-    for order in recent_orders:
-        order['items'] = list(db.order_items.find({'order_id': order['id']}, {'_id': 0}))
-    
     return jsonify({'stats': stats, 'recent_orders': recent_orders}), 200
 
 # User management routes (Admin only)
