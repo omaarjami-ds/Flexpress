@@ -60,6 +60,8 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   const [earningsDateFilter, setEarningsDateFilter] = useState('');
   const [previousOrderCount, setPreviousOrderCount] = useState(0);
   const [profileSubView, setProfileSubView] = useState('main'); // 'main', 'personal', 'help'
+  const [accuracy, setAccuracy] = useState(0);
+  const [mapZoom, setMapZoom] = useState(13);
   const [personalInfoForm, setPersonalInfoForm] = useState({
     username: user?.username || '',
     email: user?.email || '',

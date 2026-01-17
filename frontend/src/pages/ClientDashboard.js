@@ -379,19 +379,6 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   const [popularItems, setPopularItems] = useState([]);
   const [makloubItems, setMakloubItems] = useState([]);
 
-  const loadPopularAndMakloub = async () => {
-    try {
-      const [popRes, makRes] = await Promise.all([
-        axios.get(`${API_URL}/menu-items/popular`),
-        axios.get(`${API_URL}/menu-items/makloub`)
-      ]);
-      setPopularItems(popRes.data);
-      setMakloubItems(makRes.data);
-    } catch (err) {
-      console.error('Erreur chargement items populaires/makloub:', err);
-    }
-  };
-
   const loadOrders = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -445,6 +432,17 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       console.error('Erreur chargement items populaires/makloub:', err);
     }
   }, []);
+
+  const updateLocation = async (lat, lon) => {
+    const token = localStorage.getItem('token');
+    try {
+      await axios.put(`${API_URL}/user/location`, { latitude: lat, longitude: lon }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Erreur mise à jour position backend:', err);
+    }
+  };
 
   useEffect(() => {
     loadOrders();
