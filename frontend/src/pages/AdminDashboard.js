@@ -21,6 +21,16 @@ const getFullImageUrl = (url) => {
 };
 
 function AdminDashboard({ user, onLogout, onUpdateUser }) {
+  // Vérification de sécurité
+  if (!user || user.role !== 'admin') {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <h2>Accès non autorisé</h2>
+        <p>Vous devez être administrateur pour accéder à cette page.</p>
+      </div>
+    );
+  }
+
   const [restaurants, setRestaurants] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
@@ -84,11 +94,13 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
   });
 
   useEffect(() => {
-    loadData();
-    // Rafraîchissement automatique toutes les 10 secondes
-    const interval = setInterval(loadData, 10000);
-    return () => clearInterval(interval);
-  }, [loadData]);
+    if (user && user.role === 'admin') {
+      loadData();
+      // Rafraîchissement automatique toutes les 10 secondes
+      const interval = setInterval(loadData, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [loadData, user]);
 
   const handleFileUpload = async (e, type) => {
     const file = e.target.files[0];
@@ -250,19 +262,28 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
     const token = localStorage.getItem('token');
     if (!token) {
       console.error('Token manquant');
-      onLogout();
+      if (onLogout) onLogout();
       return;
     }
     try {
       const [restaurantsRes, ordersRes, usersRes] = await Promise.all([
         axios.get(`${API_URL}/restaurants`, {
           headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => {
+          console.error('Erreur chargement restaurants:', err);
+          return { data: [] };
         }),
         axios.get(`${API_URL}/orders`, {
           headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => {
+          console.error('Erreur chargement commandes:', err);
+          return { data: [] };
         }),
         axios.get(`${API_URL}/users`, {
           headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => {
+          console.error('Erreur chargement utilisateurs:', err);
+          return { data: [] };
         })
       ]);
       setRestaurants(Array.isArray(restaurantsRes.data) ? restaurantsRes.data : []);
@@ -270,7 +291,7 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
       setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
     } catch (err) {
       console.error('Erreur chargement données:', err);
-      if (err.response?.status === 401) {
+      if (err.response?.status === 401 && onLogout) {
         onLogout();
       }
     }
