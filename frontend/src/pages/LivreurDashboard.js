@@ -267,6 +267,12 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   }, [showEarningsDetails, loadOrders]);
 
   useEffect(() => {
+    if (!position) {
+      getCurrentLocation();
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchStatus = async () => {
       const token = localStorage.getItem('token');
       if (token) {
@@ -304,12 +310,19 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   const openItineraryForOrder = (order) => {
     const destLat = order.delivery_latitude || order.client_lat;
     const destLon = order.delivery_longitude || order.client_lon;
-    if (destLat && destLon && position) {
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${position[0]},${position[1]}&destination=${destLat},${destLon}&travelmode=driving`;
-      window.open(url, '_blank');
-    } else {
-      alert('Position manquante');
+    
+    if (!destLat || !destLon) {
+      alert('Adresse de livraison manquante');
+      return;
     }
+    
+    if (!position) {
+      alert('Veuillez activer votre position pour afficher l\'itinéraire. Cliquez sur "Me localiser maintenant"');
+      return;
+    }
+    
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${position[0]},${position[1]}&destination=${destLat},${destLon}&travelmode=driving`;
+    window.open(url, '_blank');
   };
 
   const stats = {
@@ -523,6 +536,16 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                               <div style={{fontSize: '0.9rem', color: '#666', marginBottom: '10px'}}>
                                 <span>💰 {(order.total_price || 0).toFixed(2)} DT</span>
                                 <span style={{marginLeft: '15px'}}>📅 {new Date(order.created_at).toLocaleDateString()}</span>
+                              </div>
+                              <div style={{marginBottom: '15px', fontSize: '0.85rem', background: '#f0f4f8', padding: '10px', borderRadius: '8px', borderLeft: '3px solid #2196f3'}}>
+                                <div style={{marginBottom: '8px'}}>
+                                  <strong>📞 Client :</strong> {order.client_phone || 'Non disponible'}
+                                </div>
+                                {position && order.client_lat && order.client_lon && (
+                                  <div>
+                                    <strong>📏 Distance :</strong> {calculateDistanceKm(position[0], position[1], order.client_lat, order.client_lon).toFixed(2)} km
+                                  </div>
+                                )}
                               </div>
                               <div style={{marginBottom: '15px', fontSize: '0.85rem', background: '#f8f9fa', padding: '10px', borderRadius: '8px'}}>
                                 <strong>Articles :</strong> {(order.items || []).map(item => `${item.quantity}x ${item.item_name}`).join(', ')}

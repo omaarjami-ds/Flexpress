@@ -1121,10 +1121,16 @@ def get_livreur_stats():
         {'$match': {'delivery_id': current_user['id']}},
         {'$lookup': {'from': 'restaurants', 'localField': 'restaurant_id', 'foreignField': 'id', 'as': 'restaurant'}},
         {'$unwind': '$restaurant'},
+        {'$lookup': {'from': 'users', 'localField': 'client_id', 'foreignField': 'id', 'as': 'client'}},
+        {'$unwind': '$client'},
         {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
         {'$project': {
             'id': 1, 'total_price': 1, 'status': 1, 'created_at': 1, 
+            'delivery_latitude': 1, 'delivery_longitude': 1,
             'restaurant_name': '$restaurant.name', 
+            'client_phone': '$client.phone',
+            'client_lat': '$client.latitude',
+            'client_lon': '$client.longitude',
             'items': {
                 '$map': {
                     'input': '$items',
