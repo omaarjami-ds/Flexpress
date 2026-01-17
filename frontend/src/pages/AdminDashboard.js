@@ -21,16 +21,6 @@ const getFullImageUrl = (url) => {
 };
 
 function AdminDashboard({ user, onLogout, onUpdateUser }) {
-  // Vérification de sécurité
-  if (!user || user.role !== 'admin') {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <h2>Accès non autorisé</h2>
-        <p>Vous devez être administrateur pour accéder à cette page.</p>
-      </div>
-    );
-  }
-
   const [restaurants, setRestaurants] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
@@ -92,6 +82,45 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
     start: new Date().toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
+
+  const loadData = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('Token manquant');
+      if (onLogout) onLogout();
+      return;
+    }
+    try {
+      const [restaurantsRes, ordersRes, usersRes] = await Promise.all([
+        axios.get(`${API_URL}/restaurants`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => {
+          console.error('Erreur chargement restaurants:', err);
+          return { data: [] };
+        }),
+        axios.get(`${API_URL}/orders`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => {
+          console.error('Erreur chargement commandes:', err);
+          return { data: [] };
+        }),
+        axios.get(`${API_URL}/users`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => {
+          console.error('Erreur chargement utilisateurs:', err);
+          return { data: [] };
+        })
+      ]);
+      setRestaurants(Array.isArray(restaurantsRes.data) ? restaurantsRes.data : []);
+      setOrders(Array.isArray(ordersRes.data) ? ordersRes.data : []);
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+    } catch (err) {
+      console.error('Erreur chargement données:', err);
+      if (err.response?.status === 401 && onLogout) {
+        onLogout();
+      }
+    }
+  }, [onLogout]);
 
   useEffect(() => {
     if (user && user.role === 'admin') {
@@ -257,45 +286,6 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
       alert('Erreur mise à jour article');
     }
   };
-
-  const loadData = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error('Token manquant');
-      if (onLogout) onLogout();
-      return;
-    }
-    try {
-      const [restaurantsRes, ordersRes, usersRes] = await Promise.all([
-        axios.get(`${API_URL}/restaurants`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).catch(err => {
-          console.error('Erreur chargement restaurants:', err);
-          return { data: [] };
-        }),
-        axios.get(`${API_URL}/orders`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).catch(err => {
-          console.error('Erreur chargement commandes:', err);
-          return { data: [] };
-        }),
-        axios.get(`${API_URL}/users`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).catch(err => {
-          console.error('Erreur chargement utilisateurs:', err);
-          return { data: [] };
-        })
-      ]);
-      setRestaurants(Array.isArray(restaurantsRes.data) ? restaurantsRes.data : []);
-      setOrders(Array.isArray(ordersRes.data) ? ordersRes.data : []);
-      setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
-    } catch (err) {
-      console.error('Erreur chargement données:', err);
-      if (err.response?.status === 401 && onLogout) {
-        onLogout();
-      }
-    }
-  }, [onLogout]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -616,6 +606,16 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
     const url = `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLon}&destination=${destLat},${destLon}&travelmode=driving`;
     window.open(url, '_blank');
   };
+
+  // Vérification de sécurité après les hooks
+  if (!user || user.role !== 'admin') {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <h2>Accès non autorisé</h2>
+        <p>Vous devez être administrateur pour accéder à cette page.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard admin-dashboard-page">
