@@ -8,17 +8,28 @@ import ProfileMenu from '../components/ProfileMenu';
 import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
-// Fix for default marker icons
-if (L && L.Icon && L.Icon.Default && L.Icon.Default.prototype) {
-  delete L.Icon.Default.prototype._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  });
-}
-
 const API_URL = 'https://flexpress.onrender.com/api';
+
+// Initialize Leaflet icons lazily
+let leafletInitializedLivreur = false;
+
+const initializeLeafletIconsLivreur = () => {
+  if (leafletInitializedLivreur) return;
+  
+  try {
+    if (L && L.Icon && L.Icon.Default && L.Icon.Default.prototype) {
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      });
+    }
+    leafletInitializedLivreur = true;
+  } catch (e) {
+    console.error('Error initializing Leaflet icons:', e);
+  }
+};
 
 // Calcul de distance (en km) entre deux points GPS, style Google Maps simplifié
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
@@ -259,6 +270,10 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
       alert('Erreur mise à jour statut');
     }
   };
+
+  useEffect(() => {
+    initializeLeafletIconsLivreur();
+  }, []);
 
   useEffect(() => {
     if (showEarningsDetails) {

@@ -8,16 +8,6 @@ import WindowControls from '../components/WindowControls';
 import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
-// Fix for default marker icons
-if (L && L.Icon && L.Icon.Default && L.Icon.Default.prototype) {
-  delete L.Icon.Default.prototype._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  });
-}
-
 const API_URL = 'https://flexpress.onrender.com/api';
 
 // Helper to get full image URL
@@ -26,39 +16,60 @@ const getFullImageUrl = (url) => {
   if (url.startsWith('data:image')) return url;
   if (url.startsWith('http')) return url;
   
-  // S'assurer que le chemin commence par /static/
   const cleanPath = url.startsWith('/') ? url.substring(1) : url;
   if (cleanPath.startsWith('static/')) return '/' + cleanPath;
   return `/static/${cleanPath}`;
 };
 
-// Custom icons
-const clientIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+// Initialize Leaflet icons lazily
+let leafletInitialized = false;
+let clientIcon, restaurantIcon, driverIcon;
 
-const restaurantIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+const initializeLeafletIcons = () => {
+  if (leafletInitialized) return;
+  
+  try {
+    if (L && L.Icon && L.Icon.Default && L.Icon.Default.prototype) {
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      });
+    }
+    
+    clientIcon = new L.Icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
 
-const driverIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+    restaurantIcon = new L.Icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+
+    driverIcon = new L.Icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
+    
+    leafletInitialized = true;
+  } catch (e) {
+    console.error('Error initializing Leaflet icons:', e);
+  }
+};
 
 function RecenterMap({ center, zoom }) {
   const map = useMap();
@@ -107,6 +118,10 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     phone: user?.phone || ''
   });
   const [newAddress, setNewAddress] = useState({ label: 'Maison', address: '' });
+
+  useEffect(() => {
+    initializeLeafletIcons();
+  }, []);
 
   const loadUserAddresses = async () => {
     const token = localStorage.getItem('token');
