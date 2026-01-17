@@ -6,8 +6,8 @@
   "dependencies": {
     "@capacitor-community/electron": "^5.0.1",
     "@capacitor/android": "^8.0.0",
-    "@capacitor/cli": "^8.0.0",
-    "@capacitor/core": "^8.0.0",
+    "@capacitor/cli": "^8.0.1",
+    "@capacitor/core": "^8.0.1",
     "axios": "^1.6.2",
     "leaflet": "^1.9.4",
     "react": "^18.2.0",
@@ -23,7 +23,9 @@
     "eject": "react-scripts eject"
   },
   "devDependencies": {
-    "react-scripts": "5.0.1"
+    "ajv": "^8.17.1",
+    "react-scripts": "5.0.1",
+    "typescript": "^5.9.3"
   },
   "eslintConfig": {
     "extends": [
