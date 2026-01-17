@@ -228,7 +228,8 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
       });
       loadOrders();
       fetchLivreurStats();
-      setShowProfile(false); // S'assurer qu'on voit la commande active
+      setShowProfile(true); // Aller vers le profil pour voir l'historique
+      setShowHistory(true); // Ouvrir directement l'historique
     } catch (err) {
       alert(err.response?.data?.error || 'Erreur acceptation commande');
     }
@@ -492,18 +493,45 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                       ) : (
                         <div className="history-list">
                           {(livreurStats.recent_orders).map(order => (
-                            <div key={order.id} className="history-item card" style={{marginBottom: '10px', padding: '10px'}}>
-                              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px'}}>
+                            <div key={order.id} className="history-item card" style={{
+                              marginBottom: '15px', 
+                              padding: '15px',
+                              borderLeft: ['accepted', 'delivering'].includes(order.status) ? '5px solid #28a745' : '1px solid #eee'
+                            }}>
+                              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px'}}>
                                 <strong>#{order.id} - {order.restaurant_name}</strong>
-                                <span className={`status-badge status-${order.status}`}>{order.status}</span>
+                                <span className={`status-badge status-${order.status}`} style={{
+                                  padding: '4px 12px',
+                                  borderRadius: '15px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 'bold',
+                                  backgroundColor: order.status === 'delivered' ? '#e8f5e9' : '#fff3e0',
+                                  color: order.status === 'delivered' ? '#2e7d32' : '#ef6c00'
+                                }}>
+                                  {order.status === 'accepted' ? 'Acceptée' : 
+                                   order.status === 'delivering' ? 'En route' : 
+                                   order.status === 'delivered' ? 'Livrée' : order.status}
+                                </span>
                               </div>
-                              <div style={{fontSize: '0.9rem', color: '#666'}}>
+                              <div style={{fontSize: '0.9rem', color: '#666', marginBottom: '10px'}}>
                                 <span>💰 {(order.total_price || 0).toFixed(2)} DT</span>
                                 <span style={{marginLeft: '15px'}}>📅 {new Date(order.created_at).toLocaleDateString()}</span>
                               </div>
-                              <div style={{marginTop: '5px', fontSize: '0.85rem'}}>
+                              <div style={{marginBottom: '15px', fontSize: '0.85rem', background: '#f8f9fa', padding: '10px', borderRadius: '8px'}}>
                                 <strong>Articles :</strong> {(order.items || []).map(item => `${item.quantity}x ${item.item_name}`).join(', ')}
                               </div>
+
+                              {['accepted', 'delivering'].includes(order.status) && (
+                                <div className="order-actions-grid" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px'}}>
+                                  <button onClick={() => openItineraryForOrder(order)} className="btn btn-info btn-sm">🗺️ Itinéraire</button>
+                                  {order.status === 'accepted' && (
+                                    <button onClick={() => updateOrderStatus(order.id, 'delivering')} className="btn btn-primary btn-sm">Démarrer</button>
+                                  )}
+                                  {order.status === 'delivering' && (
+                                    <button onClick={() => updateOrderStatus(order.id, 'delivered')} className="btn btn-success btn-sm">✓ Terminer</button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -532,39 +560,6 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                     <h2 style={{color: '#d32f2f'}}>Vous êtes Hors Service</h2>
                     <p>Mettez-vous en service pour voir et accepter des commandes.</p>
                     <button onClick={toggleStatus} className="btn btn-success btn-full" style={{marginTop: '20px'}}>Se mettre en ligne</button>
-                  </div>
-                ) : activeOrders.length > 0 ? (
-                  <div className="card active-order-card">
-                    <h2 style={{color: '#28a745', marginBottom: '15px'}}>🚚 Livraison en cours</h2>
-                    {activeOrders.map(order => (
-                      <div key={order.id} className="order-item-active" onClick={() => setSelectedOrder(order)}>
-                        <div className="order-main-info">
-                          <div className="restaurant-badge">{order.restaurant_name}</div>
-                          <div className="order-price-badge">{(order.total_price || 0).toFixed(2)} DT</div>
-                        </div>
-                        <div className="order-details-mini">
-                          <p>📍 {order.delivery_address}</p>
-                          <div className="order-items-list-mini" style={{marginTop: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                            <h4 style={{margin: '0 0 5px 0', fontSize: '0.9rem', color: '#666'}}>Articles à acheter :</h4>
-                            {(order.items || []).map((item, idx) => (
-                              <div key={idx} style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem'}}>
-                                <span>{item.quantity}x {item.item_name}</span>
-                                <span style={{fontWeight: 'bold'}}>{(item.price * item.quantity).toFixed(2)} DT</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="order-actions-grid">
-                          <button onClick={(e) => { e.stopPropagation(); openItineraryForOrder(order); }} className="btn btn-info btn-full">🗺️ Itinéraire</button>
-                          {order.status === 'accepted' && (
-                            <button onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, 'delivering'); }} className="btn btn-primary btn-full">En route</button>
-                          )}
-                          {order.status === 'delivering' && (
-                            <button onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, 'delivered'); }} className="btn btn-success btn-full">✓ Livrée</button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 ) : (
                   <div className="card available-orders-card">
