@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { FiUser, FiMapPin, FiList, FiHelpCircle, FiSettings } from 'react-icons/fi';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import WindowControls from '../components/WindowControls';
@@ -45,7 +46,7 @@ function RecenterMap({ center, zoom }) {
   return null;
 }
 
-function LivreurDashboard({ user, onLogout }) {
+function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   const [availableOrders, setAvailableOrders] = useState([]);
   const [myOrders, setMyOrders] = useState([]);
   const [position, setPosition] = useState(null);
@@ -62,6 +63,12 @@ function LivreurDashboard({ user, onLogout }) {
   const [historyStatusFilter, setHistoryStatusFilter] = useState(''); // all, accepted, delivering, delivered
   const [earningsDateFilter, setEarningsDateFilter] = useState('');
   const [previousOrderCount, setPreviousOrderCount] = useState(0);
+  const [profileSubView, setProfileSubView] = useState('main'); // 'main', 'personal', 'help'
+  const [personalInfoForm, setPersonalInfoForm] = useState({
+    username: user?.username || '',
+    email: user?.email || '',
+    phone: user?.phone || ''
+  });
   const watchIdRef = useRef(null);
   const mapRef = useRef(null);
   const audioRef = useRef(null);
@@ -87,6 +94,22 @@ function LivreurDashboard({ user, onLogout }) {
       setLivreurStats(res.data);
     } catch (err) {
       console.error('Erreur chargement stats livreur:', err);
+    }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.put(`${API_URL}/user/profile`, personalInfoForm, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Profil mis à jour avec succès !');
+      if (onUpdateUser) onUpdateUser(response.data.user);
+      setProfileSubView('main');
+    } catch (err) {
+      console.error('Erreur mise à jour profil:', err);
+      alert('Erreur lors de la mise à jour du profil.');
     }
   };
 
@@ -472,7 +495,16 @@ function LivreurDashboard({ user, onLogout }) {
             {isAvailable ? '🟢 En Service' : '🔴 Hors Service'}
           </button>
           <WindowControls />
-          <ProfileMenu user={user} onLogout={onLogout} />
+          <ProfileMenu 
+            user={user} 
+            onLogout={onLogout} 
+            onProfileClick={() => {
+              setShowProfile(true);
+              setProfileSubView('main');
+              setShowHistory(false);
+              setShowEarningsDetails(false);
+            }} 
+          />
         </div>
       </header>
 
@@ -480,75 +512,179 @@ function LivreurDashboard({ user, onLogout }) {
         <div className="container">
         {showProfile ? (
           <div className="profile-page">
-            <button 
-              onClick={() => setShowProfile(false)} 
-              className="btn btn-secondary btn-sm"
-              style={{marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px'}}
-            >
-              ‹ Retour à l'accueil
-            </button>
+            {profileSubView !== 'main' ? (
+              <button 
+                onClick={() => setProfileSubView('main')} 
+                className="btn btn-secondary btn-sm"
+                style={{marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px'}}
+              >
+                ‹ Retour
+              </button>
+            ) : (
+              <button 
+                onClick={() => setShowProfile(false)} 
+                className="btn btn-secondary btn-sm"
+                style={{marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px'}}
+              >
+                ‹ Retour à l'accueil
+              </button>
+            )}
 
-            <div className="profile-header-card">
-              <div className="profile-avatar-large-page">
-                {user?.username?.substring(0, 2).toUpperCase() || '??'}
-              </div>
-              <h2 className="profile-name">{user?.username}</h2>
-              <span className="profile-email-badge">Livreur - {user?.email || 'email@exemple.com'}</span>
-            </div>
-
-            {/* Section Rendements Professionnelle */}
-            <div className="livreur-stats-section card" style={{marginBottom: '20px', padding: '15px'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                <h2 style={{margin: 0, fontSize: '1.2rem'}}>📈 Mes Rendements & Activité</h2>
-                <div style={{backgroundColor: '#e3f2fd', padding: '5px 12px', borderRadius: '15px', color: '#1976d2', fontWeight: 'bold'}}>
-                  Total : {(livreurStats.stats.total_earnings || 0).toFixed(3)} DT
-                </div>
-              </div>
-              
-              <div className="stats-grid-livreur" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px'}}>
-                <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #4caf50'}}>
-                  <div style={{fontSize: '0.8rem', color: '#666'}}>Aujourd'hui</div>
-                  <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{(livreurStats.stats.today_earnings || 0).toFixed(3)} DT</div>
-                  <div style={{fontSize: '0.7rem', color: '#999'}}>{livreurStats.stats.today_orders || 0} commandes</div>
-                </div>
-                <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2196f3'}}>
-                  <div style={{fontSize: '0.8rem', color: '#666'}}>Livrées</div>
-                  <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{livreurStats.stats.delivered_orders || 0}</div>
-                  <div style={{fontSize: '0.7rem', color: '#999'}}>Sur {livreurStats.stats.total_orders || 0} totales</div>
-                </div>
-                <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #ff9800'}}>
-                  <div style={{fontSize: '0.8rem', color: '#666'}}>Succès</div>
-                  <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>
-                    {livreurStats.stats.total_orders > 0 
-                      ? Math.round((livreurStats.stats.delivered_orders / livreurStats.stats.total_orders) * 100) 
-                      : 0}%
+            {profileSubView === 'main' && (
+              <>
+                <div className="profile-header-card">
+                  <div className="profile-avatar-large-page">
+                    {user?.username?.substring(0, 2).toUpperCase() || '??'}
                   </div>
-                  <div style={{fontSize: '0.7rem', color: '#999'}}>Performance</div>
+                  <h2 className="profile-name">{user?.username}</h2>
+                  <span className="profile-email-badge">Livreur - {user?.email || 'email@exemple.com'}</span>
+                </div>
+
+                {/* Section Rendements Professionnelle */}
+                <div className="livreur-stats-section card" style={{marginBottom: '20px', padding: '15px'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                    <h2 style={{margin: 0, fontSize: '1.2rem'}}>📈 Mes Rendements & Activité</h2>
+                    <div style={{backgroundColor: '#e3f2fd', padding: '5px 12px', borderRadius: '15px', color: '#1976d2', fontWeight: 'bold'}}>
+                      Total : {(livreurStats.stats.total_earnings || 0).toFixed(3)} DT
+                    </div>
+                  </div>
+                  
+                  <div className="stats-grid-livreur" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px'}}>
+                    <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #4caf50'}}>
+                      <div style={{fontSize: '0.8rem', color: '#666'}}>Aujourd'hui</div>
+                      <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{(livreurStats.stats.today_earnings || 0).toFixed(3)} DT</div>
+                      <div style={{fontSize: '0.7rem', color: '#999'}}>{livreurStats.stats.today_orders || 0} commandes</div>
+                    </div>
+                    <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2196f3'}}>
+                      <div style={{fontSize: '0.8rem', color: '#666'}}>Livrées</div>
+                      <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{livreurStats.stats.delivered_orders || 0}</div>
+                      <div style={{fontSize: '0.7rem', color: '#999'}}>Sur {livreurStats.stats.total_orders || 0} totales</div>
+                    </div>
+                    <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #ff9800'}}>
+                      <div style={{fontSize: '0.8rem', color: '#666'}}>Succès</div>
+                      <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>
+                        {livreurStats.stats.total_orders > 0 
+                          ? Math.round((livreurStats.stats.delivered_orders / livreurStats.stats.total_orders) * 100) 
+                          : 0}%
+                      </div>
+                      <div style={{fontSize: '0.7rem', color: '#999'}}>Performance</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="profile-menu-section">
+                  <button className="profile-menu-link" onClick={() => setProfileSubView('personal')}>
+                    <div className="profile-menu-icon-wrapper icon-gold">
+                      <FiUser />
+                    </div>
+                    <span className="profile-menu-label">Informations personnelles</span>
+                    <span className="profile-menu-arrow">›</span>
+                  </button>
+                  <button className="profile-menu-link" onClick={() => setShowHistory(true)}>
+                    <div className="profile-menu-icon-wrapper icon-purple">
+                      <FiList />
+                    </div>
+                    <span className="profile-menu-label">Historique des livraisons</span>
+                    <span className="profile-menu-arrow">›</span>
+                  </button>
+                  <button className="profile-menu-link" onClick={() => setShowEarningsDetails(!showEarningsDetails)}>
+                    <div className="profile-menu-icon-wrapper icon-gold">
+                      <span style={{fontSize: '16px'}}>💰</span>
+                    </div>
+                    <span className="profile-menu-label">Détail des gains</span>
+                    <span className="profile-menu-arrow">›</span>
+                  </button>
+                  <button className="profile-menu-link" onClick={() => setProfileSubView('help')}>
+                    <div className="profile-menu-icon-wrapper icon-blue">
+                      <FiHelpCircle />
+                    </div>
+                    <span className="profile-menu-label">Aide et support</span>
+                    <span className="profile-menu-arrow">›</span>
+                  </button>
+                </div>
+
+                <div className="logout-button-container">
+                  <button onClick={onLogout} className="logout-full-btn">
+                     Déconnexion
+                  </button>
+                </div>
+              </>
+            )}
+
+            {profileSubView === 'personal' && (
+              <div className="profile-sub-section">
+                <h3>Informations personnelles</h3>
+                <form onSubmit={handleUpdateProfile} className="profile-form">
+                  <div className="form-group">
+                    <label>Nom d'utilisateur</label>
+                    <input 
+                      type="text" 
+                      value={personalInfoForm.username}
+                      onChange={(e) => setPersonalInfoForm({...personalInfoForm, username: e.target.value})}
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input 
+                      type="email" 
+                      value={personalInfoForm.email}
+                      onChange={(e) => setPersonalInfoForm({...personalInfoForm, email: e.target.value})}
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Téléphone</label>
+                    <input 
+                      type="tel" 
+                      value={personalInfoForm.phone}
+                      onChange={(e) => setPersonalInfoForm({...personalInfoForm, phone: e.target.value})}
+                      className="input"
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-full" style={{marginTop: '20px'}}>
+                    Sauvegarder les modifications
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {profileSubView === 'help' && (
+              <div className="profile-sub-section">
+                <h3>Aide et Support - Livreur</h3>
+                
+                <div style={{marginBottom: '25px'}}>
+                  <h4 style={{color: '#FFD700', marginBottom: '10px'}}>Conseils pour les Livreurs</h4>
+                  <ul style={{fontSize: '14px', color: '#555', paddingLeft: '20px', lineHeight: '1.8'}}>
+                    <li>✅ <strong>Ponctualité :</strong> Livrez les commandes le plus rapidement possible pour un meilleur score.</li>
+                    <li>📱 <strong>Communication :</strong> Contactez le client en cas de retard ou de difficulté à trouver l'adresse.</li>
+                    <li>🛡️ <strong>Sécurité :</strong> Respectez le code de la route et portez votre équipement de sécurité.</li>
+                    <li>💰 <strong>Gains :</strong> Suivez vos gains en temps réel dans la section "Détail des gains".</li>
+                  </ul>
+                </div>
+
+                <div style={{
+                  background: '#f9f9f9',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px dashed #FFD700'
+                }}>
+                  <h4 style={{margin: '0 0 10px 0'}}>Contact Support</h4>
+                  <p style={{fontSize: '14px', margin: '0 0 15px 0'}}>
+                    Un problème avec une commande ? Notre équipe est là.
+                  </p>
+                  <div style={{fontSize: '14px', color: '#333'}}>
+                    <strong>Support Email :</strong> flexpress.contact@gmail.com
+                  </div>
+                  <div style={{fontSize: '14px', color: '#333', marginTop: '5px'}}>
+                    <strong>Support Téléphone :</strong> +216 22 749 748
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="profile-menu-section">
-              <button className="profile-menu-link" onClick={() => setShowHistory(true)}>
-                <div className="profile-menu-icon-wrapper icon-purple">
-                  <span style={{fontSize: '16px'}}>📜</span>
-                </div>
-                <span className="profile-menu-label">Historique des livraisons</span>
-                <span className="profile-menu-arrow">›</span>
-              </button>
-              <button className="profile-menu-link" onClick={() => setShowEarningsDetails(!showEarningsDetails)}>
-                <div className="profile-menu-icon-wrapper icon-gold">
-                  <span style={{fontSize: '16px'}}>💰</span>
-                </div>
-                <span className="profile-menu-label">Détail des gains</span>
-                <span className="profile-menu-arrow">›</span>
-              </button>
-            </div>
-
-            <div className="logout-button-container">
-              <button onClick={onLogout} className="logout-full-btn">
-                 Déconnexion
-              </button>
+            <div style={{textAlign: 'center', marginTop: '20px', color: '#999', fontSize: '12px'}}>
+              Version 1.0.0
             </div>
           </div>
         ) : (

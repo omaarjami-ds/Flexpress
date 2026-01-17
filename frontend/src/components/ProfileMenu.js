@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FiUser, FiLogOut } from 'react-icons/fi';
 import './ProfileMenu.css';
 
-function ProfileMenu({ user, onLogout }) {
+function ProfileMenu({ user, onLogout, onProfileClick }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -63,7 +63,13 @@ function ProfileMenu({ user, onLogout }) {
           <div className="profile-divider"></div>
 
           <div className="profile-menu-items">
-            <button className="profile-menu-item">
+            <button 
+              className="profile-menu-item"
+              onClick={() => {
+                setIsOpen(false);
+                if (onProfileClick) onProfileClick();
+              }}
+            >
               <FiUser size={18} />
               <span>Mon profil</span>
             </button>

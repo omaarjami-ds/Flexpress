@@ -68,7 +68,7 @@ function RecenterMap({ center, zoom }) {
   return null;
 }
 
-function ClientDashboard({ user, onLogout }) {
+function ClientDashboard({ user, onLogout, onUpdateUser }) {
   const [restaurants, setRestaurants] = useState([]);
   const [allRestaurants, setAllRestaurants] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -126,7 +126,7 @@ function ClientDashboard({ user, onLogout }) {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('Profil mis à jour avec succès !');
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      if (onUpdateUser) onUpdateUser(response.data.user);
       setProfileSubView('main');
     } catch (err) {
       alert('Erreur lors de la mise à jour du profil.');
@@ -973,7 +973,15 @@ function ClientDashboard({ user, onLogout }) {
             <FiShoppingCart /> Panier ({cart.length})
           </button>
           <WindowControls />
-          <ProfileMenu user={user} onLogout={onLogout} />
+          <ProfileMenu 
+            user={user} 
+            onLogout={onLogout} 
+            onProfileClick={() => {
+              setShowProfile(true);
+              setProfileSubView('main');
+              setShowMyOrders(false);
+            }} 
+          />
         </div>
       </header>
 

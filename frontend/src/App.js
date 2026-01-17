@@ -33,6 +33,11 @@ function App() {
     setUser(null);
   };
 
+  const handleUpdateUser = (userData) => {
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+  };
+
   if (loading) {
     return <div className="loading">Chargement...</div>;
   }
@@ -48,15 +53,15 @@ function App() {
           />
           <Route 
             path="/client" 
-            element={user?.role === 'client' ? <ClientDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />} 
+            element={user?.role === 'client' ? <ClientDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} /> : <Navigate to="/login" />} 
           />
           <Route 
             path="/livreur" 
-            element={user?.role === 'livreur' ? <LivreurDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />} 
+            element={user?.role === 'livreur' ? <LivreurDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} /> : <Navigate to="/login" />} 
           />
           <Route 
             path="/admin" 
-            element={user?.role === 'admin' ? <AdminDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />} 
+            element={user?.role === 'admin' ? <AdminDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} /> : <Navigate to="/login" />} 
           />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>

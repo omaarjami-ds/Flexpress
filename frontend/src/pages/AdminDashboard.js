@@ -20,11 +20,17 @@ const getFullImageUrl = (url) => {
   return `/static/${cleanPath}`;
 };
 
-function AdminDashboard({ user, onLogout }) {
+function AdminDashboard({ user, onLogout, onUpdateUser }) {
   const [restaurants, setRestaurants] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
-  const [activeSection, setActiveSection] = useState('restaurants'); // 'restaurants', 'orders', 'users'
+  const [activeSection, setActiveSection] = useState('restaurants'); // 'restaurants', 'orders', 'users', 'profile'
+  const [showProfile, setShowProfile] = useState(false);
+  const [personalInfoForm, setPersonalInfoForm] = useState({
+    username: user?.username || '',
+    email: user?.email || '',
+    phone: user?.phone || ''
+  });
   const [showRestaurantForm, setShowRestaurantForm] = useState(false);
   const [showUserForm, setShowUserForm] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState({
@@ -264,6 +270,23 @@ function AdminDashboard({ user, onLogout }) {
         // Token expiré ou invalide
         onLogout();
       }
+    }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.put(`${API_URL}/user/profile`, personalInfoForm, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Profil mis à jour avec succès !');
+      if (onUpdateUser) onUpdateUser(response.data.user);
+      setShowProfile(false);
+      setActiveSection('restaurants');
+    } catch (err) {
+      console.error('Erreur mise à jour profil:', err);
+      alert('Erreur lors de la mise à jour du profil.');
     }
   };
 
@@ -579,7 +602,11 @@ function AdminDashboard({ user, onLogout }) {
         </div>
         <div className="header-actions">
           <WindowControls />
-          <ProfileMenu user={user} onLogout={onLogout} />
+          <ProfileMenu 
+            user={user} 
+            onLogout={onLogout} 
+            onProfileClick={() => setActiveSection('profile')}
+          />
         </div>
       </header>
 
@@ -643,6 +670,12 @@ function AdminDashboard({ user, onLogout }) {
               >
                 <FiUsers /> Utilisateurs
                 <span className="nav-badge">{users.length}</span>
+              </button>
+              <button 
+                className={`admin-nav-item ${activeSection === 'profile' ? 'active' : ''}`}
+                onClick={() => setActiveSection('profile')}
+              >
+                <FiUser /> Mon Profil
               </button>
             </nav>
           </div>
@@ -1197,6 +1230,60 @@ function AdminDashboard({ user, onLogout }) {
                       )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {/* Section Mon Profil */}
+            {activeSection === 'profile' && (
+              <div className="admin-section">
+                <div className="admin-section-header">
+                  <h2>👤 Mon Profil Administrateur</h2>
+                </div>
+                <div className="card" style={{maxWidth: '600px', margin: '0 auto'}}>
+                  <div style={{textAlign: 'center', marginBottom: '30px'}}>
+                    <div className="profile-avatar-large-page" style={{margin: '0 auto 15px', width: '100px', height: '100px', fontSize: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffd700', color: 'white', borderRadius: '50%'}}>
+                      {user?.username?.substring(0, 2).toUpperCase() || '??'}
+                    </div>
+                    <h3>{user?.username}</h3>
+                    <p style={{color: '#666'}}>Administrateur Système</p>
+                  </div>
+
+                  <form onSubmit={handleUpdateProfile} className="profile-form">
+                    <div className="form-group" style={{marginBottom: '15px'}}>
+                      <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Nom d'utilisateur</label>
+                      <input 
+                        type="text" 
+                        value={personalInfoForm.username}
+                        onChange={(e) => setPersonalInfoForm({...personalInfoForm, username: e.target.value})}
+                        className="input"
+                        style={{width: '100%'}}
+                      />
+                    </div>
+                    <div className="form-group" style={{marginBottom: '15px'}}>
+                      <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Email</label>
+                      <input 
+                        type="email" 
+                        value={personalInfoForm.email}
+                        onChange={(e) => setPersonalInfoForm({...personalInfoForm, email: e.target.value})}
+                        className="input"
+                        style={{width: '100%'}}
+                      />
+                    </div>
+                    <div className="form-group" style={{marginBottom: '20px'}}>
+                      <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Téléphone</label>
+                      <input 
+                        type="tel" 
+                        value={personalInfoForm.phone}
+                        onChange={(e) => setPersonalInfoForm({...personalInfoForm, phone: e.target.value})}
+                        className="input"
+                        style={{width: '100%'}}
+                      />
+                    </div>
+                    <button type="submit" className="btn btn-primary btn-full" style={{width: '100%', padding: '12px'}}>
+                      Sauvegarder les modifications
+                    </button>
+                  </form>
                 </div>
               </div>
             )}
