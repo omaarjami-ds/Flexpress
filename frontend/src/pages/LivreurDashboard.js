@@ -188,6 +188,8 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   };
 
   const loadOrders = async (status = 'accepted,delivering') => {
+    // Si status est un objet (cas du PullToRefresh), on utilise la valeur par défaut
+    const finalStatus = typeof status === 'string' ? status : 'accepted,delivering';
     const token = localStorage.getItem('token');
     if (!token) {
       console.error('Token manquant');
@@ -196,7 +198,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
     try {
       const [availableRes, myRes] = await Promise.all([
         axios.get(`${API_URL}/deliveries/available`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_URL}/orders?status=${status}`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API_URL}/orders?status=${finalStatus}`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setAvailableOrders(availableRes?.data || []);
       setMyOrders(myRes?.data || []);
