@@ -1161,12 +1161,15 @@ function ClientDashboard({ user, onLogout }) {
                     <strong>Votre Email :</strong> {user?.email}
                   </div>
                   <div style={{fontSize: '14px', color: '#333', marginTop: '5px'}}>
-                    <strong>Support Email :</strong> support@flexpress.tn
+                    <strong>Support Email :</strong> flexpress.contact@gmail.com
+                  </div>
+                  <div style={{fontSize: '14px', color: '#333', marginTop: '5px'}}>
+                    <strong>Téléphone :</strong> +216 22 749 748
                   </div>
                   <button 
                     className="btn btn-primary btn-full" 
                     style={{marginTop: '15px'}}
-                    onClick={() => window.location.href = `mailto:support@flexpress.tn?subject=Aide FLEXPRESS - User: ${user?.username}`}
+                    onClick={() => window.location.href = `mailto:flexpress.contact@gmail.com?subject=Aide FLEXPRESS - User: ${user?.username}`}
                   >
                     Nous contacter par Email
                   </button>

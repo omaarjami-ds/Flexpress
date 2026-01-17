@@ -56,6 +56,7 @@ function LivreurDashboard({ user, onLogout }) {
   const [showEarningsDetails, setShowEarningsDetails] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [historyDateFilter, setHistoryDateFilter] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState(''); // all, accepted, delivering, delivered
@@ -477,196 +478,304 @@ function LivreurDashboard({ user, onLogout }) {
 
       <PullToRefresh onRefresh={loadOrders}>
         <div className="container">
-        {/* Banner Status Mobile - Très visible */}
-        <div className={`mobile-status-banner ${isAvailable ? 'online' : 'offline'}`}>
-          <div className="status-info">
-            <span className="status-dot"></span>
-            <span className="status-text">
-              {isAvailable ? 'En ligne - Prêt à livrer' : 'Hors service'}
-            </span>
-          </div>
-          <button 
-            onClick={toggleStatus} 
-            className={`btn btn-sm ${isAvailable ? 'btn-danger' : 'btn-success'}`}
-          >
-            {isAvailable ? 'Déconnexion' : 'Se mettre en service'}
-          </button>
-        </div>
+        {showProfile ? (
+          <div className="profile-page">
+            <button 
+              onClick={() => setShowProfile(false)} 
+              className="btn btn-secondary btn-sm"
+              style={{marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px'}}
+            >
+              ‹ Retour à l'accueil
+            </button>
 
-        {/* Section Rendements Professionnelle */}
-        <div className="livreur-stats-section card" style={{marginBottom: '20px', padding: '15px'}}>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-            <h2 style={{margin: 0, fontSize: '1.2rem'}}>📈 Mes Rendements & Activité</h2>
-            <div style={{backgroundColor: '#e3f2fd', padding: '5px 12px', borderRadius: '15px', color: '#1976d2', fontWeight: 'bold'}}>
-              Total : {(livreurStats.stats.total_earnings || 0).toFixed(3)} DT
-            </div>
-          </div>
-          
-          <div className="stats-grid-livreur" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px'}}>
-            <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #4caf50'}}>
-              <div style={{fontSize: '0.8rem', color: '#666'}}>Aujourd'hui</div>
-              <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{(livreurStats.stats.today_earnings || 0).toFixed(3)} DT</div>
-              <div style={{fontSize: '0.7rem', color: '#999'}}>{livreurStats.stats.today_orders || 0} commandes</div>
-            </div>
-            <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2196f3'}}>
-              <div style={{fontSize: '0.8rem', color: '#666'}}>Livrées</div>
-              <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{livreurStats.stats.delivered_orders || 0}</div>
-              <div style={{fontSize: '0.7rem', color: '#999'}}>Sur {livreurStats.stats.total_orders || 0} totales</div>
-            </div>
-            <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #ff9800'}}>
-              <div style={{fontSize: '0.8rem', color: '#666'}}>Succès</div>
-              <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>
-                {livreurStats.stats.total_orders > 0 
-                  ? Math.round((livreurStats.stats.delivered_orders / livreurStats.stats.total_orders) * 100) 
-                  : 0}%
+            <div className="profile-header-card">
+              <div className="profile-avatar-large-page">
+                {user?.username?.substring(0, 2).toUpperCase() || '??'}
               </div>
-              <div style={{fontSize: '0.7rem', color: '#999'}}>Performance</div>
+              <h2 className="profile-name">{user?.username}</h2>
+              <span className="profile-email-badge">Livreur - {user?.email || 'email@exemple.com'}</span>
             </div>
-            <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #9c27b0'}}>
-              <div style={{fontSize: '0.8rem', color: '#666'}}>Récentes</div>
-              <button 
-                onClick={() => setShowHistory(true)} 
-                className="btn btn-xs btn-outline-primary"
-                style={{marginTop: '5px', fontSize: '0.7rem', padding: '2px 5px'}}
-              >
-                Voir travail
+
+            {/* Section Rendements Professionnelle */}
+            <div className="livreur-stats-section card" style={{marginBottom: '20px', padding: '15px'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                <h2 style={{margin: 0, fontSize: '1.2rem'}}>📈 Mes Rendements & Activité</h2>
+                <div style={{backgroundColor: '#e3f2fd', padding: '5px 12px', borderRadius: '15px', color: '#1976d2', fontWeight: 'bold'}}>
+                  Total : {(livreurStats.stats.total_earnings || 0).toFixed(3)} DT
+                </div>
+              </div>
+              
+              <div className="stats-grid-livreur" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px'}}>
+                <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #4caf50'}}>
+                  <div style={{fontSize: '0.8rem', color: '#666'}}>Aujourd'hui</div>
+                  <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{(livreurStats.stats.today_earnings || 0).toFixed(3)} DT</div>
+                  <div style={{fontSize: '0.7rem', color: '#999'}}>{livreurStats.stats.today_orders || 0} commandes</div>
+                </div>
+                <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2196f3'}}>
+                  <div style={{fontSize: '0.8rem', color: '#666'}}>Livrées</div>
+                  <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{livreurStats.stats.delivered_orders || 0}</div>
+                  <div style={{fontSize: '0.7rem', color: '#999'}}>Sur {livreurStats.stats.total_orders || 0} totales</div>
+                </div>
+                <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #ff9800'}}>
+                  <div style={{fontSize: '0.8rem', color: '#666'}}>Succès</div>
+                  <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>
+                    {livreurStats.stats.total_orders > 0 
+                      ? Math.round((livreurStats.stats.delivered_orders / livreurStats.stats.total_orders) * 100) 
+                      : 0}%
+                  </div>
+                  <div style={{fontSize: '0.7rem', color: '#999'}}>Performance</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="profile-menu-section">
+              <button className="profile-menu-link" onClick={() => setShowHistory(true)}>
+                <div className="profile-menu-icon-wrapper icon-purple">
+                  <span style={{fontSize: '16px'}}>📜</span>
+                </div>
+                <span className="profile-menu-label">Historique des livraisons</span>
+                <span className="profile-menu-arrow">›</span>
+              </button>
+              <button className="profile-menu-link" onClick={() => setShowEarningsDetails(!showEarningsDetails)}>
+                <div className="profile-menu-icon-wrapper icon-gold">
+                  <span style={{fontSize: '16px'}}>💰</span>
+                </div>
+                <span className="profile-menu-label">Détail des gains</span>
+                <span className="profile-menu-arrow">›</span>
+              </button>
+            </div>
+
+            <div className="logout-button-container">
+              <button onClick={onLogout} className="logout-full-btn">
+                 Déconnexion
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Section Prioritaire : Nouvelles Commandes ou Livraison en cours */}
-        <div className="livreur-priority-section">
-          {activeOrders.length > 0 ? (
-            <div className="card active-order-card">
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                <h2 style={{margin: 0, color: '#28a745'}}>🚚 Livraison en cours</h2>
-                <button 
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowHistory(true)}
-                >
-                  📜 Historique
-                </button>
+        ) : (
+          <>
+            {/* Banner Status Mobile - Très visible */}
+            <div className={`mobile-status-banner ${isAvailable ? 'online' : 'offline'}`}>
+              <div className="status-info">
+                <span className="status-dot"></span>
+                <span className="status-text">
+                  {isAvailable ? 'En ligne' : 'Hors service'}
+                </span>
               </div>
-              {activeOrders.map(order => (
-                <div key={order.id} className="order-item-active" onClick={() => setSelectedOrder(order)}>
-                  <div className="order-main-info">
-                    <div className="restaurant-badge">{order.restaurant_name}</div>
-                    <div className="order-price-badge">{order.total_price.toFixed(2)} DT</div>
-                  </div>
-                  
-                  <div className="order-details-mini">
-                    <p><strong>📍 Client:</strong> {order.client_name}</p>
-                    <p><strong>🏠 Adresse:</strong> {order.delivery_address}</p>
-                    {order.items && order.items.length > 0 && (
-                      <div className="order-items-active" style={{
-                        margin: '10px 0',
-                        padding: '10px',
-                        backgroundColor: '#f1f8f1',
-                        borderRadius: '8px',
-                        fontSize: '0.9em'
-                      }}>
-                        <ul style={{ paddingLeft: '20px', margin: 0 }}>
-                          {order.items.map((item, idx) => (
-                            <li key={idx}>
-                              {item.item_name} <span style={{ color: '#666' }}>x{item.quantity}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {getRouteInfoForOrder(order) && (
-                      <p className="route-highlight">
-                        ⏱️ {getRouteInfoForOrder(order).distanceKm.toFixed(1)} km (~{getRouteInfoForOrder(order).travelMinutes} min)
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="order-actions-grid">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); openItineraryForOrder(order); }}
-                      className="btn btn-info btn-full"
-                    >
-                      🗺️ Itinéraire
-                    </button>
-                    
-                    {order.status === 'accepted' && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, 'delivering'); }}
-                        className="btn btn-primary btn-full"
-                      >
-                        En route
-                      </button>
-                    )}
-                    
-                    {order.status === 'delivering' && (
-                      <button 
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (window.confirm(`Confirmer la livraison de la commande ${order.id} ?`)) {
-                            await updateOrderStatus(order.id, 'delivered');
-                          }
-                        }}
-                        className="btn btn-success btn-full"
-                      >
-                        ✓ Livrée
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+              <button 
+                onClick={toggleStatus} 
+                className={`btn btn-sm ${isAvailable ? 'btn-danger' : 'btn-success'}`}
+              >
+                {isAvailable ? 'Déconnexion' : 'Se mettre en service'}
+              </button>
             </div>
-          ) : (
-            <div className="card available-orders-card">
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                <h2 style={{margin: 0, color: '#17a2b8'}}>📦 Commandes Disponibles ({availableOrders.length})</h2>
-                <button 
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowHistory(true)}
-                >
-                  📜 Historique
-                </button>
-              </div>
-              
-              {availableOrders.length === 0 ? (
-                <div className="empty-state">
-                  <span className="empty-icon">⏳</span>
-                  <p>Aucune nouvelle commande pour le moment.</p>
-                  <p className="sub-text">Restez en ligne pour recevoir des alertes.</p>
-                </div>
-              ) : (
-                <div className="orders-queue-list">
-                  {availableOrders.map((order, index) => (
-                    <div key={order.id} className={`queue-order-line ${index === 0 ? 'queue-first' : ''}`}>
-                      <div className="queue-order-number">#{order.id}</div>
-                      <div className="queue-order-items">
-                        {order.items && order.items.length > 0 ? (
-                          <span className="items-text">
-                            {order.items.map(item => item.item_name).join(', ')}
-                          </span>
-                        ) : (
-                          <span className="items-text">Pas d'articles</span>
+
+            {/* Section Prioritaire : Nouvelles Commandes ou Livraison en cours */}
+            <div className="livreur-priority-section">
+              {activeOrders.length > 0 ? (
+                <div className="card active-order-card">
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                    <h2 style={{margin: 0, color: '#28a745'}}>🚚 Livraison en cours</h2>
+                  </div>
+                  {activeOrders.map(order => (
+                    <div key={order.id} className="order-item-active" onClick={() => setSelectedOrder(order)}>
+                      <div className="order-main-info">
+                        <div className="restaurant-badge">{order.restaurant_name}</div>
+                        <div className="order-price-badge">{order.total_price.toFixed(2)} DT</div>
+                      </div>
+                      
+                      <div className="order-details-mini">
+                        <p><strong>📍 Client:</strong> {order.client_name}</p>
+                        <p><strong>🏠 Adresse:</strong> {order.delivery_address}</p>
+                        {order.items && order.items.length > 0 && (
+                          <div className="order-items-active" style={{
+                            margin: '10px 0',
+                            padding: '10px',
+                            backgroundColor: '#f1f8f1',
+                            borderRadius: '8px',
+                            fontSize: '0.9em'
+                          }}>
+                            <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                              {order.items.map((item, idx) => (
+                                <li key={idx}>
+                                  {item.item_name} <span style={{ color: '#666' }}>x{item.quantity}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {getRouteInfoForOrder(order) && (
+                          <p className="route-highlight">
+                            ⏱️ {getRouteInfoForOrder(order).distanceKm.toFixed(1)} km (~{getRouteInfoForOrder(order).travelMinutes} min)
+                          </p>
                         )}
                       </div>
-                      <div className="queue-order-address">
-                        📍 {order.delivery_address}
-                      </div>
-                      <div className="queue-order-actions">
-                        <span className="price-tag">{order.total_price.toFixed(2)} DT</span>
+
+                      <div className="order-actions-grid">
                         <button 
-                          onClick={(e) => { e.stopPropagation(); acceptOrder(order.id); }}
-                          className="btn btn-success btn-sm"
+                          onClick={(e) => { e.stopPropagation(); openItineraryForOrder(order); }}
+                          className="btn btn-info btn-full"
                         >
-                          Accepter
+                          🗺️ Itinéraire
                         </button>
+                        
+                        {order.status === 'accepted' && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, 'delivering'); }}
+                            className="btn btn-primary btn-full"
+                          >
+                            En route
+                          </button>
+                        )}
+                        
+                        {order.status === 'delivering' && (
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`Confirmer la livraison de la commande ${order.id} ?`)) {
+                                await updateOrderStatus(order.id, 'delivered');
+                              }
+                            }}
+                            className="btn btn-success btn-full"
+                          >
+                            ✓ Livrée
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
+              ) : (
+                <div className="card available-orders-card">
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                    <h2 style={{margin: 0, color: '#17a2b8'}}>📦 Commandes Disponibles ({availableOrders.length})</h2>
+                  </div>
+                  
+                  {availableOrders.length === 0 ? (
+                    <div className="empty-state">
+                      <span className="empty-icon">⏳</span>
+                      <p>Aucune nouvelle commande pour le moment.</p>
+                      <p className="sub-text">Restez en ligne pour recevoir des alertes.</p>
+                    </div>
+                  ) : (
+                    <div className="orders-queue-list">
+                      {availableOrders.map((order, index) => (
+                        <div key={order.id} className={`queue-order-line ${index === 0 ? 'queue-first' : ''}`}>
+                          <div className="queue-order-number">#{order.id}</div>
+                          <div className="queue-order-items">
+                            {order.items && order.items.length > 0 ? (
+                              <span className="items-text">
+                                {order.items.map(item => item.item_name).join(', ')}
+                              </span>
+                            ) : (
+                              <span className="items-text">Pas d'articles</span>
+                            )}
+                          </div>
+                          <div className="queue-order-address">
+                            📍 {order.delivery_address}
+                          </div>
+                          <div className="queue-order-actions">
+                            <span className="price-tag">{order.total_price.toFixed(2)} DT</span>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); acceptOrder(order.id); }}
+                              className="btn btn-success btn-sm"
+                            >
+                              Accepter
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-          )}
+
+            {/* Géolocalisation Livreur style Google Maps */}
+            <div className="livreur-location-section card" style={{marginTop: '20px'}}>
+              <div className="location-header">
+                <h2 className="section-title" style={{margin: 0, textAlign: 'left', fontSize: '1.2rem'}}>📍 Ma Position & Carte</h2>
+              </div>
+              
+              <div className="location-control-panel">
+                <div className="loc-actions">
+                  <button 
+                    onClick={getCurrentLocation} 
+                    className="btn btn-primary location-main-btn"
+                  >
+                    Me localiser maintenant
+                  </button>
+                </div>
+                {position && (
+                  <div className="loc-footer-address">
+                    <p>{positionLabel}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="map-view-section">
+                <div className="map-container" style={{height: '400px'}}>
+                  <MapContainer 
+                    center={mapCenter || position || [33.8083, 10.8533]} 
+                    zoom={mapZoom || 13} 
+                    style={{ height: '100%', width: '100%' }}
+                    scrollWheelZoom={true}
+                    ref={mapRef}
+                  >
+                    <TileLayer 
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+                    />
+                    
+                    {position && (
+                      <>
+                        <RecenterMap center={mapCenter || position} zoom={mapZoom || 15} />
+                        <Marker position={position}>
+                          <Popup>Vous êtes ici</Popup>
+                        </Marker>
+                      </>
+                    )}
+
+                    {markers.map(marker => (
+                      <Marker key={marker.id} position={marker.position} icon={L.icon({
+                        iconUrl: marker.type === 'my' 
+                          ? 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png'
+                          : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                      })}>
+                        <Popup>Commande #{marker.id}</Popup>
+                      </Marker>
+                    ))}
+                  </MapContainer>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
         </div>
+      </PullToRefresh>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="mobile-bottom-nav">
+        <button 
+          className={`mobile-nav-item ${!showProfile ? 'active' : ''}`}
+          onClick={() => {
+            setShowProfile(false);
+            setShowHistory(false);
+            setShowEarningsDetails(false);
+          }}
+        >
+          🏠 <span>Accueil</span>
+        </button>
+        <button 
+          className={`mobile-nav-item ${showProfile ? 'active' : ''}`}
+          onClick={() => {
+            setShowProfile(true);
+          }}
+        >
+          👤 <span>Profil</span>
+        </button>
+      </nav>
 
         {/* Dashboard Statistiques Livreur (Masquable sur mobile si besoin) */}
         <div className="livreur-stats-dashboard">
