@@ -535,9 +535,10 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
   const filteredOrders = orders.filter(o => {
     if (!orderDateFilter) return true;
     try {
+      if (!o.created_at) return false;
       const orderDate = new Date(o.created_at).toISOString().split('T')[0];
       return orderDate === orderDateFilter;
-    } catch (e) { return true; }
+    } catch (e) { return false; }
   });
 
   const filteredUsers = users.filter(u => {
@@ -955,7 +956,7 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
                               ) : '-'}
                             </td>
                             <td><strong>{Number(order.total_price || 0).toFixed(2)} DT</strong></td>
-                            <td>{new Date(order.created_at).toLocaleDateString('fr-FR')}</td>
+                            <td>{order.created_at ? new Date(order.created_at).toLocaleDateString('fr-FR') : 'N/A'}</td>
                             <td>
                               <span 
                                 className="status-badge" 

@@ -5,6 +5,7 @@ import ClientDashboard from './pages/ClientDashboard';
 import LivreurDashboard from './pages/LivreurDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import SplashScreen from './components/SplashScreen';
+import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 function App() {
@@ -56,27 +57,29 @@ function App() {
     <>
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
       <Router>
-        <Routes>
-          <Route 
-            path="/login" 
-            element={user ? <Navigate to={`/${user.role}`} /> : <Login onLogin={handleLogin} />} 
-          />
-          <Route 
-            path="/client" 
-            element={user?.role === 'client' ? <ClientDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/livreur" 
-            element={user?.role === 'livreur' ? (
-              <LivreurDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} />
-            ) : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/admin" 
-            element={user?.role === 'admin' ? <AdminDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} /> : <Navigate to="/login" />} 
-          />
-          <Route path="/" element={<Navigate to="/login" />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route 
+              path="/login" 
+              element={user ? <Navigate to={`/${user.role}`} /> : <Login onLogin={handleLogin} />} 
+            />
+            <Route 
+              path="/client" 
+              element={user?.role === 'client' ? <ClientDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} /> : <Navigate to="/login" />} 
+            />
+            <Route 
+              path="/livreur" 
+              element={user?.role === 'livreur' ? (
+                <LivreurDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} />
+              ) : <Navigate to="/login" />} 
+            />
+            <Route 
+              path="/admin" 
+              element={user?.role === 'admin' ? <AdminDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} /> : <Navigate to="/login" />} 
+            />
+            <Route path="/" element={<Navigate to="/login" />} />
+          </Routes>
+        </ErrorBoundary>
       </Router>
     </>
   );

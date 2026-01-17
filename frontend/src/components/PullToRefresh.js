@@ -9,7 +9,7 @@ const PullToRefresh = ({ onRefresh, children }) => {
   const pullThreshold = 80;
 
   const handleTouchStart = (e) => {
-    if (containerRef.current.scrollTop === 0 && !isRefreshing) {
+    if (containerRef.current?.scrollTop === 0 && !isRefreshing) {
       startY.current = e.touches[0].pageY;
     } else {
       startY.current = 0;
