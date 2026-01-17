@@ -621,7 +621,6 @@ def get_popular_items():
         }},
         {'$unwind': '$restaurant'},
         {'$project': {
-            '_id': 0,
             'id': 1,
             'restaurant_id': 1,
             'name': 1,
@@ -631,7 +630,8 @@ def get_popular_items():
             'image_url': 1,
             'is_popular': 1,
             'is_featured': 1,
-            'restaurant_name': '$restaurant.name'
+            'restaurant_name': '$restaurant.name',
+            '_id': 0
         }},
         {'$limit': 10}
     ]))
@@ -655,7 +655,6 @@ def get_makloub_items():
         }},
         {'$unwind': '$restaurant'},
         {'$project': {
-            '_id': 0,
             'id': 1,
             'restaurant_id': 1,
             'name': 1,
@@ -665,7 +664,8 @@ def get_makloub_items():
             'image_url': 1,
             'is_popular': 1,
             'is_featured': 1,
-            'restaurant_name': '$restaurant.name'
+            'restaurant_name': '$restaurant.name',
+            '_id': 0
         }},
         {'$limit': 10}
     ]))
@@ -782,11 +782,25 @@ def get_orders():
             {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
             {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
             {'$project': {
-                '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
+                'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
                 'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
-                'estimated_delivery_time': 1, 'created_at': 1, 'items': {'_id': 0, 'id': 1, 'order_id': 1, 'item_id': 1, 'item_name': 1, 'quantity': 1, 'price': 1},
+                'estimated_delivery_time': 1, 'created_at': 1, 
+                'items': {
+                    '$map': {
+                        'input': '$items',
+                        'as': 'item',
+                        'in': {
+                            'id': '$$item.id',
+                            'order_id': '$$item.order_id',
+                            'item_id': '$$item.item_id',
+                            'item_name': '$$item.item_name',
+                            'quantity': '$$item.quantity',
+                            'price': '$$item.price'
+                        }
+                    }
+                },
                 'restaurant_name': '$restaurant.name', 'restaurant_latitude': '$restaurant.latitude', 'restaurant_longitude': '$restaurant.longitude',
-                'driver_lat': '$driver.latitude', 'driver_lon': '$driver.longitude', 'driver_name': '$driver.username'
+                'driver_lat': '$driver.latitude', 'driver_lon': '$driver.longitude', 'driver_name': '$driver.username', '_id': 0
             }},
             {'$sort': {'created_at': -1}}
         ]))
@@ -849,7 +863,7 @@ def get_orders():
             {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
             {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
             {'$project': {
-                '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
+                'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
                 'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
                 'estimated_delivery_time': 1, 'created_at': 1,
                 'items': {
@@ -868,7 +882,7 @@ def get_orders():
                 },
                 'restaurant_name': '$restaurant.name',
                 'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude',
-                'delivery_name': '$driver.username', 'delivery_lat': '$driver.latitude', 'delivery_lon': '$driver.longitude'
+                'delivery_name': '$driver.username', 'delivery_lat': '$driver.latitude', 'delivery_lon': '$driver.longitude', '_id': 0
             }},
             {'$sort': {'created_at': -1}}
         ])
@@ -999,7 +1013,7 @@ def get_available_deliveries():
         {'$unwind': '$client'},
         {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
         {'$project': {
-            '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
+            'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
             'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
             'estimated_delivery_time': 1, 'created_at': 1,
             'items': {
@@ -1017,7 +1031,7 @@ def get_available_deliveries():
                 }
             },
             'restaurant_name': '$restaurant.name', 'restaurant_lat': '$restaurant.latitude', 'restaurant_lon': '$restaurant.longitude',
-            'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude', 'client_phone': '$client.phone'
+            'client_name': '$client.username', 'client_lat': '$client.latitude', 'client_lon': '$client.longitude', 'client_phone': '$client.phone', '_id': 0
         }},
         {'$sort': {'created_at': -1}}
     ]))
@@ -1039,7 +1053,7 @@ def get_order_details(order_id):
         {'$unwind': '$client'},
         {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
         {'$project': {
-            '_id': 0, 'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
+            'id': 1, 'client_id': 1, 'restaurant_id': 1, 'status': 1, 'total_price': 1,
             'delivery_address': 1, 'delivery_latitude': 1, 'delivery_longitude': 1, 'delivery_id': 1,
             'estimated_delivery_time': 1, 'created_at': 1,
             'items': {
@@ -1056,7 +1070,7 @@ def get_order_details(order_id):
                     }
                 }
             },
-            'restaurant_name': '$restaurant.name', 'client_name': '$client.username', 'client_phone': '$client.phone'
+            'restaurant_name': '$restaurant.name', 'client_name': '$client.username', 'client_phone': '$client.phone', '_id': 0
         }}
     ])
     
@@ -1109,7 +1123,7 @@ def get_livreur_stats():
         {'$unwind': '$restaurant'},
         {'$lookup': {'from': 'order_items', 'localField': 'id', 'foreignField': 'order_id', 'as': 'items'}},
         {'$project': {
-            '_id': 0, 'id': 1, 'total_price': 1, 'status': 1, 'created_at': 1, 
+            'id': 1, 'total_price': 1, 'status': 1, 'created_at': 1, 
             'restaurant_name': '$restaurant.name', 
             'items': {
                 '$map': {
@@ -1124,7 +1138,7 @@ def get_livreur_stats():
                         'price': '$$item.price'
                     }
                 }
-            }
+            }, '_id': 0
         }},
         {'$sort': {'created_at': -1}},
         {'$limit': 10}
@@ -1234,10 +1248,10 @@ def generate_order_pdf(order_id):
         {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
         {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
         {'$project': {
-            '_id': 0, 'id': 1, 'created_at': 1, 'status': 1, 'total_price': 1, 'delivery_address': 1,
+            'id': 1, 'created_at': 1, 'status': 1, 'total_price': 1, 'delivery_address': 1,
             'restaurant_name': '$restaurant.name', 'restaurant_address': '$restaurant.address', 'restaurant_phone': '$restaurant.phone',
             'client_name': '$client.username', 'client_email': '$client.email', 'client_phone': '$client.phone',
-            'delivery_name': '$driver.username'
+            'delivery_name': '$driver.username', '_id': 0
         }}
     ]))
     
@@ -1421,8 +1435,8 @@ def generate_daily_report():
         {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
         {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
         {'$project': {
-            '_id': 0, 'id': 1, 'total_price': 1, 'status': 1,
-            'restaurant_name': '$restaurant.name', 'client_name': '$client.username', 'delivery_name': '$driver.username'
+            'id': 1, 'total_price': 1, 'status': 1,
+            'restaurant_name': '$restaurant.name', 'client_name': '$client.username', 'delivery_name': '$driver.username', '_id': 0
         }}
     ]))
 
@@ -1561,8 +1575,8 @@ def generate_monthly_report():
         {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
         {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
         {'$project': {
-            '_id': 0, 'id': 1, 'total_price': 1, 'status': 1,
-            'restaurant_name': '$restaurant.name', 'delivery_name': '$driver.username'
+            'id': 1, 'total_price': 1, 'status': 1,
+            'restaurant_name': '$restaurant.name', 'delivery_name': '$driver.username', '_id': 0
         }}
     ]))
 
@@ -1715,8 +1729,8 @@ def generate_custom_report():
         {'$lookup': {'from': 'users', 'localField': 'delivery_id', 'foreignField': 'id', 'as': 'driver'}},
         {'$unwind': {'path': '$driver', 'preserveNullAndEmptyArrays': True}},
         {'$project': {
-            '_id': 0, 'id': 1, 'total_price': 1, 'status': 1,
-            'restaurant_name': '$restaurant.name', 'delivery_name': '$driver.username'
+            'id': 1, 'total_price': 1, 'status': 1,
+            'restaurant_name': '$restaurant.name', 'delivery_name': '$driver.username', '_id': 0
         }}
     ]))
 
