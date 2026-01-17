@@ -292,14 +292,18 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   const activeOrders = (myOrders || []).filter(o => o && ['accepted', 'delivering'].includes(o.status));
   const deliveredOrders = (myOrders || []).filter(o => o?.status === 'delivered').filter(o => {
     if (!earningsDateFilter || !o?.created_at) return true;
-    return new Date(o.created_at).toISOString().split('T')[0] === earningsDateFilter;
+    try {
+      return new Date(o.created_at).toISOString().split('T')[0] === earningsDateFilter;
+    } catch (e) {
+      return true;
+    }
   });
 
   const markers = (allOrders || []).map(order => {
     if (!order) return null;
-    const lat = order.restaurant_lat || order.delivery_latitude;
-    const lon = order.restaurant_lon || order.delivery_longitude;
-    if (!lat || !lon) return null;
+    const lat = parseFloat(order.restaurant_lat || order.delivery_latitude);
+    const lon = parseFloat(order.restaurant_lon || order.delivery_longitude);
+    if (isNaN(lat) || isNaN(lon)) return null;
     return {
       id: order.id || Math.random(),
       position: [lat, lon],
@@ -383,7 +387,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                     <div className="stats-grid-livreur" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px'}}>
                       <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #4caf50'}}>
                         <div style={{fontSize: '0.8rem', color: '#666'}}>Aujourd'hui</div>
-                        <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{(livreurStats.stats.today_earnings || 0).toFixed(3)} DT</div>
+                        <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{(livreurStats?.stats?.today_earnings || 0).toFixed(3)} DT</div>
                       </div>
                       <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2196f3'}}>
                         <div style={{fontSize: '0.8rem', color: '#666'}}>Livrées</div>
@@ -516,9 +520,14 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                 {position && <div className="loc-footer-address"><p>{positionLabel}</p></div>}
                 <div className="map-view-section" style={{height: '350px', marginTop: '15px'}}>
                   {typeof window !== 'undefined' && typeof L !== 'undefined' ? (
-                    <MapContainer center={mapCenter || position || [33.8083, 10.8533]} zoom={mapZoom} style={{ height: '100%', width: '100%' }} ref={mapRef}>
+                    <MapContainer 
+                      center={(Array.isArray(mapCenter) && mapCenter.length === 2) ? mapCenter : (Array.isArray(position) && position.length === 2) ? position : [33.8083, 10.8533]} 
+                      zoom={mapZoom} 
+                      style={{ height: '100%', width: '100%' }} 
+                      ref={mapRef}
+                    >
                       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                      {position && Array.isArray(position) && position.length === 2 && (
+                      {Array.isArray(position) && position.length === 2 && !isNaN(position[0]) && !isNaN(position[1]) && (
                         <>
                           <RecenterMap center={mapCenter || position} zoom={15} />
                           <Marker position={position}><Popup>Vous êtes ici</Popup></Marker>
