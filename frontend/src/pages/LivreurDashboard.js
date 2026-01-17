@@ -228,8 +228,6 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
       });
       loadOrders();
       fetchLivreurStats();
-      setShowProfile(true); // Aller vers le profil pour voir l'historique
-      setShowHistory(true); // Ouvrir directement l'historique
     } catch (err) {
       alert(err.response?.data?.error || 'Erreur acceptation commande');
     }
