@@ -5,7 +5,6 @@ import ClientDashboard from './pages/ClientDashboard';
 import LivreurDashboard from './pages/LivreurDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import SplashScreen from './components/SplashScreen';
-import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 function App() {
@@ -16,8 +15,18 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    if (token && userData) {
-      setUser(JSON.parse(userData));
+    if (token && userData && userData !== 'undefined') {
+      try {
+        const parsedUser = JSON.parse(userData);
+        if (parsedUser && typeof parsedUser === 'object') {
+          setUser(parsedUser);
+        } else {
+          handleLogout();
+        }
+      } catch (e) {
+        console.error("Error parsing user data from localStorage", e);
+        handleLogout();
+      }
     }
     setLoading(false);
   }, []);
@@ -59,9 +68,7 @@ function App() {
           <Route 
             path="/livreur" 
             element={user?.role === 'livreur' ? (
-              <ErrorBoundary>
-                <LivreurDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} />
-              </ErrorBoundary>
+              <LivreurDashboard user={user} onLogout={handleLogout} onUpdateUser={handleUpdateUser} />
             ) : <Navigate to="/login" />} 
           />
           <Route 

@@ -9,12 +9,14 @@ import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
 // Fix for default marker icons
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+if (L && L.Icon && L.Icon.Default && L.Icon.Default.prototype) {
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  });
+}
 
 const API_URL = 'https://flexpress.onrender.com/api';
 
@@ -279,17 +281,17 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   };
 
   const stats = {
-    totalAccepted: livreurStats.stats.total_orders || 0,
-    totalDelivered: livreurStats.stats.delivered_orders || 0,
-    totalEarnings: livreurStats.stats.total_earnings || 0,
-    inProgress: myOrders.filter(o => o.status === 'delivering').length,
-    available: availableOrders.length
+    totalAccepted: livreurStats?.stats?.total_orders || 0,
+    totalDelivered: livreurStats?.stats?.delivered_orders || 0,
+    totalEarnings: livreurStats?.stats?.total_earnings || 0,
+    inProgress: (myOrders || []).filter(o => o?.status === 'delivering').length,
+    available: (availableOrders || []).length
   };
 
-  const allOrders = [...availableOrders, ...myOrders];
-  const activeOrders = myOrders.filter(o => ['accepted', 'delivering'].includes(o.status));
-  const deliveredOrders = myOrders.filter(o => o.status === 'delivered').filter(o => {
-    if (!earningsDateFilter) return true;
+  const allOrders = [...(availableOrders || []), ...(myOrders || [])];
+  const activeOrders = (myOrders || []).filter(o => o && ['accepted', 'delivering'].includes(o.status));
+  const deliveredOrders = (myOrders || []).filter(o => o?.status === 'delivered').filter(o => {
+    if (!earningsDateFilter || !o?.created_at) return true;
     return new Date(o.created_at).toISOString().split('T')[0] === earningsDateFilter;
   });
 
