@@ -457,6 +457,40 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                   </div>
                 </div>
               )}
+
+              {showHistory && (
+                <div className="modal-overlay" onClick={() => setShowHistory(false)}>
+                  <div className="modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="modal-header">
+                      <h3>📜 Historique des livraisons</h3>
+                      <button onClick={() => setShowHistory(false)}>×</button>
+                    </div>
+                    <div className="modal-body">
+                      {(livreurStats?.recent_orders || []).length === 0 ? (
+                        <p style={{textAlign: 'center', padding: '20px'}}>Aucun historique disponible.</p>
+                      ) : (
+                        <div className="history-list">
+                          {(livreurStats.recent_orders).map(order => (
+                            <div key={order.id} className="history-item card" style={{marginBottom: '10px', padding: '10px'}}>
+                              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '5px'}}>
+                                <strong>#{order.id} - {order.restaurant_name}</strong>
+                                <span className={`status-badge status-${order.status}`}>{order.status}</span>
+                              </div>
+                              <div style={{fontSize: '0.9rem', color: '#666'}}>
+                                <span>💰 {(order.total_price || 0).toFixed(2)} DT</span>
+                                <span style={{marginLeft: '15px'}}>📅 {new Date(order.created_at).toLocaleDateString()}</span>
+                              </div>
+                              <div style={{marginTop: '5px', fontSize: '0.85rem'}}>
+                                <strong>Articles :</strong> {(order.items || []).map(item => `${item.quantity}x ${item.item_name}`).join(', ')}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -482,6 +516,15 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                         </div>
                         <div className="order-details-mini">
                           <p>📍 {order.delivery_address}</p>
+                          <div className="order-items-list-mini" style={{marginTop: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                            <h4 style={{margin: '0 0 5px 0', fontSize: '0.9rem', color: '#666'}}>Articles à acheter :</h4>
+                            {(order.items || []).map((item, idx) => (
+                              <div key={idx} style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem'}}>
+                                <span>{item.quantity}x {item.item_name}</span>
+                                <span style={{fontWeight: 'bold'}}>{(item.price * item.quantity).toFixed(2)} DT</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                         <div className="order-actions-grid">
                           <button onClick={(e) => { e.stopPropagation(); openItineraryForOrder(order); }} className="btn btn-info btn-full">🗺️ Itinéraire</button>
@@ -503,11 +546,19 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                     ) : (
                       <div className="orders-queue-list">
                         {availableOrders.map(order => (
-                          <div key={order.id} className="queue-order-line">
-                            <div className="queue-order-address">📍 {order.delivery_address}</div>
-                            <div className="queue-order-actions">
+                          <div key={order.id} className="queue-order-line" style={{flexDirection: 'column', alignItems: 'flex-start', padding: '15px'}}>
+                            <div style={{width: '100%', display: 'flex', justifyContent: 'space-between', marginBottom: '10px'}}>
+                              <div className="restaurant-badge" style={{fontSize: '0.8rem'}}>{order.restaurant_name}</div>
                               <span className="price-tag">{(order.total_price || 0).toFixed(2)} DT</span>
-                              <button onClick={() => acceptOrder(order.id)} className="btn btn-success btn-sm">Accepter</button>
+                            </div>
+                            <div className="queue-order-address" style={{marginBottom: '10px'}}>📍 {order.delivery_address}</div>
+                            
+                            <div className="order-items-preview" style={{width: '100%', marginBottom: '10px', fontSize: '0.85rem', color: '#666'}}>
+                              <strong>Articles :</strong> {(order.items || []).map(item => `${item.quantity}x ${item.item_name}`).join(', ')}
+                            </div>
+
+                            <div className="queue-order-actions" style={{width: '100%'}}>
+                              <button onClick={() => acceptOrder(order.id)} className="btn btn-success btn-full">Accepter cette commande</button>
                             </div>
                           </div>
                         ))}

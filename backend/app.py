@@ -313,7 +313,7 @@ def get_profile():
         return jsonify(user), 200
     return jsonify({'error': 'User not found'}), 404
 
-@app.route('/api/user/status', methods=['POST'])
+@app.route('/api/user/status', methods=['POST', 'PUT'])
 @jwt_required()
 def update_status():
     current_user = get_current_user()
@@ -1014,6 +1014,9 @@ def get_livreur_stats():
         {'$sort': {'created_at': -1}},
         {'$limit': 10}
     ]))
+
+    for order in recent_orders:
+        order['items'] = list(db.order_items.find({'order_id': order['id']}, {'_id': 0}))
     
     return jsonify({'stats': stats, 'recent_orders': recent_orders}), 200
 
