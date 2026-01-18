@@ -3,7 +3,7 @@
   "productName": "Flexpress",
   "directories": {
     "buildResources": "resources",
-    "output": "dist_final_v13"
+    "output": "dist_final_v15"
   },
   "files": [
     "assets/**/*",
@@ -18,7 +18,7 @@
   },
   "win": {
     "target": "nsis",
-    "icon": "assets/appIcon.png"
+    "icon": "resources/icon.png"
   },
   "mac": {
     "category": "public.app-category.lifestyle",
