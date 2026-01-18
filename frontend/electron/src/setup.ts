@@ -115,9 +115,9 @@ export class ElectronCapacitorApp {
   }
 
   async init(): Promise<void> {
-    const icon = nativeImage.createFromPath(
-      join(app.getAppPath(), 'assets', process.platform === 'win32' ? 'appIcon.ico' : 'appIcon.png')
-    );
+    const iconPath = join(app.getAppPath(), 'assets', 'appIcon.png');
+    const icon = nativeImage.createFromPath(iconPath);
+    
     this.mainWindowState = windowStateKeeper({
       defaultWidth: 1000,
       defaultHeight: 800,
@@ -134,13 +134,16 @@ export class ElectronCapacitorApp {
       height: this.mainWindowState.height,
       webPreferences: {
         nodeIntegration: true,
-        contextIsolation: true,
+        contextIsolation: false,
         // Use preload to inject the electron varriant overrides for capacitor plugins.
         // preload: join(app.getAppPath(), "node_modules", "@capacitor-community", "electron", "dist", "runtime", "electron-rt.js"),
         preload: preloadPath,
       },
     });
     this.mainWindowState.manage(this.MainWindow);
+
+    // Activer les DevTools même en production pour debug si écran blanc
+    this.MainWindow.webContents.openDevTools();
 
     if (this.CapacitorFileConfig.backgroundColor) {
       this.MainWindow.setBackgroundColor(this.CapacitorFileConfig.electron.backgroundColor);
