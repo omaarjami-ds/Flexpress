@@ -3,20 +3,29 @@ import { FiRefreshCw, FiArrowLeft, FiX } from 'react-icons/fi';
 import './WindowControls.css';
 
 function WindowControls() {
-  if (!window.ElectronWindow) {
-    return null;
-  }
-
   const handleRefresh = () => {
-    window.ElectronWindow.reload();
+    if (window.ElectronWindow) {
+      window.ElectronWindow.reload();
+    } else {
+      window.location.reload();
+    }
   };
 
   const handleBack = () => {
-    window.ElectronWindow.goBack();
+    if (window.ElectronWindow) {
+      window.ElectronWindow.goBack();
+    } else {
+      window.history.back();
+    }
   };
 
   const handleExit = () => {
-    window.ElectronWindow.exit();
+    if (window.ElectronWindow) {
+      window.ElectronWindow.exit();
+    } else {
+      // Pour le navigateur, on peut simplement rediriger vers l'accueil ou fermer si possible
+      window.location.href = '/';
+    }
   };
 
   return (

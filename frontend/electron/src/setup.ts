@@ -85,6 +85,11 @@ export class ElectronCapacitorApp {
     ipcMain.on('window-reload', () => {
       this.MainWindow?.webContents.reload();
     });
+    ipcMain.on('window-goback', () => {
+      if (this.MainWindow?.webContents.canGoBack()) {
+        this.MainWindow.webContents.goBack();
+      }
+    });
     ipcMain.on('window-exit', () => {
       app.quit();
     });

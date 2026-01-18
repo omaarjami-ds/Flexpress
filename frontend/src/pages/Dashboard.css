@@ -2141,12 +2141,25 @@
 }
 
 /* Tableaux professionnels */
+.admin-dashboard-page {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 .admin-table-container {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: 12px;
   border: 1px solid #f0f0f0;
   margin-bottom: 20px;
+  width: 100%;
+  max-width: calc(100vw - 360px); /* Ajustement pour la sidebar et les paddings */
+}
+
+@media (max-width: 968px) {
+  .admin-table-container {
+    max-width: 100%;
+  }
 }
 
 /* Scrollbar personnalisée pour l'admin table */

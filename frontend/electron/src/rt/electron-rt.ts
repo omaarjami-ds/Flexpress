@@ -4,7 +4,8 @@ import { EventEmitter } from 'events';
 
 ////////////////////////////////////////////////////////
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const plugins = require('./electron-plugins');
+const path = require('path');
+const plugins = require(path.join(__dirname, 'electron-plugins.js'));
 
 const randomId = (length = 5) => randomBytes(length).toString('hex');
 

@@ -3,7 +3,7 @@
   "productName": "Flexpress",
   "directories": {
     "buildResources": "resources",
-    "output": "dist_v17_fresh"
+    "output": "dist_v18_final"
   },
   "files": [
     "assets/**/*",
