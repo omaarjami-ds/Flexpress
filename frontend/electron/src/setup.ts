@@ -119,14 +119,14 @@ export class ElectronCapacitorApp {
     const icon = nativeImage.createFromPath(iconPath);
     
     this.mainWindowState = windowStateKeeper({
-      defaultWidth: 1000,
-      defaultHeight: 800,
+      defaultWidth: 1200,
+      defaultHeight: 900,
     });
     // Setup preload script path and construct our main window.
     const preloadPath = join(app.getAppPath(), 'build', 'src', 'preload.js');
     this.MainWindow = new BrowserWindow({
       icon,
-      show: false,
+      show: true, // Forcer l'affichage immédiat
       fullscreen: false,
       x: this.mainWindowState.x,
       y: this.mainWindowState.y,
@@ -135,21 +135,21 @@ export class ElectronCapacitorApp {
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
-        // Use preload to inject the electron varriant overrides for capacitor plugins.
-        // preload: join(app.getAppPath(), "node_modules", "@capacitor-community", "electron", "dist", "runtime", "electron-rt.js"),
         preload: preloadPath,
       },
     });
     this.mainWindowState.manage(this.MainWindow);
 
-    // Activer les DevTools même en production pour debug si écran blanc
+    // Activer les DevTools systématiquement pour voir les erreurs
     this.MainWindow.webContents.openDevTools();
 
     if (this.CapacitorFileConfig.backgroundColor) {
       this.MainWindow.setBackgroundColor(this.CapacitorFileConfig.electron.backgroundColor);
     }
+    
+    this.loadMainWindow(this);
 
-    // If we close the main window with the splashscreen enabled we need to destory the ref.
+    // Handle when all of our windows are close (platforms have their own expectations).
     this.MainWindow.on('closed', () => {
       if (this.SplashScreen?.getSplashWindow() && !this.SplashScreen.getSplashWindow().isDestroyed()) {
         this.SplashScreen.getSplashWindow().close();
@@ -187,54 +187,13 @@ export class ElectronCapacitorApp {
     Menu.setApplicationMenu(null);
     this.MainWindow.setMenuBarVisibility(false);
 
-    // If the splashscreen is enabled, show it first while the main window loads then switch it out for the main window, or just load the main window from the start.
-    if (this.CapacitorFileConfig.electron?.splashScreenEnabled) {
-      this.SplashScreen = new CapacitorSplashScreen({
-        imageFilePath: join(
-          app.getAppPath(),
-          'assets',
-          this.CapacitorFileConfig.electron?.splashScreenImageName ?? 'splash.png'
-        ),
-        windowWidth: 400,
-        windowHeight: 400,
-      });
-      this.SplashScreen.init(this.loadMainWindow, this);
-    } else {
-      this.loadMainWindow(this);
-    }
-
-    // Security
-    this.MainWindow.webContents.setWindowOpenHandler((details) => {
-      if (!details.url.includes(this.customScheme)) {
-        return { action: 'deny' };
-      } else {
-        return { action: 'allow' };
-      }
-    });
-    this.MainWindow.webContents.on('will-navigate', (event, _newURL) => {
-      if (!this.MainWindow.webContents.getURL().includes(this.customScheme)) {
-        event.preventDefault();
-      }
-    });
-
     // Link electron plugins into the system.
     setupCapacitorElectronPlugins();
 
-    // When the web app is loaded we hide the splashscreen if needed and show the mainwindow.
     this.MainWindow.webContents.on('dom-ready', () => {
-      if (this.CapacitorFileConfig.electron?.splashScreenEnabled) {
-        this.SplashScreen.getSplashWindow().hide();
-      }
-      if (!this.CapacitorFileConfig.electron?.hideMainWindowOnLaunch) {
-        this.MainWindow.show();
-      }
-      setTimeout(() => {
-        if (electronIsDev) {
-          this.MainWindow.webContents.openDevTools();
-        }
-        CapElectronEventEmitter.emit('CAPELECTRON_DeeplinkListenerInitialized', '');
-      }, 400);
+      CapElectronEventEmitter.emit('CAPELECTRON_DeeplinkListenerInitialized', '');
     });
+
 
     // Handle window controls via IPC
     ipcMain.on('window-reload', () => {
