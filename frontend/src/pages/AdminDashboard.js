@@ -21,7 +21,6 @@ const getFullImageUrl = (url) => {
 };
 
 function AdminDashboard({ user, onLogout, onUpdateUser }) {
-  const API_URL = 'https://flexpress.onrender.com/api';
   const [restaurants, setRestaurants] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
