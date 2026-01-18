@@ -957,8 +957,9 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
                                 <span
                                   style={{ textDecoration: 'underline', color: '#007bff', cursor: 'pointer' }}
                                   onClick={() => openItineraryForOrder(order)}
+                                  title={order.delivery_address}
                                 >
-                                  {order.delivery_address}
+                                  ici
                                 </span>
                               ) : (
                                 '-'

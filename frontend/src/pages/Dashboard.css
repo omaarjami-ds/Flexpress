@@ -2146,13 +2146,33 @@
   -webkit-overflow-scrolling: touch;
   border-radius: 12px;
   border: 1px solid #f0f0f0;
+  margin-bottom: 20px;
+}
+
+/* Scrollbar personnalisée pour l'admin table */
+.admin-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.admin-table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.admin-table-container::-webkit-scrollbar-thumb {
+  background: #FFD700;
+  border-radius: 10px;
+}
+
+.admin-table-container::-webkit-scrollbar-thumb:hover {
+  background: #FFA500;
 }
 
 .admin-table {
   width: 100%;
   border-collapse: collapse;
   background: white;
-  min-width: 800px;
+  min-width: 1500px;
 }
 
 .admin-table thead {
