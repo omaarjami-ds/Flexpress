@@ -89,10 +89,15 @@ export class ElectronCapacitorApp {
       try {
         await thisRef.MainWindow.loadURL('http://localhost:3000');
       } catch (e) {
+        console.warn('Dev server not available, loading local files...');
         await thisRef.loadWebApp(thisRef.MainWindow);
       }
     } else {
-      await thisRef.loadWebApp(thisRef.MainWindow);
+      try {
+        await thisRef.loadWebApp(thisRef.MainWindow);
+      } catch (e) {
+        console.error('Failed to load web app:', e);
+      }
     }
   }
 
@@ -122,7 +127,7 @@ export class ElectronCapacitorApp {
     this.MainWindow = new BrowserWindow({
       icon,
       show: false,
-      fullscreen: true,
+      fullscreen: false,
       x: this.mainWindowState.x,
       y: this.mainWindowState.y,
       width: this.mainWindowState.width,
