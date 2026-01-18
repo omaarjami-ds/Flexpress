@@ -39,7 +39,7 @@ export class ElectronCapacitorApp {
   }
 
   async init(): Promise<void> {
-    const iconPath = join(app.getAppPath(), 'assets', 'appIcon.png');
+    const iconPath = join(app.getAppPath(), 'assets', 'logo.png');
     const icon = nativeImage.createFromPath(iconPath);
 
     const mainWindowState = windowStateKeeper({
@@ -57,8 +57,8 @@ export class ElectronCapacitorApp {
       width: mainWindowState.width,
       height: mainWindowState.height,
       webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
+        nodeIntegration: false,
+        contextIsolation: true,
         preload: preloadPath,
       },
     });
