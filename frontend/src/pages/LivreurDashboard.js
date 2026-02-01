@@ -580,7 +580,11 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                                 )}
                               </div>
                               <div style={{marginBottom: '15px', fontSize: '0.85rem', background: '#f8f9fa', padding: '10px', borderRadius: '8px'}}>
-                                <strong>Articles :</strong> {(order.items || []).map(item => `${item.quantity}x ${item.item_name}`).join(', ')}
+                                <strong>Articles :</strong> {(order.items || []).map(item => (
+                                  <div key={item.id} style={{marginBottom: '4px'}}>
+                                    • {item.quantity}x {item.item_name} {item.comment && <span style={{color: '#d32f2f', fontStyle: 'italic', marginLeft: '5px'}}>({item.comment})</span>}
+                                  </div>
+                                ))}
                               </div>
 
                               {['accepted', 'delivering'].includes(order.status) && (
@@ -670,7 +674,11 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                             }}>
                               <div style={{fontSize: '0.85rem', fontWeight: 'bold', color: '#555', marginBottom: '5px'}}>🛒 Articles :</div>
                               <div style={{fontSize: '0.85rem', color: '#444'}}>
-                                {(order.items || []).map(item => `${item.quantity}x ${item.item_name}`).join(', ')}
+                                {(order.items || []).map((item, idx) => (
+                                  <div key={idx} style={{marginBottom: '3px'}}>
+                                    • {item.quantity}x {item.item_name} {item.comment && <span style={{color: '#d32f2f', fontStyle: 'italic', marginLeft: '5px'}}>({item.comment})</span>}
+                                  </div>
+                                ))}
                               </div>
                             </div>
 

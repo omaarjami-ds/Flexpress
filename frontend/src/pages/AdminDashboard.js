@@ -983,9 +983,12 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
                               {order.items && order.items.length > 0 ? (
                                 <div className="table-items">
                                   {order.items.map((item, idx) => (
-                                    <span key={idx} className="item-tag">
-                                      {item.item_name} x{item.quantity}
-                                    </span>
+                                    <div key={idx} className="item-tag" style={{display: 'flex', flexDirection: 'column', marginBottom: '2px'}}>
+                                      <span>{item.item_name} x{item.quantity}</span>
+                                      {item.comment && (
+                                        <span style={{fontSize: '0.75rem', color: '#d32f2f', fontStyle: 'italic'}}>({item.comment})</span>
+                                      )}
+                                    </div>
                                   ))}
                                 </div>
                               ) : '-'}
