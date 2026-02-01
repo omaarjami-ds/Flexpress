@@ -1175,11 +1175,19 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
               </div>
             ) : (
               <div className="orders-list-glovo">
-                {orders.map(order => (
+                {orders.map(order => {
+                  // Identifier si c'est une commande manuelle
+                  const isManualOrder = order.restaurant_name === 'Restaurant Personnalisé' || 
+                                       order.restaurant_name === 'Esmiralda' ||
+                                       (order.restaurant_name && order.restaurant_name.startsWith('[')) ||
+                                       (order.delivery_address && order.delivery_address.startsWith('['));
+                  
+                  return (
                   <div key={order.id} className="order-card-glovo">
                     <div className="order-card-header">
                       <div className="order-restaurant-info">
-                        <h3>{order.restaurant_name}</h3>
+                        {!isManualOrder && <h3>{order.restaurant_name}</h3>}
+                        {isManualOrder && <h3>Commande Manuelle</h3>}
                         <span className="order-date">{new Date(order.created_at).toLocaleString('fr-FR')}</span>
                       </div>
                       <span 
@@ -1198,16 +1206,18 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                           <div key={idx} className="order-item-row">
                             <span className="item-quantity">{item.quantity}x</span>
                             <span className="item-name">{item.item_name}</span>
-                            <span className="item-price">{Number(item.price || 0).toFixed(2)} DT</span>
+                            {!isManualOrder && <span className="item-price">{Number(item.price || 0).toFixed(2)} DT</span>}
                           </div>
                         ))}
                       </div>
                     )}
                     <div className="order-card-footer">
-                      <div className="order-total">
-                        <span className="total-label">Total:</span>
-                        <span className="total-amount">{Number(order.total_price || 0).toFixed(2)} DT</span>
-                      </div>
+                      {!isManualOrder && (
+                        <div className="order-total">
+                          <span className="total-label">Total:</span>
+                          <span className="total-amount">{Number(order.total_price || 0).toFixed(2)} DT</span>
+                        </div>
+                      )}
                       {order.delivery_address && (
                         <div className="order-address">
                           📍 {order.delivery_address}
@@ -1224,7 +1234,8 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1923,9 +1934,22 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                       </li>
                     ))}
                   </ul>
-                  <div style={{marginTop: '5px', fontWeight: 'bold', textAlign: 'right'}}>
-                    Total: {Number(trackingOrder.total_price || 0).toFixed(2)} DT
-                  </div>
+                  {(() => {
+                    // Identifier si c'est une commande manuelle
+                    const isManualOrder = trackingOrder.restaurant_name === 'Restaurant Personnalisé' || 
+                                         trackingOrder.restaurant_name === 'Esmiralda' ||
+                                         (trackingOrder.restaurant_name && trackingOrder.restaurant_name.startsWith('[')) ||
+                                         (trackingOrder.delivery_address && trackingOrder.delivery_address.startsWith('['));
+                    
+                    if (!isManualOrder) {
+                      return (
+                        <div style={{marginTop: '5px', fontWeight: 'bold', textAlign: 'right'}}>
+                          Total: {Number(trackingOrder.total_price || 0).toFixed(2)} DT
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               )}
             </div>
