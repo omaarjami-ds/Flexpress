@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { FiPlus, FiUser, FiUsers, FiPackage, FiMapPin, FiFileText, FiTrash2, FiRefreshCw, FiDownload } from 'react-icons/fi';
-import WindowControls from '../components/WindowControls';
+import { FiPlus, FiUser, FiUsers, FiPackage, FiMapPin, FiFileText, FiTrash2, FiRefreshCw, FiDownload, FiArrowLeft, FiX } from 'react-icons/fi';
 import ProfileMenu from '../components/ProfileMenu';
 import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
@@ -620,12 +619,22 @@ function AdminDashboard({ user, onLogout, onUpdateUser }) {
   return (
     <div className="dashboard admin-dashboard-page">
       <header className="header">
-        <div className="header-logo">
-          <img src="/logo.png" alt="FLEXPRESS" className="main-logo" />
-          <h1>FLEXPRESS - Administration</h1>
+        <div className="header-left">
+          <button className="icon-btn" onClick={() => window.history.back()} title="Retour">
+            <FiArrowLeft />
+          </button>
+          <button className="icon-btn" onClick={() => loadData()} title="Actualiser">
+            <FiRefreshCw />
+          </button>
+          <div className="header-logo">
+            <img src="/logo.png" alt="FLEXPRESS" className="main-logo" />
+            <h1>FLEXPRESS - Administration</h1>
+          </div>
         </div>
         <div className="header-actions">
-          <WindowControls />
+          <button className="icon-btn close-btn" onClick={() => window.close()} title="Fermer">
+            <FiX />
+          </button>
           <ProfileMenu 
             user={user} 
             onLogout={onLogout} 

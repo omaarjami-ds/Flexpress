@@ -4,7 +4,6 @@ import { FiShoppingCart, FiMapPin, FiHome, FiList, FiPlusCircle, FiUser } from '
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import ProfileMenu from '../components/ProfileMenu';
-import WindowControls from '../components/WindowControls';
 import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
 
@@ -932,7 +931,6 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
           <button onClick={() => setShowCart(!showCart)} className="btn btn-primary" style={{marginRight: '10px'}}>
             <FiShoppingCart /> Panier ({cart.length})
           </button>
-          <WindowControls />
           <ProfileMenu 
             user={user} 
             onLogout={onLogout} 

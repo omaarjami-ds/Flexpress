@@ -182,6 +182,50 @@
   align-items: center;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.icon-btn {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #333;
+  font-size: 18px;
+  padding: 0;
+}
+
+.icon-btn:hover {
+  border-color: #FFD700;
+  background-color: #fff9db;
+  transform: scale(1.05);
+  color: #000;
+}
+
+.icon-btn:active {
+  transform: scale(0.95);
+}
+
+.close-btn {
+  border-color: #ffcdd2;
+  color: #d32f2f;
+}
+
+.close-btn:hover {
+  background-color: #ffebee;
+  border-color: #d32f2f;
+  color: #c62828;
+}
+
 .dashboard-grid-sidebar-only {
   display: grid;
   grid-template-columns: 1fr 350px;

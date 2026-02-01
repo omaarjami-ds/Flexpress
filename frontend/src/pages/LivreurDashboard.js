@@ -3,7 +3,6 @@ import axios from 'axios';
 import { FiUser, FiList, FiHelpCircle } from 'react-icons/fi';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import WindowControls from '../components/WindowControls';
 import ProfileMenu from '../components/ProfileMenu';
 import PullToRefresh from '../components/PullToRefresh';
 import './Dashboard.css';
@@ -389,7 +388,6 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
           >
             {isAvailable ? '🟢 En Service' : '🔴 Hors Service'}
           </button>
-          <WindowControls />
           <ProfileMenu 
             user={user} 
             onLogout={onLogout} 
