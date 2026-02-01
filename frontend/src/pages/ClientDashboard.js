@@ -639,9 +639,8 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   const updateManualItem = (index, field, value) => {
     const newItems = [...manualOrderForm.items];
     if (field === 'quantity') {
-      // Convertir en nombre, en gérant les chaînes comme "010"
-      const numValue = value === '' ? 1 : parseFloat(value);
-      newItems[index] = { ...newItems[index], quantity: isNaN(numValue) || numValue < 1 ? 1 : numValue };
+      // Permettre de vider le champ pour la saisie, sinon convertir en nombre
+      newItems[index] = { ...newItems[index], quantity: value === '' ? '' : value };
     } else if (field === 'name') {
       // Quand le nom change, mettre à jour automatiquement le prix
       const autoPrice = getAutoPrice(value);
@@ -752,7 +751,8 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     // Utiliser les prix automatiques calculés
     const totalPrice = validItems.reduce((sum, item) => {
       const autoPrice = getAutoPrice(item.name);
-      return sum + (autoPrice * item.quantity);
+      const qty = parseFloat(item.quantity) || 0;
+      return sum + (autoPrice * qty);
     }, 0);
     
     // Préparer les données AVANT le try pour qu'elles soient accessibles dans le catch
@@ -1800,7 +1800,8 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                     .filter(item => item.name && item.name.trim() !== '')
                     .reduce((sum, item) => {
                       const autoPrice = getAutoPrice(item.name);
-                      return sum + (autoPrice * item.quantity);
+                      const qty = parseFloat(item.quantity) || 0;
+                      return sum + (autoPrice * qty);
                     }, 0)
                     .toFixed(2)} DT
                 </span>
