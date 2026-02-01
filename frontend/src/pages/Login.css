@@ -118,6 +118,37 @@
   flex-direction: column;
 }
 
+.password-container {
+  position: relative;
+  width: 100%;
+}
+
+.password-container .input {
+  width: 100%;
+  padding-right: 45px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  transition: color 0.3s ease;
+  z-index: 2;
+}
+
+.password-toggle:hover {
+  color: #FFD700;
+}
+
 .error-message {
   background: #fee;
   color: #c33;
