@@ -1188,10 +1188,12 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
               <div className="orders-list-glovo">
                 {orders.map(order => {
                   // Identifier si c'est une commande manuelle
-                  const isManualOrder = order.restaurant_name === 'Restaurant Personnalisé' || 
-                                       order.restaurant_name === 'Esmiralda' ||
-                                       (order.restaurant_name && order.restaurant_name.startsWith('[')) ||
-                                       (order.delivery_address && order.delivery_address.startsWith('['));
+                  // Une commande est manuelle si :
+                  // 1. L'adresse de livraison commence par '[' (format des commandes manuelles avec restaurant personnalisé)
+                  // 2. Le restaurant est exactement 'Restaurant Personnalisé' (créé automatiquement par le backend)
+                  // On exclut les restaurants normaux comme Esmiralda
+                  const isManualOrder = (order.delivery_address && order.delivery_address.startsWith('[')) ||
+                                       (order.restaurant_name === 'Restaurant Personnalisé');
                   
                   return (
                   <div key={order.id} className="order-card-glovo">
@@ -1980,10 +1982,12 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                   </ul>
                   {(() => {
                     // Identifier si c'est une commande manuelle
-                    const isManualOrder = trackingOrder.restaurant_name === 'Restaurant Personnalisé' || 
-                                         trackingOrder.restaurant_name === 'Esmiralda' ||
-                                         (trackingOrder.restaurant_name && trackingOrder.restaurant_name.startsWith('[')) ||
-                                         (trackingOrder.delivery_address && trackingOrder.delivery_address.startsWith('['));
+                    // Une commande est manuelle si :
+                    // 1. L'adresse de livraison commence par '[' (format des commandes manuelles avec restaurant personnalisé)
+                    // 2. Le restaurant est exactement 'Restaurant Personnalisé' (créé automatiquement par le backend)
+                    // On exclut les restaurants normaux comme Esmiralda
+                    const isManualOrder = (trackingOrder.delivery_address && trackingOrder.delivery_address.startsWith('[')) ||
+                                         (trackingOrder.restaurant_name === 'Restaurant Personnalisé');
                     
                     if (!isManualOrder) {
                       return (
