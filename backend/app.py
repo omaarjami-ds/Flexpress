@@ -796,7 +796,8 @@ def get_orders():
                             'item_id': '$$item.item_id',
                             'item_name': '$$item.item_name',
                             'quantity': '$$item.quantity',
-                            'price': '$$item.price'
+                            'price': '$$item.price',
+                            'comment': '$$item.comment'
                         }
                     }
                 },
@@ -834,7 +835,8 @@ def get_orders():
                             'item_id': '$$item.item_id',
                             'item_name': '$$item.item_name',
                             'quantity': '$$item.quantity',
-                            'price': '$$item.price'
+                            'price': '$$item.price',
+                            'comment': '$$item.comment'
                         }
                     }
                 },
@@ -877,7 +879,8 @@ def get_orders():
                             'item_id': '$$item.item_id',
                             'item_name': '$$item.item_name',
                             'quantity': '$$item.quantity',
-                            'price': '$$item.price'
+                            'price': '$$item.price',
+                            'comment': '$$item.comment'
                         }
                     }
                 },
