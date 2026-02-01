@@ -302,6 +302,17 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     }
   };
 
+  // Fonction pour ouvrir la position du livreur dans Google Maps
+  const openDriverLocationInGPS = (driverLat, driverLon, driverName) => {
+    if (!driverLat || !driverLon) {
+      alert('Position du livreur non disponible');
+      return;
+    }
+    // Ouvrir Google Maps avec la position du livreur
+    const url = `https://www.google.com/maps?q=${driverLat},${driverLon}&label=${encodeURIComponent(driverName || 'Livreur')}`;
+    window.open(url, '_blank');
+  };
+
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert('La géolocalisation n\'est pas supportée par votre navigateur.');
@@ -1881,15 +1892,48 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                   </Marker>
                 )}
                 
-                {/* Driver Position */}
-                {trackingOrder.driver_lat && trackingOrder.driver_lon && (
+                {/* Driver Position - Toujours afficher si livreur assigné */}
+                {trackingOrder.driver_name && (trackingOrder.driver_lat && trackingOrder.driver_lon) && (
                   <Marker 
                     position={[trackingOrder.driver_lat, trackingOrder.driver_lon]} 
                     icon={driverIcon}
+                    eventHandlers={{
+                      click: () => {
+                        openDriverLocationInGPS(
+                          trackingOrder.driver_lat, 
+                          trackingOrder.driver_lon, 
+                          trackingOrder.driver_name
+                        );
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
                   >
                     <Popup>
-                      Livreur: {trackingOrder.driver_name}<br/>
-                      En route vers vous !
+                      <div style={{textAlign: 'center'}}>
+                        <strong>Livreur: {trackingOrder.driver_name}</strong><br/>
+                        <span style={{fontSize: '0.9em', color: '#666'}}>En route vers vous !</span><br/><br/>
+                        <button 
+                          onClick={() => openDriverLocationInGPS(
+                            trackingOrder.driver_lat, 
+                            trackingOrder.driver_lon, 
+                            trackingOrder.driver_name
+                          )}
+                          style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '0.9em',
+                            fontWeight: 'bold',
+                            marginTop: '5px',
+                            width: '100%'
+                          }}
+                        >
+                          📍 Voir dans Google Maps
+                        </button>
+                      </div>
                     </Popup>
                   </Marker>
                 )}
