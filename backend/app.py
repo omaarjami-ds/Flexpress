@@ -1030,7 +1030,8 @@ def get_available_deliveries():
                         'item_id': '$$item.item_id',
                         'item_name': '$$item.item_name',
                         'quantity': '$$item.quantity',
-                        'price': '$$item.price'
+                        'price': '$$item.price',
+                        'comment': '$$item.comment'
                     }
                 }
             },
@@ -1070,7 +1071,8 @@ def get_order_details(order_id):
                         'item_id': '$$item.item_id',
                         'item_name': '$$item.item_name',
                         'quantity': '$$item.quantity',
-                        'price': '$$item.price'
+                        'price': '$$item.price',
+                        'comment': '$$item.comment'
                     }
                 }
             },
@@ -1145,7 +1147,8 @@ def get_livreur_stats():
                         'item_id': '$$item.item_id',
                         'item_name': '$$item.item_name',
                         'quantity': '$$item.quantity',
-                        'price': '$$item.price'
+                        'price': '$$item.price',
+                        'comment': '$$item.comment'
                     }
                 }
             }, '_id': 0
