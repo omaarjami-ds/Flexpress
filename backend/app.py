@@ -750,7 +750,8 @@ def create_order():
                 'order_id': order_id,
                 'item_name': item['name'],
                 'quantity': int(item['quantity']),
-                'price': float(item['price'])
+                'price': float(item['price']),
+                'comment': item.get('comment', '')
             })
         
         return jsonify({'id': order_id, 'message': 'Order created successfully'}), 201

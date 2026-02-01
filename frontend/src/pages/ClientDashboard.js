@@ -498,7 +498,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   };
 
   const addToCart = (item) => {
-    setCart([...cart, { ...item, id: Date.now() }]);
+    setCart([...cart, { ...item, quantity: 1, comment: '', id: Date.now() }]);
     // Si c'est le premier article et qu'on n'a pas d'adresse, on peut essayer de pré-remplir
     if (cart.length === 0 && positionLabel.includes('📍 Ma position : ')) {
       const addr = positionLabel.replace('📍 Ma position : ', '');
@@ -599,7 +599,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   const addManualItem = () => {
     setManualOrderForm({
       ...manualOrderForm,
-      items: [...manualOrderForm.items, { name: '', quantity: 1, price: 0 }]
+      items: [...manualOrderForm.items, { name: '', quantity: 1, price: 0, comment: '' }]
     });
   };
 
@@ -664,6 +664,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       name: item.name,
       price: item.price,
       quantity: Number(item.quantity) || 1,
+      comment: item.comment || '',
       id: Date.now() + Math.random() // ID unique
     }));
     
@@ -695,7 +696,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         use_custom_restaurant: false,
         delivery_address: '',
         phone: '',
-        items: [{ name: '', quantity: 1, price: 0 }]
+        items: [{ name: '', quantity: 1, price: 0, comment: '' }]
       });
     setShowManualOrder(false);
     alert(`${validItems.length} article(s) ajouté(s) au panier !`);
@@ -832,7 +833,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         use_custom_restaurant: false,
         delivery_address: '',
         phone: '',
-        items: [{ name: '', quantity: 1, price: 0 }]
+        items: [{ name: '', quantity: 1, price: 0, comment: '' }]
       });
       setShowManualOrder(false);
       loadOrders();
@@ -1733,17 +1734,16 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
               </div>
               
               <div style={{maxHeight: '300px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '10px', background: '#fafafa'}}>
-                {manualOrderForm.items.map((item, index) => {
-                  const autoPrice = getAutoPrice(item.name);
-                  return (
-                    <div key={index} style={{display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '10px', marginBottom: '10px', alignItems: 'center', padding: '12px', background: 'white', borderRadius: '6px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)'}}>
+                {manualOrderForm.items.map((item, index) => (
+                  <div key={index} style={{display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', padding: '15px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', border: '1px solid #eee'}}>
+                    <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '10px', alignItems: 'center'}}>
                       <input
                         type="text"
                         value={item.name}
                         onChange={(e) => updateManualItem(index, 'name', e.target.value)}
-                        placeholder="Nom de l'article"
+                        placeholder="Nom de l'article (ex: Makloub)"
                         className="input"
-                        style={{padding: '10px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '14px'}}
+                        style={{padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '15px', background: '#f9f9f9'}}
                       />
                       <input
                         type="number"
@@ -1752,11 +1752,8 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                         placeholder="Qté"
                         min="1"
                         className="input"
-                        style={{padding: '10px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '14px'}}
+                        style={{padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '15px', textAlign: 'center'}}
                       />
-                      <div style={{padding: '10px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '14px', background: '#f5f5f5', color: '#666', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'}}>
-                        {autoPrice > 0 ? `${autoPrice.toFixed(2)} DT` : '-'}
-                      </div>
                       {manualOrderForm.items.length > 1 && (
                         <button 
                           onClick={() => removeManualItem(index)} 
@@ -1768,8 +1765,15 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                         </button>
                       )}
                     </div>
-                  );
-                })}
+                    <textarea
+                      value={item.comment || ''}
+                      onChange={(e) => updateManualItem(index, 'comment', e.target.value)}
+                      placeholder="Instructions spéciales (ex: sans oignons, plus de harissa...)"
+                      className="input"
+                      style={{width: '100%', padding: '10px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '14px', minHeight: '60px', resize: 'vertical'}}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
