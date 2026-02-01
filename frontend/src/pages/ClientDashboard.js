@@ -514,6 +514,10 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     setCart(cart.filter(item => item.id !== id));
   };
 
+  const updateCartItemComment = (id, comment) => {
+    setCart(cart.map(item => item.id === id ? { ...item, comment } : item));
+  };
+
   const placeOrder = async () => {
     if (cart.length === 0) return;
 
@@ -578,7 +582,8 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         items: cart.map(item => ({
           name: item.name,
           quantity: item.quantity,
-          price: item.price
+          price: item.price,
+          comment: item.comment || ''
         }))
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -1623,19 +1628,29 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 )}
 
                 {cart.map(item => (
-                  <div key={item.id} className="cart-item">
-                    <div style={{flex: 1}}>
-                      <span>{item.name}</span>
-                      {item.category && (
-                        <span className="menu-category" style={{marginLeft: '8px'}}>{item.category}</span>
-                      )}
+                  <div key={item.id} className="cart-item" style={{display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid #eee', paddingBottom: '10px'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
+                      <div style={{flex: 1}}>
+                        <span>{item.name}</span>
+                        {item.category && (
+                          <span className="menu-category" style={{marginLeft: '8px'}}>{item.category}</span>
+                        )}
+                      </div>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                        <span style={{fontSize: '0.9em', color: '#666'}}>
+                          {item.quantity} x {Number(item.price || 0).toFixed(2)}DT = {(Number(item.price || 0) * item.quantity).toFixed(2)}DT
+                        </span>
+                        <button onClick={() => removeFromCart(item.id)} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer'}}>×</button>
+                      </div>
                     </div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                      <span style={{fontSize: '0.9em', color: '#666'}}>
-                        {item.quantity} x {Number(item.price || 0).toFixed(2)}DT = {(Number(item.price || 0) * item.quantity).toFixed(2)}DT
-                      </span>
-                      <button onClick={() => removeFromCart(item.id)} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer'}}>×</button>
-                    </div>
+                    <input
+                      type="text"
+                      value={item.comment || ''}
+                      onChange={(e) => updateCartItemComment(item.id, e.target.value)}
+                      placeholder="Commentaire (ex: sans oignons...)"
+                      className="input"
+                      style={{width: '100%', padding: '6px 10px', fontSize: '0.85em', border: '1px solid #ddd', borderRadius: '4px'}}
+                    />
                   </div>
                 ))}
                 <div className="cart-total">
