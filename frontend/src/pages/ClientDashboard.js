@@ -188,6 +188,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [customRestaurantInfo, setCustomRestaurantInfo] = useState({ name: '', isCustom: false });
+  const [searchQuery, setSearchQuery] = useState('');
   const trackingIntervalRef = useRef(null);
   const mapRef = useRef(null);
 
@@ -368,7 +369,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   // Restaurants filtrés (recherche texte + filtre "ouvert uniquement")
   const filteredRestaurants = restaurants.filter((restaurant) => {
     const name = (restaurant.name || '').toLowerCase();
-    const query = searchQuery.toLowerCase().trim();
+    const query = (searchQuery || '').toLowerCase().trim();
     const matchesSearch = !query || name.includes(query);
     const matchesOpen = !filterOpenOnly || restaurant.is_open;
     return matchesSearch && matchesOpen;
@@ -412,7 +413,6 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
 
   const [popularItems, setPopularItems] = useState([]);
   const [makloubItems, setMakloubItems] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const loadOrders = useCallback(async () => {
     const token = localStorage.getItem('token');
