@@ -980,12 +980,13 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 <div className="hero-location-icon-circle">
                   📍
                 </div>
-                <div className="hero-location-texts">
-                  <div className="hero-location-label">Localisation actuelle</div>
-                  <div className="hero-location-value">
-                    {getPositionLabel()}
+                  <div className="hero-location-texts">
+                    <div className="hero-location-label">Localisation actuelle</div>
+                    <div className="hero-location-value" title={getPositionLabel()}>
+                      {getPositionLabel().replace('📍 Ma position : ', '').substring(0, 40)}
+                      {getPositionLabel().length > 40 ? '...' : ''}
+                    </div>
                   </div>
-                </div>
               </div>
 
               <div className="hero-search-card">
@@ -1494,6 +1495,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
               </div>
               <div className="results-count">
                 {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'résultat' : 'résultats'}
+                {searchQuery && searchQuery.trim() && ` pour "${searchQuery}"`}
               </div>
             </div>
 
@@ -1502,10 +1504,21 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
               {filteredRestaurants.length === 0 ? (
                 <div className="no-restaurants">
                   <p>
-                    {filterOpenOnly 
-                      ? 'Aucun restaurant ouvert à proximité pour le moment.' 
-                      : 'Aucun restaurant à proximité.'}
+                    {searchQuery && searchQuery.trim() 
+                      ? `Aucun restaurant trouvé pour "${searchQuery}".`
+                      : filterOpenOnly 
+                        ? 'Aucun restaurant ouvert à proximité pour le moment.' 
+                        : 'Aucun restaurant à proximité.'}
                   </p>
+                  {searchQuery && searchQuery.trim() && (
+                    <button 
+                      onClick={() => setSearchQuery('')}
+                      className="btn btn-secondary"
+                      style={{marginTop: '10px'}}
+                    >
+                      Effacer la recherche
+                    </button>
+                  )}
                 </div>
               ) : (
                 filteredRestaurants.map(restaurant => {
