@@ -92,13 +92,13 @@ html, body {
 
 /* Card Styles */
 .card {
-  background: white;
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 16px;
   padding: 25px;
   margin: 15px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   transition: all 0.3s ease;
-  border: 1px solid #f0f0f0;
+  border: 1px solid rgba(255, 215, 0, 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -117,8 +117,8 @@ html, body {
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(255, 215, 0, 0.2);
-  border-color: #FFD700;
+  box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
+  border-color: rgba(255, 215, 0, 0.6);
 }
 
 .card:hover::before {
@@ -126,11 +126,12 @@ html, body {
 }
 
 .card h3 {
-  color: #333;
+  color: #FFD700;
   margin-top: 0;
   margin-bottom: 15px;
   font-size: 20px;
   font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Input Styles */
