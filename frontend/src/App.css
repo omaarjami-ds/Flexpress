@@ -258,8 +258,8 @@ html, body {
   bottom: 0;
   left: 0;
   right: 0;
-  background: #fff;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+  background: radial-gradient(circle at top, rgba(255, 215, 0, 0.15), transparent 55%), #050505;
+  box-shadow: 0 -6px 20px rgba(0,0,0,0.6);
   padding: 10px;
   justify-content: space-around;
   align-items: center;
@@ -275,7 +275,7 @@ html, body {
   background: none;
   border: none;
   font-size: 10px;
-  color: #666;
+  color: #aaa;
   font-weight: 600;
   cursor: pointer;
   padding: 5px;
@@ -283,12 +283,12 @@ html, body {
 }
 
 .mobile-nav-item.active {
-  color: #000;
+  color: #FFD700;
   font-weight: 800;
 }
 
 .mobile-nav-item.active .mobile-nav-icon {
-  color: #000;
+  color: #FFD700;
   stroke-width: 3px;
 }
 

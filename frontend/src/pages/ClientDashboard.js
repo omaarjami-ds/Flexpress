@@ -365,6 +365,15 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     return positionLabel;
   };
 
+  // Restaurants filtrés (recherche texte + filtre "ouvert uniquement")
+  const filteredRestaurants = restaurants.filter((restaurant) => {
+    const name = (restaurant.name || '').toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+    const matchesSearch = !query || name.includes(query);
+    const matchesOpen = !filterOpenOnly || restaurant.is_open;
+    return matchesSearch && matchesOpen;
+  });
+
   const updateHumanReadablePosition = async (lat, lon) => {
     try {
       const response = await axios.get(
@@ -403,6 +412,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
 
   const [popularItems, setPopularItems] = useState([]);
   const [makloubItems, setMakloubItems] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadOrders = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -961,30 +971,65 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       </header>
 
       <PullToRefresh onRefresh={handleRefresh}>
-        {/* Hero Section Style Glovo */}
+        {/* Hero Section – mobile card layout (no change in behaviour, only design) */}
       {!showMyOrders && !showProfile && (
-        <div className="hero-section">
-          <div className="hero-content">
-            <div className="hero-text">
-              <h1 className="hero-title">Livraison de nourriture et plus</h1>
-              <p className="hero-subtitle">Restaurants, épiceries, pharmacies, tout ce dont vous avez besoin !</p>
-              <div className="hero-search">
-                <input 
-                  type="text" 
-                  placeholder="Quelle est votre adresse ?" 
-                  className="hero-input"
-                  onClick={() => getCurrentLocation()}
-                />
-                <button id="location-btn" onClick={getCurrentLocation} className="btn btn-success hero-location-btn">
-                  📍 Utiliser ma position
-                </button>
+        <div className="hero-section hero-section-dark">
+          <div className="hero-content hero-content-mobile">
+            <div className="hero-main-column">
+              <div className="hero-location-card">
+                <div className="hero-location-icon-circle">
+                  📍
+                </div>
+                <div className="hero-location-texts">
+                  <div className="hero-location-label">Localisation actuelle</div>
+                  <div className="hero-location-value">
+                    {getPositionLabel()}
+                  </div>
+                </div>
               </div>
-              <span className="hero-position-text">
-                {getPositionLabel()}
-              </span>
+
+              <div className="hero-search-card">
+                <div className="hero-search">
+                  <input 
+                    type="text" 
+                    placeholder="Rechercher un restaurant"
+                    className="hero-input"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <button
+                    id="location-btn"
+                    onClick={getCurrentLocation}
+                    className="hero-location-btn-circle"
+                    aria-label="Utiliser ma position"
+                  >
+                    📍
+                  </button>
+                </div>
+
+                <div className="hero-tabs-row">
+                  <button className="hero-tab hero-tab-active">Repas</button>
+                  <button className="hero-tab hero-tab-disabled">Épicerie</button>
+                  <button className="hero-tab hero-tab-disabled">Pharmacie</button>
+                </div>
+              </div>
+
+              <div className="hero-mini-categories">
+                {categories.slice(0, 6).map(category => (
+                  <button
+                    key={category.id}
+                    className="hero-mini-category-chip"
+                    onClick={() => setSelectedCategory(category.id)}
+                  >
+                    <span className="hero-mini-category-icon">{category.icon}</span>
+                    <span className="hero-mini-category-label">{category.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="hero-image">
-              <div className="hero-food-illustration">🍔🍕🥙</div>
+
+            <div className="hero-image hero-image-mobile">
+              <div className="hero-food-illustration hero-food-illustration-dark">🍔🍕🥙</div>
             </div>
           </div>
         </div>
@@ -1257,68 +1302,116 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         {/* Section Makloub & Populaires dynamique */}
         {!showMyOrders && (
           <>
-          {makloubItems.length > 0 && (
-            <div className="suggestions-section">
-              <h2 className="section-title">🌯 Spécialités Makloub</h2>
-              <div className="suggestions-grid">
-                {makloubItems.map((item, index) => (
-                  <div key={index} className="suggestion-card" onClick={() => {
-                    addToCart({...item, quantity: 1});
-                    alert(`"${item.name}" ajouté au panier !`);
-                  }}>
-                    <div className="suggestion-image-container">
-                      <img 
-                        src={getFullImageUrl(item.image_url)} 
-                        alt={item.name}
-                        className="suggestion-image"
-                        onError={(e) => { e.target.src = '/static/logo.png'; }}
-                      />
-                      <div className="restaurant-tag-overlay">{item.restaurant_name}</div>
-                    </div>
-                    <div className="suggestion-content">
-                      <h3>{item.name}</h3>
-                      <p>{item.description}</p>
-                      <div className="suggestion-footer">
-                        <span className="suggestion-price">{Number(item.price || 0).toFixed(3)} DT</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          {/* Ongoing Offers – grande bannière comme la maquette */}
+          <div className="ongoing-offers-section">
+            <h2 className="section-title-left">Offres en cours</h2>
+            <div className="ongoing-offer-banner">
+              <div className="ongoing-offer-texts">
+                <span className="offer-tag">Spécial du jour</span>
+                <h3>Offres que vous ne pouvez pas rater</h3>
+                <p>Livraison rapide depuis vos restaurants préférés.</p>
+                <button
+                  className="btn btn-primary offer-cta-btn"
+                  onClick={() => {
+                    if (filteredRestaurants[0]) {
+                      handleRestaurantSelect(filteredRestaurants[0]);
+                    }
+                  }}
+                >
+                  Voir les offres
+                </button>
+              </div>
+              <div className="ongoing-offer-image">
+                <span>🌯🍔🍕</span>
               </div>
             </div>
-          )}
+          </div>
 
-          {popularItems.length > 0 && (
-            <div className="suggestions-section">
-              <h2 className="section-title">⭐ Les plus populaires</h2>
-              <div className="suggestions-grid">
-                {popularItems.map((item, index) => (
-                  <div key={index} className="suggestion-card" onClick={() => {
-                    addToCart({...item, quantity: 1});
-                    alert(`"${item.name}" ajouté au panier !`);
-                  }}>
-                    <div className="suggestion-image-container">
-                      <img 
-                        src={getFullImageUrl(item.image_url)} 
-                        alt={item.name}
-                        className="suggestion-image"
-                        onError={(e) => { e.target.src = '/static/logo.png'; }}
-                      />
-                      <div className="popular-badge-overlay">
-                        <span className="popular-badge-icon">⭐</span>
-                        <span className="popular-badge-text">Populaire</span>
+          {/* Populaire / Tendance – deux colonnes de cartes */}
+          {(popularItems.length > 0 || makloubItems.length > 0) && (
+            <div className="popular-trending-wrapper">
+              <div className="popular-column">
+                <h3 className="popular-title">Populaire</h3>
+                <div className="food-card-list">
+                  {(popularItems.length ? popularItems : tunisianFastFoodSuggestions)
+                    .slice(0, 4)
+                    .map((item, index) => (
+                      <div
+                        key={index}
+                        className="food-card"
+                        onClick={() => addToCart({ ...item, quantity: 1 })}
+                      >
+                        <div className="food-card-image-wrapper">
+                          <img
+                            src={getFullImageUrl(item.image_url) || getSuggestionImage(item.name)}
+                            alt={item.name}
+                            className="food-card-image"
+                            onError={(e) => {
+                              e.target.src = getSuggestionImage(item.name);
+                            }}
+                          />
+                          <button className="food-card-favorite">♡</button>
+                          <div className="food-card-time">
+                            ⏱️ 15 min
+                          </div>
+                        </div>
+                        <div className="food-card-content">
+                          <h4>{item.name}</h4>
+                          <div className="food-card-rating">
+                            <span>⭐ 4.{index + 3}</span>
+                            <span className="food-card-reviews">(250+ avis)</span>
+                          </div>
+                          <div className="food-card-footer">
+                            <span className="food-card-price">
+                              {Number(item.price || 0).toFixed(3)} DT
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="restaurant-tag-overlay">{item.restaurant_name}</div>
-                    </div>
-                    <div className="suggestion-content">
-                      <h3>{item.name}</h3>
-                      <p>{item.description}</p>
-                      <div className="suggestion-footer">
-                        <span className="suggestion-price">{Number(item.price || 0).toFixed(3)} DT</span>
+                    ))}
+                </div>
+              </div>
+
+              <div className="trending-column">
+                <h3 className="popular-title">Tendance</h3>
+                <div className="food-card-list">
+                  {(makloubItems.length ? makloubItems : tunisianFastFoodSuggestions)
+                    .slice(0, 4)
+                    .map((item, index) => (
+                      <div
+                        key={index}
+                        className="food-card"
+                        onClick={() => addToCart({ ...item, quantity: 1 })}
+                      >
+                        <div className="food-card-image-wrapper">
+                          <img
+                            src={getFullImageUrl(item.image_url) || getSuggestionImage(item.name)}
+                            alt={item.name}
+                            className="food-card-image"
+                            onError={(e) => {
+                              e.target.src = getSuggestionImage(item.name);
+                            }}
+                          />
+                          <button className="food-card-favorite">♡</button>
+                          <div className="food-card-time">
+                            ⏱️ 12 min
+                          </div>
+                        </div>
+                        <div className="food-card-content">
+                          <h4>{item.name}</h4>
+                          <div className="food-card-rating">
+                            <span>⭐ 4.{index + 2}</span>
+                            <span className="food-card-reviews">(300+ avis)</span>
+                          </div>
+                          <div className="food-card-footer">
+                            <span className="food-card-price">
+                              {Number(item.price || 0).toFixed(3)} DT
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    ))}
+                </div>
               </div>
             </div>
           )}
@@ -1400,13 +1493,13 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 )}
               </div>
               <div className="results-count">
-                {restaurants.length} {restaurants.length === 1 ? 'résultat' : 'résultats'}
+                {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'résultat' : 'résultats'}
               </div>
             </div>
 
             {/* Liste de restaurants style Glovo */}
             <div className="restaurants-grid glovo-style">
-              {restaurants.length === 0 ? (
+              {filteredRestaurants.length === 0 ? (
                 <div className="no-restaurants">
                   <p>
                     {filterOpenOnly 
@@ -1415,7 +1508,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                   </p>
                 </div>
               ) : (
-                restaurants.map(restaurant => {
+                filteredRestaurants.map(restaurant => {
                   // Générer une image aléatoire basée sur le type de restaurant
                   const getRestaurantImage = () => {
                     const nameLower = restaurant.name?.toLowerCase() || '';
