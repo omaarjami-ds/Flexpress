@@ -429,7 +429,8 @@
 .popular-title {
   font-size: 16px;
   font-weight: 700;
-  color: #000;
+  color: #FFD700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .food-card-list {
@@ -439,18 +440,19 @@
 }
 
 .food-card {
-  background: #fff;
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-  border: 1px solid #f3f3f3;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 215, 0, 0.3);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .food-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+  border-color: rgba(255, 215, 0, 0.6);
 }
 
 .food-card-image-wrapper {
@@ -500,6 +502,7 @@
 .food-card-content h4 {
   font-size: 13px;
   margin: 0 0 4px 0;
+  color: #FFD700;
 }
 
 .food-card-rating {
@@ -511,7 +514,7 @@
 }
 
 .food-card-reviews {
-  color: #777;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .food-card-footer {
@@ -522,7 +525,7 @@
 
 .food-card-price {
   font-weight: 700;
-  color: #000;
+  color: #FFD700;
   font-size: 13px;
 }
 
@@ -539,9 +542,10 @@
   text-align: center;
   font-size: 32px;
   font-weight: 700;
-  color: #000;
+  color: #FFD700;
   margin-bottom: 30px;
   position: relative;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .section-title::after {
@@ -560,8 +564,9 @@
   text-align: left;
   font-size: 22px;
   font-weight: 700;
-  color: #000;
+  color: #FFD700;
   margin-bottom: 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .header-actions {
@@ -647,7 +652,7 @@
   cursor: pointer;
   user-select: none;
   font-size: 14px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .filter-toggle input[type="checkbox"] {
@@ -783,9 +788,9 @@
 .categories-section {
   margin: 30px 0;
   padding: 20px 0;
-  background: white;
+  background: transparent;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
 }
 
 .categories-scroll {
@@ -817,9 +822,10 @@
   align-items: center;
   gap: 6px;
   padding: 12px 20px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid rgba(255, 215, 0, 0.3);
   border-radius: 12px;
-  background: white;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 80px;
@@ -855,9 +861,10 @@
   align-items: center;
   margin: 20px 0;
   padding: 15px 20px;
-  background: white;
+  background: rgba(0, 0, 0, 0.5);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 215, 0, 0.2);
 }
 
 .filters-left {
@@ -892,7 +899,7 @@
 
 .results-count {
   font-size: 14px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 600;
 }
 
@@ -1005,18 +1012,19 @@
 }
 
 .glovo-restaurant-card {
-  background: white;
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
   transition: all 0.3s ease;
   cursor: pointer;
-  border: 1px solid #f0f0f0;
+  border: 1px solid rgba(255, 215, 0, 0.3);
 }
 
 .glovo-restaurant-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(255, 215, 0, 0.3);
+  border-color: rgba(255, 215, 0, 0.6);
 }
 
 .glovo-restaurant-card.closed {
@@ -1097,14 +1105,14 @@
   margin: 0 0 4px 0;
   font-size: 18px;
   font-weight: 700;
-  color: #000;
+  color: #FFD700;
   line-height: 1.3;
 }
 
 .restaurant-tagline {
   margin: 0;
   font-size: 13px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1130,7 +1138,7 @@
 
 .delivery-time {
   font-size: 13px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 600;
 }
 
@@ -1149,7 +1157,7 @@
 .rating-value {
   font-size: 16px;
   font-weight: 700;
-  color: #000;
+  color: #FFD700;
 }
 
 .rating-count {
@@ -1315,7 +1323,7 @@
 .no-restaurants {
   text-align: center;
   padding: 60px 20px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 16px;
 }
 
@@ -1661,15 +1669,16 @@
 .suggestions-section {
   margin: 40px 0;
   padding: 40px 30px;
-  background: white;
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border-top: 4px solid #FFD700;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-top: 3px solid #FFD700;
 }
 
 .suggestions-section h2 {
-  color: #000 !important;
-  text-shadow: none;
+  color: #FFD700 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .suggestions-grid {
@@ -1903,7 +1912,19 @@
   }
   
   .hero-section::before {
-    height: 25px;
+    display: none;
+  }
+  
+  .hero-section-dark::before {
+    display: none;
+  }
+
+  body {
+    background: radial-gradient(circle at top left, #222 0%, #050505 45%, #000 100%) !important;
+  }
+
+  html {
+    background: #000 !important;
   }
   
   .hero-content {
@@ -2235,9 +2256,10 @@
 .more-suggestions-section {
   margin: 40px 0;
   padding: 40px 30px;
-  background: white;
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 215, 0, 0.3);
   border-top: 4px solid #FFD700;
 }
 
@@ -3142,6 +3164,7 @@
     width: 100%;
     max-width: 100vw;
     overflow-x: hidden;
+    background: radial-gradient(circle at top left, #222 0%, #050505 45%, #000 100%);
   }
 
   .admin-dashboard-page .container {
@@ -3157,6 +3180,7 @@
     margin: 0;
     box-sizing: border-box;
     overflow-x: hidden;
+    background: transparent;
   }
 
   .hero-section {
