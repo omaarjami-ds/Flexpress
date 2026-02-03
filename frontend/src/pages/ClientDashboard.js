@@ -1007,19 +1007,13 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                     📍
                   </button>
                 </div>
-
-                <div className="hero-tabs-row">
-                  <button className="hero-tab hero-tab-active">Repas</button>
-                  <button className="hero-tab hero-tab-disabled">Épicerie</button>
-                  <button className="hero-tab hero-tab-disabled">Pharmacie</button>
-                </div>
               </div>
 
               <div className="hero-mini-categories">
-                {categories.slice(0, 6).map(category => (
+                {categories.map(category => (
                   <button
                     key={category.id}
-                    className="hero-mini-category-chip"
+                    className={`hero-mini-category-chip ${selectedCategory === category.id ? 'active' : ''}`}
                     onClick={() => setSelectedCategory(category.id)}
                   >
                     <span className="hero-mini-category-icon">{category.icon}</span>
