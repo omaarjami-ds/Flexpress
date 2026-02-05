@@ -440,11 +440,27 @@ def delete_address(addr_id):
 # Restaurant routes
 @app.route('/api/restaurants', methods=['GET'])
 def get_restaurants():
+    """
+    Liste les restaurants actifs.
+    Paramètres possibles :
+      - lat, lon : coordonnées du client pour trier par distance
+      - only_open=true : ne renvoyer que les restaurants actuellement ouverts
+      - q : texte de recherche (nom ou description du restaurant)
+    """
     lat = request.args.get('lat', type=float)
     lon = request.args.get('lon', type=float)
     only_open = request.args.get('only_open', 'false').lower() == 'true'
+    search_query = request.args.get('q', '').strip()
     
-    restaurants = list(db.restaurants.find({'is_active': True}, {'_id': 0}))
+    base_filter = {'is_active': True}
+    if search_query:
+        # Recherche insensible à la casse sur le nom et la description
+        base_filter['$or'] = [
+            {'name': {'$regex': search_query, '$options': 'i'}},
+            {'description': {'$regex': search_query, '$options': 'i'}}
+        ]
+    
+    restaurants = list(db.restaurants.find(base_filter, {'_id': 0}))
     
     # Filter open restaurants if requested
     if only_open:

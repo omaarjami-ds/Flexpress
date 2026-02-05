@@ -188,7 +188,6 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [customRestaurantInfo, setCustomRestaurantInfo] = useState({ name: '', isCustom: false });
-  const [searchQuery, setSearchQuery] = useState('');
   const trackingIntervalRef = useRef(null);
   const mapRef = useRef(null);
 
@@ -366,13 +365,10 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     return positionLabel;
   };
 
-  // Restaurants filtrés (recherche texte + filtre "ouvert uniquement")
+  // Restaurants filtrés (filtre "ouvert uniquement")
   const filteredRestaurants = restaurants.filter((restaurant) => {
-    const name = (restaurant.name || '').toLowerCase();
-    const query = (searchQuery || '').toLowerCase().trim();
-    const matchesSearch = !query || name.includes(query);
     const matchesOpen = !filterOpenOnly || restaurant.is_open;
-    return matchesSearch && matchesOpen;
+    return matchesOpen;
   });
 
   const updateHumanReadablePosition = async (lat, lon) => {
@@ -413,6 +409,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
 
   const [popularItems, setPopularItems] = useState([]);
   const [makloubItems, setMakloubItems] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadOrders = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -430,12 +427,19 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     }
   }, [onLogout]);
 
-  const loadRestaurants = useCallback(async (lat, lon) => {
+  const loadRestaurants = useCallback(async (lat, lon, search) => {
     try {
-      // Construire l'URL avec ou sans coordonnées
-      let url = `${API_URL}/restaurants`;
+      // Construire l'URL avec ou sans coordonnées / recherche
+      const params = [];
       if (lat !== null && lon !== null) {
-        url += `?lat=${lat}&lon=${lon}`;
+        params.push(`lat=${lat}`, `lon=${lon}`);
+      }
+      if (search && search.trim()) {
+        params.push(`q=${encodeURIComponent(search.trim())}`);
+      }
+      let url = `${API_URL}/restaurants`;
+      if (params.length > 0) {
+        url += `?${params.join('&')}`;
       }
       const response = await axios.get(url);
       const data = Array.isArray(response.data) ? response.data : [];
@@ -481,13 +485,13 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
 
   useEffect(() => {
     loadOrders();
-    loadRestaurants(null, null);
+    loadRestaurants(null, null, '');
     loadPopularAndMakloub();
     
     // Rafraîchissement automatique toutes les 10 secondes pour voir les nouveaux articles sans se déconnecter
     const interval = setInterval(() => {
       loadOrders();
-      loadRestaurants(null, null);
+      loadRestaurants(null, null, searchQuery);
       loadPopularAndMakloub();
     }, 10000);
 
@@ -495,8 +499,17 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   }, [loadOrders, loadRestaurants, loadPopularAndMakloub]);
 
   const handleRefresh = async () => {
-    await Promise.all([loadOrders(), loadRestaurants(null, null)]);
+    await Promise.all([loadOrders(), loadRestaurants(null, null, searchQuery)]);
   };
+
+  // Recharger les restaurants côté backend quand la recherche change
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const [lat, lon] = Array.isArray(position) && position.length === 2 ? position : [null, null];
+      loadRestaurants(lat, lon, searchQuery);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchQuery, position, loadRestaurants]);
 
   const loadMenuItems = async (restaurantId) => {
     try {
@@ -980,13 +993,21 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 <div className="hero-location-icon-circle">
                   📍
                 </div>
-                  <div className="hero-location-texts">
-                    <div className="hero-location-label">Localisation actuelle</div>
-                    <div className="hero-location-value" title={getPositionLabel()}>
-                      {getPositionLabel().replace('📍 Ma position : ', '').substring(0, 40)}
-                      {getPositionLabel().length > 40 ? '...' : ''}
-                    </div>
+                <div className="hero-location-texts">
+                  <div className="hero-location-label">Localisation actuelle</div>
+                  <div className="hero-location-value" title={getPositionLabel()}>
+                    {getPositionLabel().replace('📍 Ma position : ', '').substring(0, 40)}
+                    {getPositionLabel().length > 40 ? '...' : ''}
                   </div>
+                </div>
+                <button
+                  id="location-main-btn"
+                  onClick={getCurrentLocation}
+                  className="hero-location-btn-circle"
+                  aria-label="Utiliser ma position"
+                >
+                  📍
+                </button>
               </div>
 
               <div className="hero-search-card">
@@ -998,14 +1019,6 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                  <button
-                    id="location-btn"
-                    onClick={getCurrentLocation}
-                    className="hero-location-btn-circle"
-                    aria-label="Utiliser ma position"
-                  >
-                    📍
-                  </button>
                 </div>
               </div>
 
