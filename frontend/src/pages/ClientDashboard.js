@@ -1058,6 +1058,121 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                   {searchQuery && searchQuery.trim() && ` pour "${searchQuery}"`}
                 </div>
               </div>
+
+              {/* Résultats de recherche déplacés ici, s'affichent seulement si recherche ou catégorie active */}
+              {( (searchQuery && searchQuery.trim()) || selectedCategory !== 'all' ) && (
+                <div className="restaurants-grid glovo-style" style={{ marginTop: '20px' }}>
+                  {filteredRestaurants.length === 0 ? (
+                    <div className="no-restaurants">
+                      <p>
+                        {searchQuery && searchQuery.trim() 
+                          ? `Aucun restaurant trouvé pour "${searchQuery}".`
+                          : filterOpenOnly 
+                            ? 'Aucun restaurant ouvert à proximité pour le moment.' 
+                            : 'Aucun restaurant à proximité.'}
+                      </p>
+                      {searchQuery && searchQuery.trim() && (
+                        <button 
+                          onClick={() => setSearchQuery('')}
+                          className="btn btn-secondary"
+                          style={{marginTop: '10px'}}
+                        >
+                          Effacer la recherche
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    filteredRestaurants.map(restaurant => {
+                      const getRestaurantImage = () => {
+                        const nameLower = restaurant.name?.toLowerCase() || '';
+                        if (nameLower.includes('pizza')) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400';
+                        if (nameLower.includes('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400';
+                        if (nameLower.includes('sushi')) return 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400';
+                        if (nameLower.includes('chicken') || nameLower.includes('poulet')) return 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400';
+                        if (nameLower.includes('tacos')) return 'https://images.unsplash.com/photo-1565299585323-38174c6a6c08?w=400';
+                        return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
+                      };
+                      
+                      const getRestaurantLogo = () => {
+                        const nameLower = restaurant.name?.toLowerCase() || '';
+                        if (nameLower.includes('pizza')) return '🍕';
+                        if (nameLower.includes('burger')) return '🍔';
+                        if (nameLower.includes('sushi')) return '🍣';
+                        if (nameLower.includes('chicken') || nameLower.includes('poulet')) return '🍗';
+                        if (nameLower.includes('tacos')) return '🌮';
+                        if (nameLower.includes('tunisien') || nameLower.includes('makloub')) return '🥙';
+                        return '🍽️';
+                      };
+                      
+                      const deliveryTime = restaurant.distance 
+                        ? Math.max(30, Math.min(60, Math.round(restaurant.distance * 10 + 30)))
+                        : Math.floor(Math.random() * 20) + 30;
+                      
+                      const rating = Math.floor(Math.random() * 16) + 85;
+                      const ratingCount = Math.floor(Math.random() * 300) + 20;
+                      
+                      return (
+                        <div 
+                          key={restaurant.id} 
+                          className={`glovo-restaurant-card ${!restaurant.is_open ? 'closed' : ''}`}
+                          onClick={() => handleRestaurantSelect(restaurant)}
+                          style={{ cursor: restaurant.is_open ? 'pointer' : 'default' }}
+                        >
+                          <div className="restaurant-image-container">
+                            <img 
+                              src={getFullImageUrl(restaurant.image_url)} 
+                              alt={restaurant.name}
+                              className="restaurant-image"
+                              onError={(e) => {
+                                e.target.src = getRestaurantImage();
+                              }}
+                            />
+                            {!restaurant.is_open && (
+                              <div className="restaurant-closed-overlay">
+                                <span className="closed-badge">Fermé</span>
+                                {restaurant.open_time && (
+                                  <span className="closed-time">Réouvre à {restaurant.open_time}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="restaurant-card-content">
+                            <div className="restaurant-logo-name">
+                              <div className="restaurant-logo">{getRestaurantLogo()}</div>
+                              <div className="restaurant-name-section">
+                                <h3 className="restaurant-name">{restaurant.name}</h3>
+                                {restaurant.description && (
+                                  <p className="restaurant-tagline">{restaurant.description}</p>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="restaurant-meta">
+                              <div className="delivery-info">
+                                <span className="delivery-time">⏱️ {deliveryTime}-{deliveryTime + 10} min</span>
+                                <span className="delivery-fee">Gratuit</span>
+                              </div>
+                              <div className="rating-info">
+                                <span className="rating-value">{rating}%</span>
+                                <span className="rating-count">({ratingCount})</span>
+                              </div>
+                            </div>
+                            
+                            {restaurant.is_open && (
+                              <button 
+                                className="btn btn-primary btn-full glovo-order-btn"
+                              >
+                                Voir le Menu
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="hero-image hero-image-mobile">
@@ -1490,127 +1605,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         
         <div className="dashboard-grid">
           <div className="main-content">
-            {/* Liste de restaurants style Glovo */}
-            <div className="restaurants-grid glovo-style">
-              {filteredRestaurants.length === 0 ? (
-                <div className="no-restaurants">
-                  <p>
-                    {searchQuery && searchQuery.trim() 
-                      ? `Aucun restaurant trouvé pour "${searchQuery}".`
-                      : filterOpenOnly 
-                        ? 'Aucun restaurant ouvert à proximité pour le moment.' 
-                        : 'Aucun restaurant à proximité.'}
-                  </p>
-                  {searchQuery && searchQuery.trim() && (
-                    <button 
-                      onClick={() => setSearchQuery('')}
-                      className="btn btn-secondary"
-                      style={{marginTop: '10px'}}
-                    >
-                      Effacer la recherche
-                    </button>
-                  )}
-                </div>
-              ) : (
-                filteredRestaurants.map(restaurant => {
-                  // Générer une image aléatoire basée sur le type de restaurant
-                  const getRestaurantImage = () => {
-                    const nameLower = restaurant.name?.toLowerCase() || '';
-                    if (nameLower.includes('pizza')) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400';
-                    if (nameLower.includes('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400';
-                    if (nameLower.includes('sushi')) return 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400';
-                    if (nameLower.includes('chicken') || nameLower.includes('poulet')) return 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400';
-                    if (nameLower.includes('tacos')) return 'https://images.unsplash.com/photo-1565299585323-38174c6a6c08?w=400';
-                    return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
-                  };
-                  
-                  // Générer un logo/emoji basé sur le type
-                  const getRestaurantLogo = () => {
-                    const nameLower = restaurant.name?.toLowerCase() || '';
-                    if (nameLower.includes('pizza')) return '🍕';
-                    if (nameLower.includes('burger')) return '🍔';
-                    if (nameLower.includes('sushi')) return '🍣';
-                    if (nameLower.includes('chicken') || nameLower.includes('poulet')) return '🍗';
-                    if (nameLower.includes('tacos')) return '🌮';
-                    if (nameLower.includes('tunisien') || nameLower.includes('makloub')) return '🥙';
-                    return '🍽️';
-                  };
-                  
-                  // Calculer le temps de livraison basé sur la distance
-                  const deliveryTime = restaurant.distance 
-                    ? Math.max(30, Math.min(60, Math.round(restaurant.distance * 10 + 30)))
-                    : Math.floor(Math.random() * 20) + 30;
-                  
-                  // Générer une note aléatoire entre 85 et 100
-                  const rating = Math.floor(Math.random() * 16) + 85;
-                  const ratingCount = Math.floor(Math.random() * 300) + 20;
-                  
-                  return (
-                    <div 
-                      key={restaurant.id} 
-                      className={`glovo-restaurant-card ${!restaurant.is_open ? 'closed' : ''}`}
-                      onClick={() => handleRestaurantSelect(restaurant)}
-                      style={{ cursor: restaurant.is_open ? 'pointer' : 'default' }}
-                    >
-                      {/* Image du restaurant */}
-                      <div className="restaurant-image-container">
-                        <img 
-                          src={getFullImageUrl(restaurant.image_url)} 
-                          alt={restaurant.name}
-                          className="restaurant-image"
-                          onError={(e) => {
-                            e.target.src = getRestaurantImage();
-                          }}
-                        />
-                        {!restaurant.is_open && (
-                          <div className="restaurant-closed-overlay">
-                            <span className="closed-badge">Fermé</span>
-                            {restaurant.open_time && (
-                              <span className="closed-time">Réouvre à {restaurant.open_time}</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Contenu de la carte */}
-                      <div className="restaurant-card-content">
-                        {/* Logo et nom */}
-                        <div className="restaurant-logo-name">
-                          <div className="restaurant-logo">{getRestaurantLogo()}</div>
-                          <div className="restaurant-name-section">
-                            <h3 className="restaurant-name">{restaurant.name}</h3>
-                            {restaurant.description && (
-                              <p className="restaurant-tagline">{restaurant.description}</p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Informations de livraison et note */}
-                        <div className="restaurant-meta">
-                          <div className="delivery-info">
-                            <span className="delivery-time">⏱️ {deliveryTime}-{deliveryTime + 10} min</span>
-                            <span className="delivery-fee">Gratuit</span>
-                          </div>
-                          <div className="rating-info">
-                            <span className="rating-value">{rating}%</span>
-                            <span className="rating-count">({ratingCount})</span>
-                          </div>
-                        </div>
-                        
-                        {/* Bouton commander */}
-                        {restaurant.is_open && (
-                          <button 
-                            className="btn btn-primary btn-full glovo-order-btn"
-                          >
-                            Voir le Menu
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            {/* Liste de restaurants retirée d'ici (déplacée en haut) */}
           </div>
 
           <div className="sidebar">
