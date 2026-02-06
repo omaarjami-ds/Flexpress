@@ -1258,11 +1258,12 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                     <span className="profile-menu-label">Aide et support</span>
                     <span className="profile-menu-arrow">›</span>
                   </button>
-                </div>
-
-                <div className="logout-button-container">
-                  <button onClick={onLogout} className="logout-full-btn">
-                    <FiUser /> Déconnexion
+                  <button className="profile-menu-link" onClick={onLogout} style={{marginTop: '10px', color: '#dc3545'}}>
+                    <div className="profile-menu-icon-wrapper" style={{background: 'rgba(220, 53, 69, 0.1)'}}>
+                      <FiUser style={{color: '#dc3545'}} />
+                    </div>
+                    <span className="profile-menu-label">Déconnexion</span>
+                    <span className="profile-menu-arrow">›</span>
                   </button>
                 </div>
               </>
@@ -1453,8 +1454,8 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
           </div>
         )}
 
-        {/* Section Makloub & Populaires dynamique */}
-        {!showMyOrders && (
+        {/* Section Makloub & Populaires dynamique - cachée si recherche ou catégorie active */}
+        {!showMyOrders && !searchQuery.trim() && selectedCategory === null && (
           <>
           {/* Ongoing Offers – grande bannière comme la maquette */}
           <div className="ongoing-offers-section">
@@ -1719,10 +1720,10 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                    <input 
                      type="text" 
                      value={deliveryAddress} 
-                     onChange={(e) => setDeliveryAddress(e.target.value)}
+                     readOnly
                      placeholder="Votre adresse..."
                      className="input"
-                     style={{width: '100%', padding: '8px'}}
+                     style={{width: '100%', padding: '8px', background: '#f5f5f5', cursor: 'not-allowed'}}
                    />
                 </div>
                 
@@ -1844,10 +1845,10 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
               <input
                 type="text"
                 value={manualOrderForm.delivery_address}
-                onChange={(e) => setManualOrderForm({...manualOrderForm, delivery_address: e.target.value})}
-                placeholder="Ex: 123 Rue de la Paix, Djerba"
+                readOnly
+                placeholder="Votre adresse de livraison"
                 className="input"
-                style={{width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '16px'}}
+                style={{width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '16px', background: '#f5f5f5', cursor: 'not-allowed'}}
               />
             </div>
 
