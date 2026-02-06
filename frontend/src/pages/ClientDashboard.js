@@ -262,34 +262,31 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       loadOrders();
       
       // Puis toutes les 5 secondes
-      trackingIntervalRef.current = setInterval(() => {
+      const interval = setInterval(() => {
         loadOrders();
       }, 5000);
-    } else {
-      if (trackingIntervalRef.current) {
-        clearInterval(trackingIntervalRef.current);
-      }
+      
+      return () => clearInterval(interval);
     }
-    
-    return () => {
-      if (trackingIntervalRef.current) {
-        clearInterval(trackingIntervalRef.current);
-      }
-    };
-  }, [showTrackingMap, trackingOrder]);
+  }, [showTrackingMap, trackingOrder?.id]); // Ne dépend que de l'ID pour ne pas reset l'intervalle à chaque update
 
   // Mettre à jour trackingOrder quand orders change
   useEffect(() => {
     if (showTrackingMap && trackingOrder) {
       const updatedOrder = orders.find(o => o.id === trackingOrder.id);
       if (updatedOrder) {
-        // On ne met à jour que si les données ont changé pour éviter les re-renders inutiles
+        // On ne met à jour que si les données ont changé
         if (JSON.stringify(updatedOrder) !== JSON.stringify(trackingOrder)) {
           setTrackingOrder(updatedOrder);
+          
+          // Centrer dynamiquement sur le livreur s'il bouge
+          if (updatedOrder.driver_lat && updatedOrder.driver_lon) {
+            setMapCenter([updatedOrder.driver_lat, updatedOrder.driver_lon]);
+          }
         }
       }
     }
-  }, [orders, showTrackingMap, trackingOrder]);
+  }, [orders, showTrackingMap]); // Retiré trackingOrder des dépendances pour éviter les boucles
 
   const openTrackingMap = (order) => {
     setTrackingOrder(order);
@@ -1984,7 +1981,37 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 />
                 <RecenterMap center={mapCenter} zoom={15} />
                 
-                {/* Uniquement la position du Livreur */}
+                {/* Client Position (Live) */}
+                {position && (
+                  <Marker position={position} icon={clientIcon}>
+                    <Popup>Votre position actuelle</Popup>
+                  </Marker>
+                )}
+                
+                {/* Destination de livraison (Fixe pour cette commande) */}
+                {trackingOrder.delivery_latitude && trackingOrder.delivery_longitude && (
+                  <Marker 
+                    position={[trackingOrder.delivery_latitude, trackingOrder.delivery_longitude]} 
+                    icon={clientIcon}
+                  >
+                    <Popup>
+                      <strong>Destination de livraison</strong><br/>
+                      {trackingOrder.delivery_address}
+                    </Popup>
+                  </Marker>
+                )}
+                
+                {/* Restaurant Position */}
+                {trackingOrder.restaurant_latitude && trackingOrder.restaurant_longitude && (
+                  <Marker 
+                    position={[trackingOrder.restaurant_latitude, trackingOrder.restaurant_longitude]} 
+                    icon={restaurantIcon}
+                  >
+                    <Popup>Restaurant: {trackingOrder.restaurant_name}</Popup>
+                  </Marker>
+                )}
+                
+                {/* Position du Livreur */}
                 {trackingOrder.driver_name && (trackingOrder.driver_lat && trackingOrder.driver_lon) && (
                   <Marker 
                     position={[trackingOrder.driver_lat, trackingOrder.driver_lon]} 
@@ -2023,7 +2050,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                             width: '100%'
                           }}
                         >
-                          📍 Voir dans Google Maps
+                          📍 Voir dans Google Maps (GPS)
                         </button>
                       </div>
                     </Popup>
