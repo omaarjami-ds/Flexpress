@@ -1027,7 +1027,14 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                   <button
                     key={category.id}
                     className={`hero-mini-category-chip ${selectedCategory === category.id ? 'active' : ''}`}
-                    onClick={() => setSelectedCategory(category.id)}
+                    onClick={() => {
+                      if (selectedCategory === category.id) {
+                        setSelectedCategory(null);
+                      } else {
+                        setSelectedCategory(category.id);
+                        setShowMyOrders(false);
+                      }
+                    }}
                   >
                     <span className="hero-mini-category-icon">{category.icon}</span>
                     <span className="hero-mini-category-label">{category.name}</span>
@@ -1046,10 +1053,10 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                     />
                     <span>Uniquement les restaurants ouverts</span>
                   </label>
-                  {selectedCategory !== 'all' && (
+                  {selectedCategory && (
                     <span className="selected-filter-tag">
                       {categories.find(c => c.id === selectedCategory)?.name}
-                      <button onClick={() => setSelectedCategory('all')}>×</button>
+                      <button onClick={() => setSelectedCategory(null)}>×</button>
                     </span>
                   )}
                 </div>
