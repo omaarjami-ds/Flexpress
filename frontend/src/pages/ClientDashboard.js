@@ -291,10 +291,17 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   const openTrackingMap = (order) => {
     setTrackingOrder(order);
     setShowTrackingMap(true);
-    // Centrer la carte sur le client ou le restaurant
-    if (position) {
+    
+    // Priorité 1 : Centrer sur le livreur s'il est assigné et a une position
+    if (order.driver_lat && order.driver_lon) {
+      setMapCenter([order.driver_lat, order.driver_lon]);
+    } 
+    // Priorité 2 : Centrer sur votre position actuelle
+    else if (position) {
       setMapCenter(position);
-    } else if (order.restaurant_latitude && order.restaurant_longitude) {
+    } 
+    // Priorité 3 : Centrer sur le restaurant
+    else if (order.restaurant_latitude && order.restaurant_longitude) {
       setMapCenter([order.restaurant_latitude, order.restaurant_longitude]);
     }
   };
