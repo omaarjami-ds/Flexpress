@@ -1034,6 +1034,30 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                   </button>
                 ))}
               </div>
+
+              {/* Filtres et tri (Déplacé ici) */}
+              <div className="filters-bar" style={{ marginTop: '15px', marginBottom: '0' }}>
+                <div className="filters-left">
+                  <label className="filter-toggle">
+                    <input 
+                      type="checkbox" 
+                      checked={filterOpenOnly}
+                      onChange={(e) => setFilterOpenOnly(e.target.checked)}
+                    />
+                    <span>Uniquement les restaurants ouverts</span>
+                  </label>
+                  {selectedCategory !== 'all' && (
+                    <span className="selected-filter-tag">
+                      {categories.find(c => c.id === selectedCategory)?.name}
+                      <button onClick={() => setSelectedCategory('all')}>×</button>
+                    </span>
+                  )}
+                </div>
+                <div className="results-count">
+                  {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'résultat' : 'résultats'}
+                  {searchQuery && searchQuery.trim() && ` pour "${searchQuery}"`}
+                </div>
+              </div>
             </div>
 
             <div className="hero-image hero-image-mobile">
@@ -1466,46 +1490,6 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         
         <div className="dashboard-grid">
           <div className="main-content">
-            {/* Catégories de filtres style Glovo */}
-            <div className="categories-section">
-              <div className="categories-scroll">
-                {categories.map(category => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`category-btn ${selectedCategory === category.id ? 'active' : ''}`}
-                  >
-                    <span className="category-icon">{category.icon}</span>
-                    <span className="category-name">{category.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Filtres et tri */}
-            <div className="filters-bar">
-              <div className="filters-left">
-                <label className="filter-toggle">
-                  <input 
-                    type="checkbox" 
-                    checked={filterOpenOnly}
-                    onChange={(e) => setFilterOpenOnly(e.target.checked)}
-                  />
-                  <span>Uniquement les restaurants ouverts</span>
-                </label>
-                {selectedCategory !== 'all' && (
-                  <span className="selected-filter-tag">
-                    {categories.find(c => c.id === selectedCategory)?.name}
-                    <button onClick={() => setSelectedCategory('all')}>×</button>
-                  </span>
-                )}
-              </div>
-              <div className="results-count">
-                {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'résultat' : 'résultats'}
-                {searchQuery && searchQuery.trim() && ` pour "${searchQuery}"`}
-              </div>
-            </div>
-
             {/* Liste de restaurants style Glovo */}
             <div className="restaurants-grid glovo-style">
               {filteredRestaurants.length === 0 ? (
