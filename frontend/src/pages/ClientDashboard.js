@@ -1984,37 +1984,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 />
                 <RecenterMap center={mapCenter} zoom={15} />
                 
-                {/* Client Position (Live) */}
-                {position && (
-                  <Marker position={position} icon={clientIcon}>
-                    <Popup>Votre position actuelle</Popup>
-                  </Marker>
-                )}
-                
-                {/* Destination de livraison (Fixe pour cette commande) */}
-                {trackingOrder.delivery_latitude && trackingOrder.delivery_longitude && (
-                  <Marker 
-                    position={[trackingOrder.delivery_latitude, trackingOrder.delivery_longitude]} 
-                    icon={clientIcon}
-                  >
-                    <Popup>
-                      <strong>Destination de livraison</strong><br/>
-                      {trackingOrder.delivery_address}
-                    </Popup>
-                  </Marker>
-                )}
-                
-                {/* Restaurant Position */}
-                {trackingOrder.restaurant_latitude && trackingOrder.restaurant_longitude && (
-                  <Marker 
-                    position={[trackingOrder.restaurant_latitude, trackingOrder.restaurant_longitude]} 
-                    icon={restaurantIcon}
-                  >
-                    <Popup>Restaurant: {trackingOrder.restaurant_name}</Popup>
-                  </Marker>
-                )}
-                
-                {/* Driver Position - Toujours afficher si livreur assigné */}
+                {/* Uniquement la position du Livreur */}
                 {trackingOrder.driver_name && (trackingOrder.driver_lat && trackingOrder.driver_lon) && (
                   <Marker 
                     position={[trackingOrder.driver_lat, trackingOrder.driver_lon]} 
