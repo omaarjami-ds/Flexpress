@@ -1269,7 +1269,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                     <span className="profile-menu-label">Aide et support</span>
                     <span className="profile-menu-arrow">›</span>
                   </button>
-                  <button className="profile-menu-link" onClick={onLogout} style={{marginTop: '10px', color: '#dc3545'}}>
+                  <button className="profile-menu-link" onClick={onLogout} style={{color: '#dc3545'}}>
                     <div className="profile-menu-icon-wrapper" style={{background: 'rgba(220, 53, 69, 0.1)'}}>
                       <FiUser style={{color: '#dc3545'}} />
                     </div>
@@ -1988,37 +1988,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 />
                 <RecenterMap center={mapCenter} zoom={15} />
                 
-                {/* Client Position (Live) */}
-                {position && (
-                  <Marker position={position} icon={clientIcon}>
-                    <Popup>Votre position actuelle</Popup>
-                  </Marker>
-                )}
-                
-                {/* Destination de livraison (Fixe pour cette commande) */}
-                {trackingOrder.delivery_latitude && trackingOrder.delivery_longitude && (
-                  <Marker 
-                    position={[trackingOrder.delivery_latitude, trackingOrder.delivery_longitude]} 
-                    icon={clientIcon}
-                  >
-                    <Popup>
-                      <strong>Destination de livraison</strong><br/>
-                      {trackingOrder.delivery_address}
-                    </Popup>
-                  </Marker>
-                )}
-                
-                {/* Restaurant Position */}
-                {trackingOrder.restaurant_latitude && trackingOrder.restaurant_longitude && (
-                  <Marker 
-                    position={[trackingOrder.restaurant_latitude, trackingOrder.restaurant_longitude]} 
-                    icon={restaurantIcon}
-                  >
-                    <Popup>Restaurant: {trackingOrder.restaurant_name}</Popup>
-                  </Marker>
-                )}
-                
-                {/* Position du Livreur */}
+                {/* Position du Livreur Uniquement */}
                 {trackingOrder.driver_name && (trackingOrder.driver_lat && trackingOrder.driver_lon) && (
                   <Marker 
                     position={[trackingOrder.driver_lat, trackingOrder.driver_lon]} 
