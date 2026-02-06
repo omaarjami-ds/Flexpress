@@ -964,7 +964,14 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
           </button>
           <button onClick={() => {
             setShowManualOrder(true);
-            setManualOrderForm(prev => ({ ...prev, phone: user?.phone || '' }));
+            const addr = positionLabel.includes('📍 Ma position : ') 
+              ? positionLabel.replace('📍 Ma position : ', '') 
+              : positionLabel;
+            setManualOrderForm(prev => ({ 
+              ...prev, 
+              phone: user?.phone || '',
+              delivery_address: addr
+            }));
           }} className="btn btn-primary" style={{marginRight: '10px'}}>
             📝 Commande manuelle
           </button>
@@ -1977,10 +1984,23 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 />
                 <RecenterMap center={mapCenter} zoom={15} />
                 
-                {/* Client Position */}
+                {/* Client Position (Live) */}
                 {position && (
                   <Marker position={position} icon={clientIcon}>
-                    <Popup>Vous êtes ici</Popup>
+                    <Popup>Votre position actuelle</Popup>
+                  </Marker>
+                )}
+                
+                {/* Destination de livraison (Fixe pour cette commande) */}
+                {trackingOrder.delivery_latitude && trackingOrder.delivery_longitude && (
+                  <Marker 
+                    position={[trackingOrder.delivery_latitude, trackingOrder.delivery_longitude]} 
+                    icon={clientIcon}
+                  >
+                    <Popup>
+                      <strong>Destination de livraison</strong><br/>
+                      {trackingOrder.delivery_address}
+                    </Popup>
                   </Marker>
                 )}
                 
@@ -2170,7 +2190,14 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
             setShowCart(false);
             setShowMyOrders(false);
             setShowProfile(false);
-             setManualOrderForm(prev => ({ ...prev, phone: user?.phone || '' }));
+            const addr = positionLabel.includes('📍 Ma position : ') 
+              ? positionLabel.replace('📍 Ma position : ', '') 
+              : positionLabel;
+            setManualOrderForm(prev => ({ 
+              ...prev, 
+              phone: user?.phone || '',
+              delivery_address: addr
+            }));
           }}
         >
           <FiPlusCircle className="mobile-nav-icon" />
