@@ -105,7 +105,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     items: [{ name: '', quantity: 1, price: 0 }]
   });
   const [filterOpenOnly, setFilterOpenOnly] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [showMyOrders, setShowMyOrders] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [profileSubView, setProfileSubView] = useState('main'); // 'main', 'personal', 'addresses'
@@ -1060,7 +1060,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
               </div>
 
               {/* Résultats de recherche déplacés ici, s'affichent seulement si recherche ou catégorie active */}
-              {( (searchQuery && searchQuery.trim()) || selectedCategory !== 'all' ) && (
+              {( (searchQuery && searchQuery.trim()) || selectedCategory !== null ) && (
                 <div className="restaurants-grid glovo-style" style={{ marginTop: '20px' }}>
                   {filteredRestaurants.length === 0 ? (
                     <div className="no-restaurants">
