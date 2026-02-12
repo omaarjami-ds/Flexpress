@@ -14,7 +14,7 @@ let leafletInitializedLivreur = false;
 
 const initializeLeafletIconsLivreur = () => {
   if (leafletInitializedLivreur) return;
-  
+
   try {
     if (L && L.Icon && L.Icon.Default && L.Icon.Default.prototype) {
       delete L.Icon.Default.prototype._getIconUrl;
@@ -38,9 +38,9 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -208,7 +208,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
       ]);
       setAvailableOrders(availableRes?.data || []);
       setMyOrders(myRes?.data || []);
-      
+
       const availableCount = (availableRes?.data || []).length;
       if (availableCount > previousOrderCount) {
         if (audioRef.current) {
@@ -228,7 +228,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
       alert('Vous devez être "En Service" pour accepter des commandes.');
       return;
     }
-    
+
     // Optimistic update
     const orderToAccept = availableOrders.find(o => o.id === orderId);
     if (orderToAccept) {
@@ -255,7 +255,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   const updateOrderStatus = async (orderId, status) => {
     // Optimistic update
     setMyOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
-    
+
     const token = localStorage.getItem('token');
     try {
       await axios.put(`${API_URL}/orders/${orderId}/status`, { status }, {
@@ -324,17 +324,17 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
   const openItineraryForOrder = (order) => {
     const destLat = order.delivery_latitude || order.client_lat;
     const destLon = order.delivery_longitude || order.client_lon;
-    
+
     if (!destLat || !destLon) {
       alert('Adresse de livraison manquante');
       return;
     }
-    
+
     if (!position) {
       alert('Veuillez activer votre position pour afficher l\'itinéraire. Cliquez sur "Me localiser maintenant"');
       return;
     }
-    
+
     const url = `https://www.google.com/maps/dir/?api=1&origin=${position[0]},${position[1]}&destination=${destLat},${destLon}&travelmode=driving`;
     window.open(url, '_blank');
   };
@@ -381,22 +381,22 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
           <h1>FLEXPRESS - Livreur</h1>
         </div>
         <div className="header-actions">
-          <button 
-            onClick={toggleStatus} 
+          <button
+            onClick={toggleStatus}
             className={`btn btn-status-toggle ${isAvailable ? 'btn-success' : 'btn-danger'}`}
-            style={{fontWeight: 'bold'}}
+            style={{ fontWeight: 'bold' }}
           >
             {isAvailable ? '🟢 En Service' : '🔴 Hors Service'}
           </button>
-          <ProfileMenu 
-            user={user} 
-            onLogout={onLogout} 
+          <ProfileMenu
+            user={user}
+            onLogout={onLogout}
             onProfileClick={() => {
               setShowProfile(true);
               setProfileSubView('main');
               setShowHistory(false);
               setShowEarningsDetails(false);
-            }} 
+            }}
           />
         </div>
       </header>
@@ -406,18 +406,18 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
           {showProfile ? (
             <div className="profile-page">
               {profileSubView !== 'main' ? (
-                <button 
-                  onClick={() => setProfileSubView('main')} 
+                <button
+                  onClick={() => setProfileSubView('main')}
                   className="btn btn-secondary btn-sm"
-                  style={{marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px'}}
+                  style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px' }}
                 >
                   ‹ Retour
                 </button>
               ) : (
-                <button 
-                  onClick={() => setShowProfile(false)} 
+                <button
+                  onClick={() => setShowProfile(false)}
                   className="btn btn-secondary btn-sm"
-                  style={{marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px'}}
+                  style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px' }}
                 >
                   ‹ Retour à l'accueil
                 </button>
@@ -430,25 +430,25 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                       {user?.username?.substring(0, 2).toUpperCase() || '??'}
                     </div>
                     <h2 className="profile-name">{user?.username}</h2>
-                    <div className="profile-email" style={{color: '#666', marginTop: '5px', marginBottom: '10px'}}>Livreur - {user?.email}</div>
+                    <div className="profile-email" style={{ color: '#666', marginTop: '5px', marginBottom: '10px' }}>Livreur - {user?.email}</div>
                   </div>
 
-                  <div className="livreur-stats-section card" style={{marginBottom: '20px', padding: '15px'}}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                      <h2 style={{margin: 0, fontSize: '1.2rem'}}>📈 Mes Rendements</h2>
-                      <div style={{backgroundColor: '#e3f2fd', padding: '5px 12px', borderRadius: '15px', color: '#1976d2', fontWeight: 'bold'}}>
+                  <div className="livreur-stats-section card" style={{ marginBottom: '20px', padding: '15px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                      <h2 style={{ margin: 0, fontSize: '1.2rem' }}>📈 Mes Rendements</h2>
+                      <div style={{ backgroundColor: '#e3f2fd', padding: '5px 12px', borderRadius: '15px', color: '#1976d2', fontWeight: 'bold' }}>
                         Total : {(stats.totalEarnings || 0).toFixed(3)} DT
                       </div>
                     </div>
-                    
-                    <div className="stats-grid-livreur" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px'}}>
-                      <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #4caf50'}}>
-                        <div style={{fontSize: '0.8rem', color: '#666'}}>Aujourd'hui</div>
-                        <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{(livreurStats?.stats?.today_earnings || 0).toFixed(3)} DT</div>
+
+                    <div className="stats-grid-livreur" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px' }}>
+                      <div className="stat-box" style={{ textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #4caf50' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#666' }}>Aujourd'hui</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{(livreurStats?.stats?.today_earnings || 0).toFixed(3)} DT</div>
                       </div>
-                      <div className="stat-box" style={{textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2196f3'}}>
-                        <div style={{fontSize: '0.8rem', color: '#666'}}>Livrées</div>
-                        <div style={{fontSize: '1.1rem', fontWeight: 'bold'}}>{stats.totalDelivered}</div>
+                      <div className="stat-box" style={{ textAlign: 'center', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '8px', borderLeft: '4px solid #2196f3' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#666' }}>Livrées</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{stats.totalDelivered}</div>
                       </div>
                     </div>
                   </div>
@@ -465,7 +465,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                       <span className="profile-menu-arrow">›</span>
                     </button>
                     <button className="profile-menu-link" onClick={() => setShowEarningsDetails(!showEarningsDetails)}>
-                      <div className="profile-menu-icon-wrapper icon-gold"><span style={{fontSize: '16px'}}>💰</span></div>
+                      <div className="profile-menu-icon-wrapper icon-gold"><span style={{ fontSize: '16px' }}>💰</span></div>
                       <span className="profile-menu-label">Détail des gains</span>
                       <span className="profile-menu-arrow">›</span>
                     </button>
@@ -474,9 +474,9 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                       <span className="profile-menu-label">Aide et support</span>
                       <span className="profile-menu-arrow">›</span>
                     </button>
-                    <button className="profile-menu-link" onClick={onLogout} style={{color: '#d32f2f'}}>
-                      <div className="profile-menu-icon-wrapper" style={{backgroundColor: '#ffebee', color: '#d32f2f'}}><FiUser /></div>
-                      <span className="profile-menu-label" style={{fontWeight: 'bold'}}>Déconnexion</span>
+                    <button className="profile-menu-link" onClick={onLogout} style={{ color: '#d32f2f' }}>
+                      <div className="profile-menu-icon-wrapper" style={{ backgroundColor: '#ffebee', color: '#d32f2f' }}><FiUser /></div>
+                      <span className="profile-menu-label" style={{ fontWeight: 'bold' }}>Déconnexion</span>
                       <span className="profile-menu-arrow">›</span>
                     </button>
                   </div>
@@ -489,17 +489,17 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                   <form onSubmit={handleUpdateProfile} className="profile-form">
                     <div className="form-group">
                       <label>Nom d'utilisateur</label>
-                      <input type="text" value={personalInfoForm.username} onChange={(e) => setPersonalInfoForm({...personalInfoForm, username: e.target.value})} className="input" />
+                      <input type="text" value={personalInfoForm.username} onChange={(e) => setPersonalInfoForm({ ...personalInfoForm, username: e.target.value })} className="input" />
                     </div>
                     <div className="form-group">
                       <label>Email</label>
-                      <input type="email" value={personalInfoForm.email} onChange={(e) => setPersonalInfoForm({...personalInfoForm, email: e.target.value})} className="input" />
+                      <input type="email" value={personalInfoForm.email} onChange={(e) => setPersonalInfoForm({ ...personalInfoForm, email: e.target.value })} className="input" />
                     </div>
                     <div className="form-group">
                       <label>Téléphone</label>
-                      <input type="tel" value={personalInfoForm.phone} onChange={(e) => setPersonalInfoForm({...personalInfoForm, phone: e.target.value})} className="input" />
+                      <input type="tel" value={personalInfoForm.phone} onChange={(e) => setPersonalInfoForm({ ...personalInfoForm, phone: e.target.value })} className="input" />
                     </div>
-                    <button type="submit" className="btn btn-primary btn-full" style={{marginTop: '20px'}}>Sauvegarder</button>
+                    <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '20px' }}>Sauvegarder</button>
                   </form>
                 </div>
               )}
@@ -507,7 +507,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
               {profileSubView === 'help' && (
                 <div className="profile-sub-section">
                   <h3>Aide et Support - Livreur</h3>
-                  <div style={{padding: '15px', background: '#f9f9f9', borderRadius: '12px', border: '1px dashed #FFD700'}}>
+                  <div style={{ padding: '15px', background: '#f9f9f9', borderRadius: '12px', border: '1px dashed #FFD700' }}>
                     <p>Support Email: flexpress.contact@gmail.com</p>
                     <p>Support Téléphone: +216 22 749 748</p>
                   </div>
@@ -521,22 +521,22 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                       <h3>📜 Historique des livraisons</h3>
                       <button onClick={() => setShowHistory(false)}>×</button>
                     </div>
-                    <div style={{padding: '10px 15px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                      <span style={{fontSize: '0.9rem', color: '#666'}}>Filtrer par date :</span>
-                      <input 
-                        type="date" 
-                        value={earningsDateFilter} 
+                    <div style={{ padding: '10px 15px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '0.9rem', color: '#666' }}>Filtrer par date :</span>
+                      <input
+                        type="date"
+                        value={earningsDateFilter}
                         onChange={(e) => setEarningsDateFilter(e.target.value)}
                         className="input"
-                        style={{padding: '5px 10px', fontSize: '0.9rem', width: 'auto'}}
+                        style={{ padding: '5px 10px', fontSize: '0.9rem', width: 'auto' }}
                       />
                       {earningsDateFilter && (
-                        <button onClick={() => setEarningsDateFilter('')} className="btn btn-sm" style={{padding: '5px 10px', background: '#f0f0f0', color: '#666', border: 'none', borderRadius: '5px'}}>Effacer</button>
+                        <button onClick={() => setEarningsDateFilter('')} className="btn btn-sm" style={{ padding: '5px 10px', background: '#f0f0f0', color: '#666', border: 'none', borderRadius: '5px' }}>Effacer</button>
                       )}
                     </div>
                     <div className="modal-body">
                       {(livreurStats?.recent_orders || []).length === 0 ? (
-                        <p style={{textAlign: 'center', padding: '20px'}}>Aucun historique disponible.</p>
+                        <p style={{ textAlign: 'center', padding: '20px' }}>Aucun historique disponible.</p>
                       ) : (
                         <div className="history-list">
                           {(livreurStats.recent_orders || []).filter(order => {
@@ -546,11 +546,11 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                             } catch (e) { return true; }
                           }).map(order => (
                             <div key={order.id} className="history-item card" style={{
-                              marginBottom: '15px', 
+                              marginBottom: '15px',
                               padding: '15px',
                               borderLeft: ['accepted', 'delivering'].includes(order.status) ? '5px solid #28a745' : '1px solid #eee'
                             }}>
-                              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px'}}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                                 <strong>#{order.id} {!order.delivery_address?.includes('[') && `- ${order.restaurant_name}`}</strong>
                                 <span className={`status-badge status-${order.status}`} style={{
                                   padding: '4px 12px',
@@ -560,20 +560,20 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                                   backgroundColor: order.status === 'delivered' ? '#e8f5e9' : '#fff3e0',
                                   color: order.status === 'delivered' ? '#2e7d32' : '#ef6c00'
                                 }}>
-                                  {order.status === 'accepted' ? 'Acceptée' : 
-                                   order.status === 'delivering' ? 'En route' : 
-                                   order.status === 'delivered' ? 'Livrée' : order.status}
+                                  {order.status === 'accepted' ? 'Acceptée' :
+                                    order.status === 'delivering' ? 'En route' :
+                                      order.status === 'delivered' ? 'Livrée' : order.status}
                                 </span>
                               </div>
-                              <div style={{fontSize: '0.9rem', color: '#666', marginBottom: '10px'}}>
-                                {!order.delivery_address?.includes('[') && (
-                                  <span style={{marginRight: '15px'}}>💰 {(order.total_price || 0).toFixed(2)} DT</span>
+                              <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>
+                                {!order.delivery_address?.includes('[') && order.total_price > 0 && (
+                                  <span style={{ marginRight: '15px' }}>💰 {(order.total_price || 0).toFixed(2)} DT</span>
                                 )}
                                 <span>📅 {new Date(order.created_at).toLocaleDateString()}</span>
                               </div>
-                              <div style={{marginBottom: '15px', fontSize: '0.85rem', background: '#f0f4f8', padding: '10px', borderRadius: '8px', borderLeft: '3px solid #2196f3'}}>
-                                <div style={{marginBottom: '8px'}}>
-                                  <strong>📞 Client :</strong> <a href={`tel:${order.client_phone}`} style={{color: '#2196f3', textDecoration: 'none'}}>{order.client_phone || 'Non disponible'}</a>
+                              <div style={{ marginBottom: '15px', fontSize: '0.85rem', background: '#f0f4f8', padding: '10px', borderRadius: '8px', borderLeft: '3px solid #2196f3' }}>
+                                <div style={{ marginBottom: '8px' }}>
+                                  <strong>📞 Client :</strong> <a href={`tel:${order.client_phone}`} style={{ color: '#2196f3', textDecoration: 'none' }}>{order.client_phone || 'Non disponible'}</a>
                                 </div>
                                 {position && order.client_lat && order.client_lon && (
                                   <div>
@@ -581,16 +581,16 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                                   </div>
                                 )}
                               </div>
-                              <div style={{marginBottom: '15px', fontSize: '0.85rem', background: '#f8f9fa', padding: '10px', borderRadius: '8px'}}>
+                              <div style={{ marginBottom: '15px', fontSize: '0.85rem', background: '#f8f9fa', padding: '10px', borderRadius: '8px' }}>
                                 <strong>Articles :</strong> {(order.items || []).map(item => (
-                                  <div key={item.id} style={{marginBottom: '4px'}}>
-                                    • {item.quantity}x {item.item_name} {item.comment && <span style={{color: '#d32f2f', fontStyle: 'italic', marginLeft: '5px'}}>({item.comment})</span>}
+                                  <div key={item.id} style={{ marginBottom: '4px' }}>
+                                    • {item.quantity}x {item.item_name} {item.comment && <span style={{ color: '#d32f2f', fontStyle: 'italic', marginLeft: '5px' }}>({item.comment})</span>}
                                   </div>
                                 ))}
                               </div>
 
                               {['accepted', 'delivering'].includes(order.status) && (
-                                <div className="order-actions-grid" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px'}}>
+                                <div className="order-actions-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
                                   <button onClick={() => openItineraryForOrder(order)} className="btn btn-info btn-sm">🗺️ Itinéraire</button>
                                   {order.status === 'accepted' && (
                                     <button onClick={() => updateOrderStatus(order.id, 'delivering')} className="btn btn-primary btn-sm">Démarrer</button>
@@ -623,21 +623,21 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
 
               <div className="livreur-priority-section">
                 {!isAvailable ? (
-                  <div className="card offline-notice" style={{textAlign: 'center', padding: '30px', background: '#fff0f0'}}>
-                    <div style={{fontSize: '3rem', marginBottom: '15px'}}>😴</div>
-                    <h2 style={{color: '#d32f2f'}}>Vous êtes Hors Service</h2>
+                  <div className="card offline-notice" style={{ textAlign: 'center', padding: '30px', background: '#fff0f0' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>😴</div>
+                    <h2 style={{ color: '#d32f2f' }}>Vous êtes Hors Service</h2>
                     <p>Mettez-vous en service pour voir et accepter des commandes.</p>
-                    <button onClick={toggleStatus} className="btn btn-success btn-full" style={{marginTop: '20px'}}>Se mettre en ligne</button>
+                    <button onClick={toggleStatus} className="btn btn-success btn-full" style={{ marginTop: '20px' }}>Se mettre en ligne</button>
                   </div>
                 ) : (
                   <div className="card available-orders-card">
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                      <h2 style={{color: '#17a2b8', margin: 0}}>📦 Commandes ({availableOrders.length})</h2>
-                      <button onClick={loadOrders} className="btn btn-sm btn-outline-info" style={{borderRadius: '20px'}}>🔄 Actualiser</button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                      <h2 style={{ color: '#17a2b8', margin: 0 }}>📦 Commandes ({availableOrders.length})</h2>
+                      <button onClick={loadOrders} className="btn btn-sm btn-outline-info" style={{ borderRadius: '20px' }}>🔄 Actualiser</button>
                     </div>
                     {availableOrders.length === 0 ? (
                       <div className="empty-state">
-                        <div style={{fontSize: '2.5rem', marginBottom: '10px'}}>🔍</div>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🔍</div>
                         <p>Recherche de nouvelles commandes...</p>
                       </div>
                     ) : (
@@ -651,7 +651,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                             boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
                             border: '1px solid #eee'
                           }}>
-                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                               <span style={{
                                 background: '#17a2b8',
                                 color: '#fff',
@@ -660,38 +660,38 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                                 fontSize: '0.8rem',
                                 fontWeight: 'bold'
                               }}>Commande {index + 1}</span>
-                              {!order.delivery_address?.includes('[') && (
-                                <span style={{fontWeight: 'bold', color: '#28a745'}}>{(order.total_price || 0).toFixed(2)} DT</span>
+                              {!order.delivery_address?.includes('[') && order.total_price > 0 && (
+                                <span style={{ fontWeight: 'bold', color: '#28a745' }}>{(order.total_price || 0).toFixed(2)} DT</span>
                               )}
                             </div>
 
-                            <div style={{marginBottom: '10px'}}>
+                            <div style={{ marginBottom: '10px' }}>
                               {!order.delivery_address?.includes('[') && (
-                                <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#333'}}>🏨 {order.restaurant_name}</div>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#333' }}>🏨 {order.restaurant_name}</div>
                               )}
-                              <div style={{fontSize: '0.9rem', color: '#666', marginTop: '4px'}}>📍 {order.delivery_address}</div>
+                              <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>📍 {order.delivery_address}</div>
                             </div>
-                            
+
                             <div style={{
                               background: '#f8f9fa',
                               padding: '10px',
                               borderRadius: '8px',
                               marginBottom: '15px'
                             }}>
-                              <div style={{fontSize: '0.85rem', fontWeight: 'bold', color: '#555', marginBottom: '5px'}}>🛒 Articles :</div>
-                              <div style={{fontSize: '0.85rem', color: '#444'}}>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#555', marginBottom: '5px' }}>🛒 Articles :</div>
+                              <div style={{ fontSize: '0.85rem', color: '#444' }}>
                                 {(order.items || []).map((item, idx) => (
-                                  <div key={idx} style={{marginBottom: '3px'}}>
-                                    • {item.quantity}x {item.item_name} {item.comment && <span style={{color: '#d32f2f', fontStyle: 'italic', marginLeft: '5px'}}>({item.comment})</span>}
+                                  <div key={idx} style={{ marginBottom: '3px' }}>
+                                    • {item.quantity}x {item.item_name} {item.comment && <span style={{ color: '#d32f2f', fontStyle: 'italic', marginLeft: '5px' }}>({item.comment})</span>}
                                   </div>
                                 ))}
                               </div>
                             </div>
 
-                            <button 
-                              onClick={() => acceptOrder(order.id)} 
+                            <button
+                              onClick={() => acceptOrder(order.id)}
                               className="btn btn-success btn-full"
-                              style={{padding: '12px', fontWeight: 'bold', fontSize: '1rem', borderRadius: '10px'}}
+                              style={{ padding: '12px', fontWeight: 'bold', fontSize: '1rem', borderRadius: '10px' }}
                             >
                               Accepter et acheter
                             </button>
@@ -703,27 +703,27 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                 )}
               </div>
 
-              <div className="livreur-location-section card" style={{marginTop: '20px'}}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
-                  <h3 style={{margin: 0}}>🗺️ Carte de livraison</h3>
-                  <button 
-                    onClick={() => setShowMap(!showMap)} 
+              <div className="livreur-location-section card" style={{ marginTop: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h3 style={{ margin: 0 }}>🗺️ Carte de livraison</h3>
+                  <button
+                    onClick={() => setShowMap(!showMap)}
                     className={`btn btn-sm ${showMap ? 'btn-secondary' : 'btn-info'}`}
                   >
                     {showMap ? 'Masquer la carte' : 'Afficher la carte'}
                   </button>
                 </div>
-                
+
                 {showMap && (
                   <>
-                    <button onClick={getCurrentLocation} className="btn btn-primary btn-locate-main" style={{marginBottom: '10px'}}>Me localiser maintenant</button>
+                    <button onClick={getCurrentLocation} className="btn btn-primary btn-locate-main" style={{ marginBottom: '10px' }}>Me localiser maintenant</button>
                     {position && <div className="loc-footer-address"><p>{positionLabel}</p></div>}
-                    <div className="map-view-section" style={{height: '350px', marginTop: '15px'}}>
+                    <div className="map-view-section" style={{ height: '350px', marginTop: '15px' }}>
                       {typeof window !== 'undefined' && typeof L !== 'undefined' ? (
-                        <MapContainer 
-                          center={(Array.isArray(mapCenter) && mapCenter.length === 2) ? mapCenter : (Array.isArray(position) && position.length === 2) ? position : [33.8083, 10.8533]} 
-                          zoom={mapZoom} 
-                          style={{ height: '100%', width: '100%' }} 
+                        <MapContainer
+                          center={(Array.isArray(mapCenter) && mapCenter.length === 2) ? mapCenter : (Array.isArray(position) && position.length === 2) ? position : [33.8083, 10.8533]}
+                          zoom={mapZoom}
+                          style={{ height: '100%', width: '100%' }}
                           ref={mapRef}
                         >
                           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -762,7 +762,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                 )}
               </div>
 
-              <div className="livreur-stats-dashboard" style={{marginTop: '20px'}}>
+              <div className="livreur-stats-dashboard" style={{ marginTop: '20px' }}>
                 <h2 className="section-title">📊 Mon Tableau de Bord</h2>
                 <div className="stats-grid">
                   <div className="stat-card-livreur"><h3>{stats.totalAccepted}</h3><p>Acceptées</p></div>
@@ -790,7 +790,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                 <thead><tr><th>ID</th><th>Total</th><th>Date</th></tr></thead>
                 <tbody>
                   {deliveredOrders.map(order => (
-                    <tr key={order.id}><td>#{order.id}</td><td>{(order.total_price || 0).toFixed(2)} DT</td><td>{order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</td></tr>
+                    <tr key={order.id}><td>#{order.id}</td><td>{order.total_price > 0 ? `${(order.total_price || 0).toFixed(2)} DT` : '-'}</td><td>{order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</td></tr>
                   ))}
                 </tbody>
               </table>
