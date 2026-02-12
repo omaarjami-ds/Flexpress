@@ -607,7 +607,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         restaurantId = 1;
       }
       // On ajoute un indicateur générique si pas de restaurant spécifié
-      finalAddress = `[Commande Directe] ${finalAddress}`;
+      // finalAddress = `[Commande Directe] ${finalAddress}`;
     }
 
     try {
