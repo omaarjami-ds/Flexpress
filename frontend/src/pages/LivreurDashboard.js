@@ -566,7 +566,7 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                                 </span>
                               </div>
                               <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>
-                                {(!order.delivery_address?.includes('[') || order.delivery_address?.includes('[Commande Directe]')) && order.total_price > 0 && (
+                                {order.total_price > 0 && (
                                   <span style={{ marginRight: '15px' }}>💰 {(order.total_price || 0).toFixed(2)} DT</span>
                                 )}
                                 <span>📅 {new Date(order.created_at).toLocaleDateString()}</span>
@@ -660,13 +660,13 @@ function LivreurDashboard({ user, onLogout, onUpdateUser }) {
                                 fontSize: '0.8rem',
                                 fontWeight: 'bold'
                               }}>Commande {index + 1}</span>
-                              {(!order.delivery_address?.includes('[') || order.delivery_address?.includes('[Commande Directe]')) && (
+                              {order.total_price > 0 && (
                                 <span style={{ fontWeight: 'bold', color: '#28a745' }}>{(order.total_price || 0).toFixed(2)} DT</span>
                               )}
                             </div>
 
                             <div style={{ marginBottom: '10px' }}>
-                              {(!order.delivery_address?.includes('[') || order.delivery_address?.includes('[Commande Directe]')) && (
+                              {!order.delivery_address?.includes('[') && (
                                 <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#333' }}>🏨 {order.restaurant_name}</div>
                               )}
                               <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>📍 {order.delivery_address}</div>
