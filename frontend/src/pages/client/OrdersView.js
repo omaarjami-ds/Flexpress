@@ -41,7 +41,7 @@ const OrdersView = ({ orders, navigate, getStatusColor, openTrackingMap }) => {
                       <div key={idx} className="order-item-row">
                         <span className="item-quantity">{item.quantity}x</span>
                         <span className="item-name">{item.item_name}</span>
-                        {item.price > 0 && <span className="item-price">{item.price.toFixed(2)} DT</span>}
+                        {(!order.delivery_address?.startsWith('[') || order.delivery_address?.includes('[Commande Directe]')) && item.price > 0 && <span className="item-price">{item.price.toFixed(2)} DT</span>}
                       </div>
                     ))}
                   </div>
@@ -49,7 +49,7 @@ const OrdersView = ({ orders, navigate, getStatusColor, openTrackingMap }) => {
                 <div className="order-card-footer">
                   <div className="order-total">
                     <span className="total-label">Total:</span>
-                    {order.total_price > 0 && <span className="total-amount">{order.total_price.toFixed(2)} DT</span>}
+                    {(!isManualOrder) && order.total_price > 0 && <span className="total-amount">{order.total_price.toFixed(2)} DT</span>}
                   </div>
                   {order.delivery_address && (
                     <div className="order-address">
