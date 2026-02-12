@@ -25,14 +25,14 @@ const OrdersView = ({ orders, navigate, getStatusColor, openTrackingMap }) => {
                     <h3>{order.restaurant_name}</h3>
                     <span className="order-date">{new Date(order.created_at).toLocaleString('fr-FR')}</span>
                   </div>
-                  <span 
+                  <span
                     className={`order-status-badge status-${order.status}`}
                     style={{ backgroundColor: getStatusColor(order.status) }}
                   >
-                    {order.status === 'pending' ? '⏳ En attente' : 
-                     order.status === 'accepted' ? '✅ Acceptée' :
-                     order.status === 'delivering' ? '🚚 En cours' :
-                     order.status === 'delivered' ? '✓ Livrée' : order.status}
+                    {order.status === 'pending' ? '⏳ En attente' :
+                      order.status === 'accepted' ? '✅ Acceptée' :
+                        order.status === 'delivering' ? '🚚 En cours' :
+                          order.status === 'delivered' ? '✓ Livrée' : order.status}
                   </span>
                 </div>
                 {order.items && order.items.length > 0 && (
@@ -41,7 +41,7 @@ const OrdersView = ({ orders, navigate, getStatusColor, openTrackingMap }) => {
                       <div key={idx} className="order-item-row">
                         <span className="item-quantity">{item.quantity}x</span>
                         <span className="item-name">{item.item_name}</span>
-                        {item.price > 0 && <span className="item-price">{item.price.toFixed(2)} DT</span>}
+                        {(!order.delivery_address?.startsWith('[') || order.delivery_address?.includes('[Commande Directe]')) && item.price > 0 && <span className="item-price">{item.price.toFixed(2)} DT</span>}
                       </div>
                     ))}
                   </div>
@@ -49,7 +49,7 @@ const OrdersView = ({ orders, navigate, getStatusColor, openTrackingMap }) => {
                 <div className="order-card-footer">
                   <div className="order-total">
                     <span className="total-label">Total:</span>
-                    {order.total_price > 0 && <span className="total-amount">{order.total_price.toFixed(2)} DT</span>}
+                    {(!order.delivery_address?.startsWith('[') || order.delivery_address?.includes('[Commande Directe]')) && order.total_price > 0 && <span className="total-amount">{order.total_price.toFixed(2)} DT</span>}
                   </div>
                   {order.delivery_address && (
                     <div className="order-address">
@@ -57,9 +57,9 @@ const OrdersView = ({ orders, navigate, getStatusColor, openTrackingMap }) => {
                     </div>
                   )}
                   {(order.status === 'accepted' || order.status === 'delivering') && (
-                    <button 
-                      className="btn btn-primary btn-sm" 
-                      style={{marginTop: '10px', width: '100%'}}
+                    <button
+                      className="btn btn-primary btn-sm"
+                      style={{ marginTop: '10px', width: '100%' }}
                       onClick={() => openTrackingMap(order)}
                     >
                       📍 Suivre ma commande

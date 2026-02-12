@@ -14,7 +14,7 @@ const getFullImageUrl = (url) => {
   if (!url) return '/static/logo.png';
   if (url.startsWith('data:image')) return url;
   if (url.startsWith('http')) return url;
-  
+
   const cleanPath = url.startsWith('/') ? url.substring(1) : url;
   if (cleanPath.startsWith('static/')) return '/' + cleanPath;
   return `/static/${cleanPath}`;
@@ -26,7 +26,7 @@ let clientIcon, restaurantIcon, driverIcon;
 
 const initializeLeafletIcons = () => {
   if (leafletInitialized) return;
-  
+
   try {
     if (L && L.Icon && L.Icon.Default && L.Icon.Default.prototype) {
       delete L.Icon.Default.prototype._getIconUrl;
@@ -36,7 +36,7 @@ const initializeLeafletIcons = () => {
         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
       });
     }
-    
+
     clientIcon = new L.Icon({
       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
@@ -63,7 +63,7 @@ const initializeLeafletIcons = () => {
       popupAnchor: [1, -34],
       shadowSize: [41, 41]
     });
-    
+
     leafletInitialized = true;
   } catch (e) {
     console.error('Error initializing Leaflet icons:', e);
@@ -225,19 +225,19 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       'fricasse': 'static/fricassé.jpg',
       'brik': 'static/brik.jpg',
     };
-    
+
     // Chercher une correspondance exacte
     if (imageMap[nameLower]) {
       return imageMap[nameLower];
     }
-    
+
     // Chercher une correspondance partielle
     for (const [key, imagePath] of Object.entries(imageMap)) {
       if (nameLower.includes(key) || key.includes(nameLower)) {
         return imagePath;
       }
     }
-    
+
     // Par défaut, essayer avec le nom directement (sans espaces)
     const fileName = nameLower.replace(/\s+/g, '').replace('é', 'e');
     return `static/${fileName}.jpg`;
@@ -260,12 +260,12 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     if (showTrackingMap && trackingOrder) {
       // Charger immédiatement
       loadOrders();
-      
+
       // Puis toutes les 5 secondes
       const interval = setInterval(() => {
         loadOrders();
       }, 5000);
-      
+
       return () => clearInterval(interval);
     }
   }, [showTrackingMap, trackingOrder?.id]); // Ne dépend que de l'ID pour ne pas reset l'intervalle à chaque update
@@ -278,7 +278,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         // On ne met à jour que si les données ont changé
         if (JSON.stringify(updatedOrder) !== JSON.stringify(trackingOrder)) {
           setTrackingOrder(updatedOrder);
-          
+
           // Centrer dynamiquement sur le livreur s'il bouge
           if (updatedOrder.driver_lat && updatedOrder.driver_lon) {
             setMapCenter([updatedOrder.driver_lat, updatedOrder.driver_lon]);
@@ -291,15 +291,15 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   const openTrackingMap = (order) => {
     setTrackingOrder(order);
     setShowTrackingMap(true);
-    
+
     // Priorité 1 : Centrer sur le livreur s'il est assigné et a une position
     if (order.driver_lat && order.driver_lon) {
       setMapCenter([order.driver_lat, order.driver_lon]);
-    } 
+    }
     // Priorité 2 : Centrer sur votre position actuelle
     else if (position) {
       setMapCenter(position);
-    } 
+    }
     // Priorité 3 : Centrer sur le restaurant
     else if (order.restaurant_latitude && order.restaurant_longitude) {
       setMapCenter([order.restaurant_latitude, order.restaurant_longitude]);
@@ -330,7 +330,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       (pos) => {
         const { latitude, longitude, accuracy: acc } = pos.coords;
         console.log('Position obtenue:', { latitude, longitude, accuracy: acc });
-        
+
         // Vérifier que les coordonnées sont valides
         if (isNaN(latitude) || isNaN(longitude)) {
           alert('Coordonnées GPS invalides. Veuillez réessayer.');
@@ -345,7 +345,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         updateLocation(latitude, longitude);
         loadRestaurants(latitude, longitude);
         updateHumanReadablePosition(latitude, longitude);
-        
+
         console.log('Position mise à jour sur la carte:', newPosition);
       },
       (error) => {
@@ -491,7 +491,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     loadOrders();
     loadRestaurants(null, null, '');
     loadPopularAndMakloub();
-    
+
     // Rafraîchissement automatique toutes les 10 secondes pour voir les nouveaux articles sans se déconnecter
     const interval = setInterval(() => {
       loadOrders();
@@ -565,20 +565,20 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    
+
     // Validation de l'adresse et du téléphone
     if (!deliveryAddress && !selectedRestaurant) {
       alert("Veuillez entrer une adresse de livraison");
       return;
     }
     if (!phoneNumber) {
-        alert("Veuillez entrer un numéro de téléphone");
-        return;
+      alert("Veuillez entrer un numéro de téléphone");
+      return;
     }
 
     const token = localStorage.getItem('token');
     const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    
+
     // Détermination du restaurant ID et du nom
     let restaurantId;
     let finalAddress = deliveryAddress || 'Adresse actuelle';
@@ -600,8 +600,8 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       }
       finalAddress = `[${customRestaurantInfo.name}] ${finalAddress}`;
     } else {
-       // Cas par défaut (ex: seulement des suggestions)
-       if (allRestaurants.length > 0) {
+      // Cas par défaut (ex: seulement des suggestions)
+      if (allRestaurants.length > 0) {
         restaurantId = allRestaurants[0].id;
       } else {
         restaurantId = 1;
@@ -626,7 +626,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setCart([]);
       setSelectedRestaurant(null);
       setCustomRestaurantInfo({ name: '', isCustom: false });
@@ -654,7 +654,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
   // Fonction pour obtenir le prix automatique basé sur le nom de l'article
   const getAutoPrice = (itemName) => {
     if (!itemName || itemName.trim() === '') return 0;
-    
+
     // Chercher dans les suggestions de fastfood tunisien
     const suggestion = tunisianFastFoodSuggestions.find(
       s => s.name.toLowerCase() === itemName.toLowerCase().trim()
@@ -662,14 +662,14 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     if (suggestion) {
       return suggestion.price;
     }
-    
+
     // Prix par défaut basé sur le type d'article (approximation)
     const nameLower = itemName.toLowerCase();
     if (nameLower.includes('makloub') || nameLower.includes('chawarma')) return 8.50;
     if (nameLower.includes('panini') || nameLower.includes('panuzzo')) return 7.50;
     if (nameLower.includes('baguette') || nameLower.includes('fricassé')) return 6.00;
     if (nameLower.includes('brik') || nameLower.includes('kaskrout')) return 4.50;
-    
+
     // Prix par défaut pour autres articles
     return 5.00;
   };
@@ -694,7 +694,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       ...item,
       price: item.name ? getAutoPrice(item.name) : 0
     }));
-    
+
     const validItems = itemsWithAutoPrice.filter(item => item.name && item.name.trim() !== '');
     if (validItems.length === 0) {
       alert('Veuillez ajouter au moins un article valide');
@@ -709,9 +709,9 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       comment: item.comment || '',
       id: Date.now() + Math.random() // ID unique
     }));
-    
+
     setCart([...cart, ...newCartItems]);
-    
+
     // Sauvegarder les infos contextuelles si le panier était vide ou pour mise à jour
     if (manualOrderForm.delivery_address) {
       setDeliveryAddress(manualOrderForm.delivery_address);
@@ -719,7 +719,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
     if (manualOrderForm.phone) {
       setPhoneNumber(manualOrderForm.phone);
     }
-    
+
     if (manualOrderForm.use_custom_restaurant && manualOrderForm.restaurant_name) {
       setCustomRestaurantInfo({ name: manualOrderForm.restaurant_name, isCustom: true });
       setSelectedRestaurant(null);
@@ -733,13 +733,13 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
 
     // Reset et fermer
     setManualOrderForm({
-        restaurant_id: '',
-        restaurant_name: '',
-        use_custom_restaurant: false,
-        delivery_address: '',
-        phone: '',
-        items: [{ name: '', quantity: 1, price: 0, comment: '' }]
-      });
+      restaurant_id: '',
+      restaurant_name: '',
+      use_custom_restaurant: false,
+      delivery_address: '',
+      phone: '',
+      items: [{ name: '', quantity: 1, price: 0, comment: '' }]
+    });
     setShowManualOrder(false);
     alert(`${validItems.length} article(s) ajouté(s) au panier !`);
   };
@@ -767,10 +767,10 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       alert('Veuillez entrer l\'adresse de livraison');
       return;
     }
-    
+
     if (!manualOrderForm.phone) {
-        alert('Veuillez entrer un numéro de téléphone');
-        return;
+      alert('Veuillez entrer un numéro de téléphone');
+      return;
     }
 
     // Calculer automatiquement les prix pour tous les articles
@@ -778,7 +778,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       ...item,
       price: item.name ? getAutoPrice(item.name) : 0
     }));
-    
+
     const validItems = itemsWithAutoPrice.filter(item => item.name && item.name.trim() !== '');
     if (validItems.length === 0) {
       alert('Veuillez ajouter au moins un article valide');
@@ -792,7 +792,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       const qty = parseFloat(item.quantity) || 0;
       return sum + (autoPrice * qty);
     }, 0);
-    
+
     // Préparer les données AVANT le try pour qu'elles soient accessibles dans le catch
     let restaurantId;
     let deliveryAddress = manualOrderForm.delivery_address;
@@ -812,6 +812,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       deliveryAddress = `[${manualOrderForm.restaurant_name}] ${deliveryAddress}`;
     } else {
       restaurantId = parseInt(manualOrderForm.restaurant_id);
+      deliveryAddress = `[Manuelle] ${deliveryAddress}`;
     }
 
     // Préparer les données avec conversion explicite des types
@@ -830,24 +831,24 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         };
       })
     };
-    
+
     try {
       console.log('Sending order data:', orderData);
       console.log('Token present:', !!token);
-      
+
       if (!token) {
         alert('❌ Erreur: Vous devez être connecté pour passer une commande');
         return;
       }
-      
+
       try {
         const response = await axios.post(`${API_URL}/orders`, orderData, {
-          headers: { 
+          headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
-        
+
         // Vérifier si la réponse est un succès
         if (response.status >= 400) {
           throw new Error(response.data?.error || `HTTP ${response.status}`);
@@ -869,7 +870,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
         // Relancer l'erreur pour qu'elle soit gérée par le catch principal
         throw axiosError;
       }
-      
+
       setManualOrderForm({
         restaurant_id: '',
         restaurant_name: '',
@@ -889,13 +890,13 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
           // Récupérer tous les restaurants pour avoir au moins un ID valide
           const restaurantsResponse = await axios.get(`${API_URL}/restaurants`);
           const restaurants = restaurantsResponse.data;
-          
+
           if (restaurants.length > 0) {
             const defaultRestaurantId = restaurants[0].id;
-            const deliveryAddress = manualOrderForm.use_custom_restaurant 
+            const deliveryAddress = manualOrderForm.use_custom_restaurant
               ? `[${manualOrderForm.restaurant_name}] ${manualOrderForm.delivery_address} (Tel: ${manualOrderForm.phone})`
               : `${manualOrderForm.delivery_address} (Tel: ${manualOrderForm.phone})`;
-            
+
             await axios.post(`${API_URL}/orders`, {
               restaurant_id: defaultRestaurantId,
               total_price: totalPrice,
@@ -910,7 +911,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
             }, {
               headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             setManualOrderForm({
               restaurant_id: '',
               restaurant_name: '',
@@ -959,1145 +960,1145 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
           <h1>FLEXPRESS</h1>
         </div>
         <div className="header-actions">
-          <button 
-            onClick={() => setShowMyOrders(!showMyOrders)} 
+          <button
+            onClick={() => setShowMyOrders(!showMyOrders)}
             className={`btn ${showMyOrders ? 'btn-primary' : 'btn-secondary'}`}
-            style={{marginRight: '10px'}}
+            style={{ marginRight: '10px' }}
           >
             📦 Mes commandes {orders.length > 0 && `(${orders.length})`}
           </button>
           <button onClick={() => {
             setShowManualOrder(true);
-            const addr = positionLabel.includes('📍 Ma position : ') 
-              ? positionLabel.replace('📍 Ma position : ', '') 
+            const addr = positionLabel.includes('📍 Ma position : ')
+              ? positionLabel.replace('📍 Ma position : ', '')
               : positionLabel;
-            setManualOrderForm(prev => ({ 
-              ...prev, 
+            setManualOrderForm(prev => ({
+              ...prev,
               phone: user?.phone || '',
               delivery_address: addr
             }));
-          }} className="btn btn-primary" style={{marginRight: '10px'}}>
+          }} className="btn btn-primary" style={{ marginRight: '10px' }}>
             📝 Commande manuelle
           </button>
-          <button onClick={() => setShowCart(!showCart)} className="btn btn-primary" style={{marginRight: '10px'}}>
+          <button onClick={() => setShowCart(!showCart)} className="btn btn-primary" style={{ marginRight: '10px' }}>
             <FiShoppingCart /> Panier ({cart.length})
           </button>
-          <ProfileMenu 
-            user={user} 
-            onLogout={onLogout} 
+          <ProfileMenu
+            user={user}
+            onLogout={onLogout}
             onProfileClick={() => {
               setShowProfile(true);
               setProfileSubView('main');
               setShowMyOrders(false);
-            }} 
+            }}
           />
         </div>
       </header>
 
       <PullToRefresh onRefresh={handleRefresh}>
         {/* Hero Section – mobile card layout (no change in behaviour, only design) */}
-      {!showMyOrders && !showProfile && (
-        <div className="hero-section hero-section-dark">
-          <div className="hero-content hero-content-mobile">
-            <div className="hero-main-column">
-              <div className="hero-location-card">
-                <div className="hero-location-icon-circle">
-                  📍
-                </div>
-                <div className="hero-location-texts">
-                  <div className="hero-location-label">Localisation actuelle</div>
-                  <div className="hero-location-value" title={getPositionLabel()}>
-                    {getPositionLabel().replace('📍 Ma position : ', '').substring(0, 40)}
-                    {getPositionLabel().length > 40 ? '...' : ''}
+        {!showMyOrders && !showProfile && (
+          <div className="hero-section hero-section-dark">
+            <div className="hero-content hero-content-mobile">
+              <div className="hero-main-column">
+                <div className="hero-location-card">
+                  <div className="hero-location-icon-circle">
+                    📍
                   </div>
-                </div>
-                <button
-                  id="location-main-btn"
-                  onClick={getCurrentLocation}
-                  className="hero-location-btn-circle"
-                  aria-label="Utiliser ma position"
-                >
-                  📍
-                </button>
-              </div>
-
-              <div className="hero-search-card">
-                <div className="hero-search">
-                  <input 
-                    type="text" 
-                    placeholder="Rechercher un restaurant"
-                    className="hero-input"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="hero-mini-categories">
-                {categories.map(category => (
+                  <div className="hero-location-texts">
+                    <div className="hero-location-label">Localisation actuelle</div>
+                    <div className="hero-location-value" title={getPositionLabel()}>
+                      {getPositionLabel().replace('📍 Ma position : ', '').substring(0, 40)}
+                      {getPositionLabel().length > 40 ? '...' : ''}
+                    </div>
+                  </div>
                   <button
-                    key={category.id}
-                    className={`hero-mini-category-chip ${selectedCategory === category.id ? 'active' : ''}`}
-                    onClick={() => {
-                      if (selectedCategory === category.id) {
-                        setSelectedCategory(null);
-                      } else {
-                        setSelectedCategory(category.id);
-                        setShowMyOrders(false);
-                      }
-                    }}
+                    id="location-main-btn"
+                    onClick={getCurrentLocation}
+                    className="hero-location-btn-circle"
+                    aria-label="Utiliser ma position"
                   >
-                    <span className="hero-mini-category-icon">{category.icon}</span>
-                    <span className="hero-mini-category-label">{category.name}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Filtres et tri (Déplacé ici) */}
-              <div className="filters-bar" style={{ marginTop: '15px', marginBottom: '0' }}>
-                <div className="filters-left">
-                  <label className="filter-toggle">
-                    <input 
-                      type="checkbox" 
-                      checked={filterOpenOnly}
-                      onChange={(e) => setFilterOpenOnly(e.target.checked)}
-                    />
-                    <span>Uniquement les restaurants ouverts</span>
-                  </label>
-                  {selectedCategory && (
-                    <span className="selected-filter-tag">
-                      {categories.find(c => c.id === selectedCategory)?.name}
-                      <button onClick={() => setSelectedCategory(null)}>×</button>
-                    </span>
-                  )}
-                </div>
-                <div className="results-count">
-                  {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'résultat' : 'résultats'}
-                  {searchQuery && searchQuery.trim() && ` pour "${searchQuery}"`}
-                </div>
-              </div>
-
-              {/* Résultats de recherche déplacés ici, s'affichent seulement si recherche ou catégorie active */}
-              {( (searchQuery && searchQuery.trim()) || selectedCategory !== null ) && (
-                <div className="restaurants-grid glovo-style" style={{ marginTop: '20px' }}>
-                  {filteredRestaurants.length === 0 ? (
-                    <div className="no-restaurants">
-                      <p>
-                        {searchQuery && searchQuery.trim() 
-                          ? `Aucun restaurant trouvé pour "${searchQuery}".`
-                          : filterOpenOnly 
-                            ? 'Aucun restaurant ouvert à proximité pour le moment.' 
-                            : 'Aucun restaurant à proximité.'}
-                      </p>
-                      {searchQuery && searchQuery.trim() && (
-                        <button 
-                          onClick={() => setSearchQuery('')}
-                          className="btn btn-secondary"
-                          style={{marginTop: '10px'}}
-                        >
-                          Effacer la recherche
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    filteredRestaurants.map(restaurant => {
-                      const getRestaurantImage = () => {
-                        const nameLower = restaurant.name?.toLowerCase() || '';
-                        if (nameLower.includes('pizza')) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400';
-                        if (nameLower.includes('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400';
-                        if (nameLower.includes('sushi')) return 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400';
-                        if (nameLower.includes('chicken') || nameLower.includes('poulet')) return 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400';
-                        if (nameLower.includes('tacos')) return 'https://images.unsplash.com/photo-1565299585323-38174c6a6c08?w=400';
-                        return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
-                      };
-                      
-                      const getRestaurantLogo = () => {
-                        const nameLower = restaurant.name?.toLowerCase() || '';
-                        if (nameLower.includes('pizza')) return '🍕';
-                        if (nameLower.includes('burger')) return '🍔';
-                        if (nameLower.includes('sushi')) return '🍣';
-                        if (nameLower.includes('chicken') || nameLower.includes('poulet')) return '🍗';
-                        if (nameLower.includes('tacos')) return '🌮';
-                        if (nameLower.includes('tunisien') || nameLower.includes('makloub')) return '🥙';
-                        return '🍽️';
-                      };
-                      
-                      const deliveryTime = restaurant.distance 
-                        ? Math.max(30, Math.min(60, Math.round(restaurant.distance * 10 + 30)))
-                        : Math.floor(Math.random() * 20) + 30;
-                      
-                      const rating = Math.floor(Math.random() * 16) + 85;
-                      const ratingCount = Math.floor(Math.random() * 300) + 20;
-                      
-                      return (
-                        <div 
-                          key={restaurant.id} 
-                          className={`glovo-restaurant-card ${!restaurant.is_open ? 'closed' : ''}`}
-                          onClick={() => handleRestaurantSelect(restaurant)}
-                          style={{ cursor: restaurant.is_open ? 'pointer' : 'default' }}
-                        >
-                          <div className="restaurant-image-container">
-                            <img 
-                              src={getFullImageUrl(restaurant.image_url)} 
-                              alt={restaurant.name}
-                              className="restaurant-image"
-                              onError={(e) => {
-                                e.target.src = getRestaurantImage();
-                              }}
-                            />
-                            {!restaurant.is_open && (
-                              <div className="restaurant-closed-overlay">
-                                <span className="closed-badge">Fermé</span>
-                                {restaurant.open_time && (
-                                  <span className="closed-time">Réouvre à {restaurant.open_time}</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="restaurant-card-content">
-                            <div className="restaurant-logo-name">
-                              <div className="restaurant-logo">{getRestaurantLogo()}</div>
-                              <div className="restaurant-name-section">
-                                <h3 className="restaurant-name">{restaurant.name}</h3>
-                                {restaurant.description && (
-                                  <p className="restaurant-tagline">{restaurant.description}</p>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div className="restaurant-meta">
-                              <div className="delivery-info">
-                                <span className="delivery-time">⏱️ {deliveryTime}-{deliveryTime + 10} min</span>
-                                <span className="delivery-fee">Gratuit</span>
-                              </div>
-                              <div className="rating-info">
-                                <span className="rating-value">{rating}%</span>
-                                <span className="rating-count">({ratingCount})</span>
-                              </div>
-                            </div>
-                            
-                            {restaurant.is_open && (
-                              <button 
-                                className="btn btn-primary btn-full glovo-order-btn"
-                              >
-                                Voir le Menu
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="hero-image hero-image-mobile">
-              <div className="hero-food-illustration hero-food-illustration-dark">🍔🍕🥙</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="container">
-        {showProfile ? (
-          <div className="profile-page">
-            {profileSubView !== 'main' && (
-              <button 
-                onClick={() => setProfileSubView('main')} 
-                className="btn btn-secondary btn-sm"
-                style={{marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px'}}
-              >
-                ‹ Retour
-              </button>
-            )}
-
-            {profileSubView === 'main' && (
-              <>
-                <div className="profile-header-card">
-                  <div className="profile-avatar-large-page">
-                    {user?.username?.substring(0, 2).toUpperCase() || '??'}
-                  </div>
-                  <h2 className="profile-name">{user?.username}</h2>
-                  <div className="profile-email" style={{color: '#666', marginTop: '5px', marginBottom: '10px'}}>{user?.email}</div>
-                </div>
-
-                <div className="profile-menu-section">
-                  <button className="profile-menu-link" onClick={() => setProfileSubView('personal')}>
-                    <div className="profile-menu-icon-wrapper icon-gold">
-                      <FiUser />
-                    </div>
-                    <span className="profile-menu-label">Informations personnelles</span>
-                    <span className="profile-menu-arrow">›</span>
-                  </button>
-                  <button className="profile-menu-link" onClick={() => setProfileSubView('addresses')}>
-                    <div className="profile-menu-icon-wrapper icon-blue">
-                      <FiMapPin />
-                    </div>
-                    <span className="profile-menu-label">Adresses enregistrées</span>
-                    <span className="profile-menu-arrow">›</span>
-                  </button>
-                  <button className="profile-menu-link" onClick={() => { setShowMyOrders(true); setShowProfile(false); }}>
-                    <div className="profile-menu-icon-wrapper icon-purple">
-                      <FiList />
-                    </div>
-                    <span className="profile-menu-label">Historique des commandes</span>
-                    <span className="profile-menu-arrow">›</span>
+                    📍
                   </button>
                 </div>
 
-                <div className="profile-menu-section">
-                  <button className="profile-menu-link" onClick={() => setShowComingSoon(true)}>
-                    <div className="profile-menu-icon-wrapper icon-green">
-                      <span style={{fontSize: '16px'}}>🔔</span>
-                    </div>
-                    <span className="profile-menu-label">Notifications</span>
-                    <span className="profile-menu-arrow">›</span>
-                  </button>
-                  <button className="profile-menu-link" onClick={() => setShowComingSoon(true)}>
-                    <div className="profile-menu-icon-wrapper icon-gold">
-                      <span style={{fontSize: '16px'}}>💳</span>
-                    </div>
-                    <span className="profile-menu-label">Moyens de paiement</span>
-                    <span className="profile-menu-arrow">›</span>
-                  </button>
-                  <button className="profile-menu-link" onClick={() => setProfileSubView('help')}>
-                    <div className="profile-menu-icon-wrapper icon-blue">
-                      <span style={{fontSize: '16px'}}>❓</span>
-                    </div>
-                    <span className="profile-menu-label">Aide et support</span>
-                    <span className="profile-menu-arrow">›</span>
-                  </button>
-                  <button className="profile-menu-link" onClick={onLogout} style={{color: '#dc3545'}}>
-                    <div className="profile-menu-icon-wrapper" style={{background: 'rgba(220, 53, 69, 0.1)'}}>
-                      <FiUser style={{color: '#dc3545'}} />
-                    </div>
-                    <span className="profile-menu-label">Déconnexion</span>
-                    <span className="profile-menu-arrow">›</span>
-                  </button>
-                </div>
-              </>
-            )}
-
-            {profileSubView === 'personal' && (
-              <div className="profile-sub-section">
-                <h3>Informations personnelles</h3>
-                <form onSubmit={handleUpdateProfile} className="profile-form">
-                  <div className="form-group">
-                    <label>Nom d'utilisateur</label>
-                    <input 
-                      type="text" 
-                      value={personalInfoForm.username}
-                      onChange={(e) => setPersonalInfoForm({...personalInfoForm, username: e.target.value})}
-                      className="input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Email</label>
-                    <input 
-                      type="email" 
-                      value={personalInfoForm.email}
-                      onChange={(e) => setPersonalInfoForm({...personalInfoForm, email: e.target.value})}
-                      className="input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Téléphone</label>
-                    <input 
-                      type="tel" 
-                      value={personalInfoForm.phone}
-                      onChange={(e) => setPersonalInfoForm({...personalInfoForm, phone: e.target.value})}
-                      className="input"
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-primary btn-full" style={{marginTop: '20px'}}>
-                    Sauvegarder les modifications
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {profileSubView === 'help' && (
-              <div className="profile-sub-section">
-                <h3>Aide et Support</h3>
-                
-                <div style={{marginBottom: '25px'}}>
-                  <h4 style={{color: '#FFD700', marginBottom: '10px'}}>Qu'est-ce que FLEXPRESS ?</h4>
-                  <p style={{fontSize: '14px', color: '#555', lineHeight: '1.6'}}>
-                    FLEXPRESS est votre partenaire de livraison ultra-rapide en Tunisie. 
-                    Nous connectons les clients gourmands aux meilleurs restaurants de la ville, 
-                    avec une flotte de livreurs dévoués prêts à vous servir en un temps record.
-                  </p>
-                </div>
-
-                <div style={{marginBottom: '25px'}}>
-                  <h4 style={{color: '#FFD700', marginBottom: '10px'}}>Nos Fonctionnalités</h4>
-                  <ul style={{fontSize: '14px', color: '#555', paddingLeft: '20px', lineHeight: '1.8'}}>
-                    <li>🚀 <strong>Commande Rapide :</strong> Choisissez vos plats préférés en quelques clics.</li>
-                    <li>📍 <strong>Suivi en Temps Réel :</strong> Suivez votre livreur sur la carte jusqu'à votre porte.</li>
-                    <li>📱 <strong>Multi-Plateforme :</strong> Disponible sur Web, Android (APK) et PC (Electron).</li>
-                    <li>🛠️ <strong>Gestion de Profil :</strong> Personnalisez vos infos et gérez vos adresses facilement.</li>
-                  </ul>
-                </div>
-
-                <div style={{
-                  background: '#f9f9f9',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px dashed #FFD700'
-                }}>
-                  <h4 style={{margin: '0 0 10px 0'}}>Besoin d'aide ?</h4>
-                  <p style={{fontSize: '14px', margin: '0 0 15px 0'}}>
-                    Notre équipe de support est là pour vous 24/7.
-                  </p>
-                  <div style={{fontSize: '14px', color: '#333'}}>
-                    <strong>Votre Email :</strong> {user?.email}
-                  </div>
-                  <div style={{fontSize: '14px', color: '#333', marginTop: '5px'}}>
-                    <strong>Support Email :</strong> flexpress.contact@gmail.com
-                  </div>
-                  <div style={{fontSize: '14px', color: '#333', marginTop: '5px'}}>
-                    <strong>Téléphone :</strong> +216 22 749 748
-                  </div>
-                  <button 
-                    className="btn btn-primary btn-full" 
-                    style={{marginTop: '15px'}}
-                    onClick={() => window.location.href = `mailto:flexpress.contact@gmail.com?subject=Aide FLEXPRESS - User: ${user?.username}`}
-                  >
-                    Nous contacter par Email
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div style={{textAlign: 'center', marginTop: '20px', color: '#999', fontSize: '12px'}}>
-              Version 1.0.0
-            </div>
-          </div>
-        ) : (
-          <>
-        {/* Section Mes Commandes */}
-        {showMyOrders && (
-          <div className="my-orders-section">
-            <div className="section-header-orders">
-              <h2 className="section-title">📦 Mes Commandes</h2>
-              <button onClick={() => setShowMyOrders(false)} className="btn btn-secondary">
-                ✕ Fermer
-              </button>
-            </div>
-            {orders.length === 0 ? (
-              <div className="empty-orders">
-                <div className="empty-orders-icon">📦</div>
-                <h3>Aucune commande</h3>
-                <p>Vous n'avez pas encore passé de commande</p>
-                <button onClick={() => { setShowMyOrders(false); }} className="btn btn-primary">
-                  Découvrir les restaurants
-                </button>
-              </div>
-            ) : (
-              <div className="orders-list-glovo">
-                {orders.map(order => {
-                  // Identifier si c'est une commande manuelle
-                  // Une commande est manuelle si :
-                  // 1. L'adresse de livraison commence par '[' (format des commandes manuelles avec restaurant personnalisé)
-                  // 2. Le restaurant est exactement 'Restaurant Personnalisé' (créé automatiquement par le backend)
-                  // On exclut les restaurants normaux comme Esmiralda
-                  const isManualOrder = (order.delivery_address && order.delivery_address.startsWith('[')) ||
-                                       (order.restaurant_name === 'Restaurant Personnalisé');
-                  
-                  return (
-                  <div key={order.id} className="order-card-glovo">
-                    <div className="order-card-header">
-                      <div className="order-restaurant-info">
-                        {!isManualOrder && <h3>{order.restaurant_name}</h3>}
-                        {isManualOrder && <h3>Commande Manuelle</h3>}
-                        <span className="order-date">{new Date(order.created_at).toLocaleString('fr-FR')}</span>
-                      </div>
-                      <span 
-                        className={`order-status-badge status-${order.status}`}
-                        style={{ backgroundColor: getStatusColor(order.status) }}
-                      >
-                        {order.status === 'pending' ? '⏳ En attente' : 
-                         order.status === 'accepted' ? '✅ Acceptée' :
-                         order.status === 'delivering' ? '🚚 En cours' :
-                         order.status === 'delivered' ? '✓ Livrée' : order.status}
-                      </span>
-                    </div>
-                    {order.items && order.items.length > 0 && (
-                      <div className="order-items-list">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="order-item-row">
-                            <span className="item-quantity">{item.quantity}x</span>
-                            <span className="item-name">{item.item_name}</span>
-                            {!isManualOrder && <span className="item-price">{Number(item.price || 0).toFixed(2)} DT</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="order-card-footer">
-                      {!isManualOrder && (
-                        <div className="order-total">
-                          <span className="total-label">Total:</span>
-                          <span className="total-amount">{Number(order.total_price || 0).toFixed(2)} DT</span>
-                        </div>
-                      )}
-                      {order.delivery_address && (
-                        <div className="order-address">
-                          📍 {order.delivery_address}
-                        </div>
-                      )}
-                      {(order.status === 'accepted' || order.status === 'delivering') && (
-                        <button 
-                          className="btn btn-primary btn-sm" 
-                          style={{marginTop: '10px', width: '100%'}}
-                          onClick={() => openTrackingMap(order)}
-                        >
-                          📍 Suivre ma commande
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Section Makloub & Populaires dynamique - cachée si recherche ou catégorie active */}
-        {!showMyOrders && !searchQuery.trim() && selectedCategory === null && (
-          <>
-          {/* Ongoing Offers – grande bannière comme la maquette */}
-          <div className="ongoing-offers-section">
-            <h2 className="section-title-left">Offres en cours</h2>
-            <div className="ongoing-offer-banner">
-              <div className="ongoing-offer-texts">
-                <span className="offer-tag">Spécial du jour</span>
-                <h3>Offres que vous ne pouvez pas rater</h3>
-                <p>Livraison rapide depuis vos restaurants préférés.</p>
-                <button
-                  className="btn btn-primary offer-cta-btn"
-                  onClick={() => {
-                    if (filteredRestaurants[0]) {
-                      handleRestaurantSelect(filteredRestaurants[0]);
-                    }
-                  }}
-                >
-                  Voir les offres
-                </button>
-              </div>
-              <div className="ongoing-offer-image">
-                <span>🌯🍔🍕</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Populaire / Tendance – deux colonnes de cartes */}
-          {(popularItems.length > 0 || makloubItems.length > 0) && (
-            <div className="popular-trending-wrapper">
-              <div className="popular-column">
-                <h3 className="popular-title">Populaire</h3>
-                <div className="food-card-list">
-                  {(popularItems.length ? popularItems : tunisianFastFoodSuggestions)
-                    .slice(0, 4)
-                    .map((item, index) => (
-                      <div
-                        key={index}
-                        className="food-card"
-                        onClick={() => addToCart({ ...item, quantity: 1 })}
-                      >
-                        <div className="food-card-image-wrapper">
-                          <img
-                            src={getFullImageUrl(item.image_url) || getSuggestionImage(item.name)}
-                            alt={item.name}
-                            className="food-card-image"
-                            onError={(e) => {
-                              e.target.src = getSuggestionImage(item.name);
-                            }}
-                          />
-                          <button className="food-card-favorite">♡</button>
-                          <div className="food-card-time">
-                            ⏱️ 15 min
-                          </div>
-                        </div>
-                        <div className="food-card-content">
-                          <h4>{item.name}</h4>
-                          <div className="food-card-rating">
-                            <span>⭐ 4.{index + 3}</span>
-                            <span className="food-card-reviews">(250+ avis)</span>
-                          </div>
-                          <div className="food-card-footer">
-                            <span className="food-card-price">
-                              {Number(item.price || 0).toFixed(3)} DT
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              <div className="trending-column">
-                <h3 className="popular-title">Tendance</h3>
-                <div className="food-card-list">
-                  {(makloubItems.length ? makloubItems : tunisianFastFoodSuggestions)
-                    .slice(0, 4)
-                    .map((item, index) => (
-                      <div
-                        key={index}
-                        className="food-card"
-                        onClick={() => addToCart({ ...item, quantity: 1 })}
-                      >
-                        <div className="food-card-image-wrapper">
-                          <img
-                            src={getFullImageUrl(item.image_url) || getSuggestionImage(item.name)}
-                            alt={item.name}
-                            className="food-card-image"
-                            onError={(e) => {
-                              e.target.src = getSuggestionImage(item.name);
-                            }}
-                          />
-                          <button className="food-card-favorite">♡</button>
-                          <div className="food-card-time">
-                            ⏱️ 12 min
-                          </div>
-                        </div>
-                        <div className="food-card-content">
-                          <h4>{item.name}</h4>
-                          <div className="food-card-rating">
-                            <span>⭐ 4.{index + 2}</span>
-                            <span className="food-card-reviews">(300+ avis)</span>
-                          </div>
-                          <div className="food-card-footer">
-                            <span className="food-card-price">
-                              {Number(item.price || 0).toFixed(3)} DT
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-
-        {/* Suggestions supplémentaires */}
-        <div className="more-suggestions-section">
-          <h2 className="section-title">✨ Recommandations pour vous</h2>
-          <div className="recommendations-grid">
-            <div className="recommendation-card" onClick={() => {
-              setSelectedCategory('tunisian');
-              setShowMyOrders(false);
-            }}>
-              <div className="recommendation-icon">🥙</div>
-              <h4>Spécialités Tunisiennes</h4>
-              <p>Découvrez nos meilleurs plats traditionnels</p>
-            </div>
-            <div className="recommendation-card" onClick={() => {
-              setSelectedCategory('sandwich');
-              setShowMyOrders(false);
-            }}>
-              <div className="recommendation-icon">🥪</div>
-              <h4>Sandwichs & Paninis</h4>
-              <p>Des sandwichs frais et savoureux</p>
-            </div>
-            <div className="recommendation-card" onClick={() => {
-              setSelectedCategory('pizza');
-              setShowMyOrders(false);
-            }}>
-              <div className="recommendation-icon">🍕</div>
-              <h4>Pizzas Artisanales</h4>
-              <p>Pizzas faites maison avec des ingrédients frais</p>
-            </div>
-            <div className="recommendation-card" onClick={() => {
-              setSelectedCategory('chicken');
-              setShowMyOrders(false);
-            }}>
-              <div className="recommendation-icon">🍗</div>
-              <h4>Poulet Grillé</h4>
-              <p>Poulet croustillant et savoureux</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="dashboard-grid">
-          <div className="main-content">
-            {/* Liste de restaurants retirée d'ici (déplacée en haut) */}
-          </div>
-
-          <div className="sidebar">
-            {selectedRestaurant && (
-              <div className="card">
-                <h3>Menu - {selectedRestaurant.name}</h3>
-                {menuItems.length === 0 ? (
-                  <p>Chargement du menu...</p>
-                ) : (
-                  <div className="menu-items">
-                    {menuItems.map((item) => (
-                      <div key={item.id} className="menu-item">
-                        {item.image_url && (
-                          <img 
-                            src={getFullImageUrl(item.image_url)} 
-                            alt={item.name} 
-                            className="menu-item-image"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                            }}
-                          />
-                        )}
-                        <div className="menu-item-content">
-                          <strong>{item.name}</strong>
-                          <p>{item.description || 'Plat délicieux'}</p>
-                          {item.category && (
-                            <span className="menu-category">{item.category}</span>
-                          )}
-                        </div>
-                        <div className="menu-item-actions">
-                          <span className="price">{Number(item.price || 0).toFixed(3)}DT</span>
-                          <button 
-                            onClick={() => addToCart({ 
-                              ...item,
-                              quantity: 1
-                            })} 
-                            className="btn btn-primary"
-                            disabled={!item.is_available}
-                          >
-                            {item.is_available ? 'Ajouter' : 'Indisponible'}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Sidebar avec suggestions rapides */}
-            <div className="card">
-              <h3>⚡ Commandes rapides</h3>
-              <p style={{color: '#666', fontSize: '14px', marginBottom: '15px'}}>
-                Commandez rapidement vos plats favoris
-              </p>
-              <div className="quick-orders">
-                {(popularItems.length > 0 ? popularItems : tunisianFastFoodSuggestions).slice(0, 4).map((item, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      // Ajouter directement au panier
-                      addToCart({
-                        ...item,
-                        quantity: 1
-                      });
-                      alert(`"${item.name}" ajouté au panier !`);
-                    }}
-                    className="quick-order-btn"
-                  >
-                    <img 
-                      src={item.image_url || getSuggestionImage(item.name)} 
-                      alt={item.name}
-                      className="quick-order-image"
-                      onError={(e) => {
-                        e.target.src = '/static/logo.png';
-                      }}
-                    />
-                    <div className="quick-order-info">
-                      <span className="quick-order-name">{item.name}</span>
-                      <span className="quick-order-price">{Number(item.price || 0).toFixed(3)} DT</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-        </>
-        )}
-        </>
-        )}
-      </div>
-
-      {showCart && (
-        <div className="cart-modal">
-          <div className="cart-content">
-            <h3>Panier</h3>
-            {cart.length === 0 ? (
-              <p>Panier vide</p>
-            ) : (
-              <>
-                <div style={{marginBottom: '15px'}}>
-                   <label style={{display: 'block', fontSize: '0.9em', color: '#666', marginBottom: '5px'}}>Adresse de livraison:</label>
-                   <input 
-                     type="text" 
-                     value={deliveryAddress} 
-                     readOnly
-                     placeholder="Votre adresse..."
-                     className="input"
-                     style={{width: '100%', padding: '8px', background: '#f5f5f5', cursor: 'not-allowed'}}
-                   />
-                </div>
-                
-                <div style={{marginBottom: '15px'}}>
-                   <label style={{display: 'block', fontSize: '0.9em', color: '#666', marginBottom: '5px'}}>Numéro de téléphone:</label>
-                   <input 
-                     type="tel" 
-                     value={phoneNumber} 
-                     onChange={(e) => setPhoneNumber(e.target.value)}
-                     placeholder="Votre numéro de téléphone..."
-                     className="input"
-                     style={{width: '100%', padding: '8px'}}
-                   />
-                </div>
-                
-                {/* Affichage du restaurant sélectionné si existe */}
-                {selectedRestaurant && (
-                  <div style={{marginBottom: '10px', fontSize: '0.9em', color: '#28a745'}}>
-                    Restaurant: <strong>{selectedRestaurant.name}</strong>
-                  </div>
-                )}
-                {customRestaurantInfo.name && (
-                   <div style={{marginBottom: '10px', fontSize: '0.9em', color: '#17a2b8'}}>
-                    Restaurant personnalisé: <strong>{customRestaurantInfo.name}</strong>
-                  </div>
-                )}
-
-                {cart.map(item => (
-                  <div key={item.id} className="cart-item" style={{display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid #eee', paddingBottom: '10px'}}>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
-                      <div style={{flex: 1}}>
-                        <span>{item.name}</span>
-                        {item.category && (
-                          <span className="menu-category" style={{marginLeft: '8px'}}>{item.category}</span>
-                        )}
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                        <span style={{fontSize: '0.9em', color: '#666'}}>
-                          {item.quantity} x {Number(item.price || 0).toFixed(2)}DT = {(Number(item.price || 0) * item.quantity).toFixed(2)}DT
-                        </span>
-                        <button onClick={() => removeFromCart(item.id)} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer'}}>×</button>
-                      </div>
-                    </div>
+                <div className="hero-search-card">
+                  <div className="hero-search">
                     <input
                       type="text"
-                      value={item.comment || ''}
-                      onChange={(e) => updateCartItemComment(item.id, e.target.value)}
-                      placeholder="Commentaire (ex: sans oignons...)"
-                      className="input"
-                      style={{width: '100%', padding: '6px 10px', fontSize: '0.85em', border: '1px solid #ddd', borderRadius: '4px'}}
+                      placeholder="Rechercher un restaurant"
+                      className="hero-input"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                ))}
-                <div className="cart-total">
-                  Total: {cart.reduce((sum, item) => sum + Number(item.price || 0) * item.quantity, 0).toFixed(2)}DT
                 </div>
-                <button onClick={placeOrder} className="btn btn-success btn-full">
-                  Commander
-                </button>
-              </>
-            )}
-            <button onClick={() => setShowCart(false)} className="btn btn-secondary btn-full" style={{marginTop: '10px'}}>
-              Fermer
-            </button>
-          </div>
-        </div>
-      )}
 
-      {showManualOrder && (
-        <div className="cart-modal">
-          <div className="cart-content" style={{maxWidth: '700px'}}>
-            <h3>📝 Commande Manuelle</h3>
-            
-            <div style={{marginBottom: '15px', padding: '12px', background: '#f0f0f0', borderRadius: '8px'}}>
-              <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
-                <input
-                  type="checkbox"
-                  checked={manualOrderForm.use_custom_restaurant}
-                  onChange={(e) => setManualOrderForm({...manualOrderForm, use_custom_restaurant: e.target.checked, restaurant_id: '', restaurant_name: ''})}
-                  style={{marginRight: '10px', width: '18px', height: '18px', cursor: 'pointer'}}
-                />
-                <span style={{fontWeight: 'bold', color: '#333'}}>Restaurant non listé (saisir manuellement)</span>
-              </label>
-            </div>
-
-            {!manualOrderForm.use_custom_restaurant ? (
-              <div style={{marginBottom: '20px'}}>
-                <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333'}}>Restaurant *</label>
-                <select 
-                  value={manualOrderForm.restaurant_id} 
-                  onChange={(e) => setManualOrderForm({...manualOrderForm, restaurant_id: e.target.value})}
-                  className="input"
-                  style={{width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '16px'}}
-                >
-                  <option value="">Sélectionner un restaurant</option>
-                  {allRestaurants.map(restaurant => (
-                    <option key={restaurant.id} value={restaurant.id}>
-                      {restaurant.name} {restaurant.is_open ? '🟢 Ouvert' : '🔴 Fermé'}
-                    </option>
+                <div className="hero-mini-categories">
+                  {categories.map(category => (
+                    <button
+                      key={category.id}
+                      className={`hero-mini-category-chip ${selectedCategory === category.id ? 'active' : ''}`}
+                      onClick={() => {
+                        if (selectedCategory === category.id) {
+                          setSelectedCategory(null);
+                        } else {
+                          setSelectedCategory(category.id);
+                          setShowMyOrders(false);
+                        }
+                      }}
+                    >
+                      <span className="hero-mini-category-icon">{category.icon}</span>
+                      <span className="hero-mini-category-label">{category.name}</span>
+                    </button>
                   ))}
-                </select>
+                </div>
+
+                {/* Filtres et tri (Déplacé ici) */}
+                <div className="filters-bar" style={{ marginTop: '15px', marginBottom: '0' }}>
+                  <div className="filters-left">
+                    <label className="filter-toggle">
+                      <input
+                        type="checkbox"
+                        checked={filterOpenOnly}
+                        onChange={(e) => setFilterOpenOnly(e.target.checked)}
+                      />
+                      <span>Uniquement les restaurants ouverts</span>
+                    </label>
+                    {selectedCategory && (
+                      <span className="selected-filter-tag">
+                        {categories.find(c => c.id === selectedCategory)?.name}
+                        <button onClick={() => setSelectedCategory(null)}>×</button>
+                      </span>
+                    )}
+                  </div>
+                  <div className="results-count">
+                    {filteredRestaurants.length} {filteredRestaurants.length === 1 ? 'résultat' : 'résultats'}
+                    {searchQuery && searchQuery.trim() && ` pour "${searchQuery}"`}
+                  </div>
+                </div>
+
+                {/* Résultats de recherche déplacés ici, s'affichent seulement si recherche ou catégorie active */}
+                {((searchQuery && searchQuery.trim()) || selectedCategory !== null) && (
+                  <div className="restaurants-grid glovo-style" style={{ marginTop: '20px' }}>
+                    {filteredRestaurants.length === 0 ? (
+                      <div className="no-restaurants">
+                        <p>
+                          {searchQuery && searchQuery.trim()
+                            ? `Aucun restaurant trouvé pour "${searchQuery}".`
+                            : filterOpenOnly
+                              ? 'Aucun restaurant ouvert à proximité pour le moment.'
+                              : 'Aucun restaurant à proximité.'}
+                        </p>
+                        {searchQuery && searchQuery.trim() && (
+                          <button
+                            onClick={() => setSearchQuery('')}
+                            className="btn btn-secondary"
+                            style={{ marginTop: '10px' }}
+                          >
+                            Effacer la recherche
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      filteredRestaurants.map(restaurant => {
+                        const getRestaurantImage = () => {
+                          const nameLower = restaurant.name?.toLowerCase() || '';
+                          if (nameLower.includes('pizza')) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400';
+                          if (nameLower.includes('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400';
+                          if (nameLower.includes('sushi')) return 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400';
+                          if (nameLower.includes('chicken') || nameLower.includes('poulet')) return 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400';
+                          if (nameLower.includes('tacos')) return 'https://images.unsplash.com/photo-1565299585323-38174c6a6c08?w=400';
+                          return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
+                        };
+
+                        const getRestaurantLogo = () => {
+                          const nameLower = restaurant.name?.toLowerCase() || '';
+                          if (nameLower.includes('pizza')) return '🍕';
+                          if (nameLower.includes('burger')) return '🍔';
+                          if (nameLower.includes('sushi')) return '🍣';
+                          if (nameLower.includes('chicken') || nameLower.includes('poulet')) return '🍗';
+                          if (nameLower.includes('tacos')) return '🌮';
+                          if (nameLower.includes('tunisien') || nameLower.includes('makloub')) return '🥙';
+                          return '🍽️';
+                        };
+
+                        const deliveryTime = restaurant.distance
+                          ? Math.max(30, Math.min(60, Math.round(restaurant.distance * 10 + 30)))
+                          : Math.floor(Math.random() * 20) + 30;
+
+                        const rating = Math.floor(Math.random() * 16) + 85;
+                        const ratingCount = Math.floor(Math.random() * 300) + 20;
+
+                        return (
+                          <div
+                            key={restaurant.id}
+                            className={`glovo-restaurant-card ${!restaurant.is_open ? 'closed' : ''}`}
+                            onClick={() => handleRestaurantSelect(restaurant)}
+                            style={{ cursor: restaurant.is_open ? 'pointer' : 'default' }}
+                          >
+                            <div className="restaurant-image-container">
+                              <img
+                                src={getFullImageUrl(restaurant.image_url)}
+                                alt={restaurant.name}
+                                className="restaurant-image"
+                                onError={(e) => {
+                                  e.target.src = getRestaurantImage();
+                                }}
+                              />
+                              {!restaurant.is_open && (
+                                <div className="restaurant-closed-overlay">
+                                  <span className="closed-badge">Fermé</span>
+                                  {restaurant.open_time && (
+                                    <span className="closed-time">Réouvre à {restaurant.open_time}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="restaurant-card-content">
+                              <div className="restaurant-logo-name">
+                                <div className="restaurant-logo">{getRestaurantLogo()}</div>
+                                <div className="restaurant-name-section">
+                                  <h3 className="restaurant-name">{restaurant.name}</h3>
+                                  {restaurant.description && (
+                                    <p className="restaurant-tagline">{restaurant.description}</p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="restaurant-meta">
+                                <div className="delivery-info">
+                                  <span className="delivery-time">⏱️ {deliveryTime}-{deliveryTime + 10} min</span>
+                                  <span className="delivery-fee">Gratuit</span>
+                                </div>
+                                <div className="rating-info">
+                                  <span className="rating-value">{rating}%</span>
+                                  <span className="rating-count">({ratingCount})</span>
+                                </div>
+                              </div>
+
+                              {restaurant.is_open && (
+                                <button
+                                  className="btn btn-primary btn-full glovo-order-btn"
+                                >
+                                  Voir le Menu
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div style={{marginBottom: '20px'}}>
-                <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333'}}>Nom du restaurant *</label>
-                <input
-                  type="text"
-                  value={manualOrderForm.restaurant_name}
-                  onChange={(e) => setManualOrderForm({...manualOrderForm, restaurant_name: e.target.value})}
-                  placeholder="Ex: Restaurant Chez Ali"
-                  className="input"
-                  style={{width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '16px'}}
-                />
+
+              <div className="hero-image hero-image-mobile">
+                <div className="hero-food-illustration hero-food-illustration-dark">🍔🍕🥙</div>
               </div>
-            )}
-
-            <div style={{marginBottom: '20px'}}>
-              <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333'}}>Adresse de livraison *</label>
-              <input
-                type="text"
-                value={manualOrderForm.delivery_address}
-                readOnly
-                placeholder="Votre adresse de livraison"
-                className="input"
-                style={{width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '16px', background: '#f5f5f5', cursor: 'not-allowed'}}
-              />
             </div>
+          </div>
+        )}
 
-            <div style={{marginBottom: '20px'}}>
-              <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333'}}>Numéro de téléphone *</label>
-              <input
-                type="tel"
-                value={manualOrderForm.phone}
-                onChange={(e) => setManualOrderForm({...manualOrderForm, phone: e.target.value})}
-                placeholder="Ex: 50 123 456"
-                className="input"
-                style={{width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '16px'}}
-              />
-            </div>
-
-            <div style={{marginBottom: '20px'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                <label style={{fontWeight: 'bold', color: '#333', fontSize: '16px'}}>Articles *</label>
-                <button onClick={addManualItem} className="btn btn-primary" style={{padding: '8px 16px', fontSize: '14px'}}>
-                  + Ajouter un article
+        <div className="container">
+          {showProfile ? (
+            <div className="profile-page">
+              {profileSubView !== 'main' && (
+                <button
+                  onClick={() => setProfileSubView('main')}
+                  className="btn btn-secondary btn-sm"
+                  style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  ‹ Retour
                 </button>
-              </div>
-              
-              <div style={{maxHeight: '300px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '10px', background: '#fafafa'}}>
-                {manualOrderForm.items.map((item, index) => (
-                  <div key={index} style={{display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', padding: '15px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', border: '1px solid #eee'}}>
-                    <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '10px', alignItems: 'center'}}>
+              )}
+
+              {profileSubView === 'main' && (
+                <>
+                  <div className="profile-header-card">
+                    <div className="profile-avatar-large-page">
+                      {user?.username?.substring(0, 2).toUpperCase() || '??'}
+                    </div>
+                    <h2 className="profile-name">{user?.username}</h2>
+                    <div className="profile-email" style={{ color: '#666', marginTop: '5px', marginBottom: '10px' }}>{user?.email}</div>
+                  </div>
+
+                  <div className="profile-menu-section">
+                    <button className="profile-menu-link" onClick={() => setProfileSubView('personal')}>
+                      <div className="profile-menu-icon-wrapper icon-gold">
+                        <FiUser />
+                      </div>
+                      <span className="profile-menu-label">Informations personnelles</span>
+                      <span className="profile-menu-arrow">›</span>
+                    </button>
+                    <button className="profile-menu-link" onClick={() => setProfileSubView('addresses')}>
+                      <div className="profile-menu-icon-wrapper icon-blue">
+                        <FiMapPin />
+                      </div>
+                      <span className="profile-menu-label">Adresses enregistrées</span>
+                      <span className="profile-menu-arrow">›</span>
+                    </button>
+                    <button className="profile-menu-link" onClick={() => { setShowMyOrders(true); setShowProfile(false); }}>
+                      <div className="profile-menu-icon-wrapper icon-purple">
+                        <FiList />
+                      </div>
+                      <span className="profile-menu-label">Historique des commandes</span>
+                      <span className="profile-menu-arrow">›</span>
+                    </button>
+                  </div>
+
+                  <div className="profile-menu-section">
+                    <button className="profile-menu-link" onClick={() => setShowComingSoon(true)}>
+                      <div className="profile-menu-icon-wrapper icon-green">
+                        <span style={{ fontSize: '16px' }}>🔔</span>
+                      </div>
+                      <span className="profile-menu-label">Notifications</span>
+                      <span className="profile-menu-arrow">›</span>
+                    </button>
+                    <button className="profile-menu-link" onClick={() => setShowComingSoon(true)}>
+                      <div className="profile-menu-icon-wrapper icon-gold">
+                        <span style={{ fontSize: '16px' }}>💳</span>
+                      </div>
+                      <span className="profile-menu-label">Moyens de paiement</span>
+                      <span className="profile-menu-arrow">›</span>
+                    </button>
+                    <button className="profile-menu-link" onClick={() => setProfileSubView('help')}>
+                      <div className="profile-menu-icon-wrapper icon-blue">
+                        <span style={{ fontSize: '16px' }}>❓</span>
+                      </div>
+                      <span className="profile-menu-label">Aide et support</span>
+                      <span className="profile-menu-arrow">›</span>
+                    </button>
+                    <button className="profile-menu-link" onClick={onLogout} style={{ color: '#dc3545' }}>
+                      <div className="profile-menu-icon-wrapper" style={{ background: 'rgba(220, 53, 69, 0.1)' }}>
+                        <FiUser style={{ color: '#dc3545' }} />
+                      </div>
+                      <span className="profile-menu-label">Déconnexion</span>
+                      <span className="profile-menu-arrow">›</span>
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {profileSubView === 'personal' && (
+                <div className="profile-sub-section">
+                  <h3>Informations personnelles</h3>
+                  <form onSubmit={handleUpdateProfile} className="profile-form">
+                    <div className="form-group">
+                      <label>Nom d'utilisateur</label>
                       <input
                         type="text"
-                        value={item.name}
-                        onChange={(e) => updateManualItem(index, 'name', e.target.value)}
-                        placeholder="Nom de l'article (ex: Makloub)"
+                        value={personalInfoForm.username}
+                        onChange={(e) => setPersonalInfoForm({ ...personalInfoForm, username: e.target.value })}
                         className="input"
-                        style={{padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '15px', background: '#f9f9f9'}}
                       />
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateManualItem(index, 'quantity', e.target.value)}
-                        placeholder="Qté"
-                        min="1"
-                        className="input"
-                        style={{padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '15px', textAlign: 'center'}}
-                      />
-                      {manualOrderForm.items.length > 1 && (
-                        <button 
-                          onClick={() => removeManualItem(index)} 
-                          className="btn btn-danger"
-                          style={{padding: '10px', minWidth: '40px', fontSize: '18px'}}
-                          title="Supprimer cet article"
-                        >
-                          ×
-                        </button>
-                      )}
                     </div>
-                    <textarea
-                      value={item.comment || ''}
-                      onChange={(e) => updateManualItem(index, 'comment', e.target.value)}
-                      placeholder="Instructions spéciales (ex: sans oignons, plus de harissa...)"
-                      className="input"
-                      style={{width: '100%', padding: '10px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '14px', minHeight: '60px', resize: 'vertical'}}
-                    />
+                    <div className="form-group">
+                      <label>Email</label>
+                      <input
+                        type="email"
+                        value={personalInfoForm.email}
+                        onChange={(e) => setPersonalInfoForm({ ...personalInfoForm, email: e.target.value })}
+                        className="input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Téléphone</label>
+                      <input
+                        type="tel"
+                        value={personalInfoForm.phone}
+                        onChange={(e) => setPersonalInfoForm({ ...personalInfoForm, phone: e.target.value })}
+                        className="input"
+                      />
+                    </div>
+                    <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '20px' }}>
+                      Sauvegarder les modifications
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {profileSubView === 'help' && (
+                <div className="profile-sub-section">
+                  <h3>Aide et Support</h3>
+
+                  <div style={{ marginBottom: '25px' }}>
+                    <h4 style={{ color: '#FFD700', marginBottom: '10px' }}>Qu'est-ce que FLEXPRESS ?</h4>
+                    <p style={{ fontSize: '14px', color: '#555', lineHeight: '1.6' }}>
+                      FLEXPRESS est votre partenaire de livraison ultra-rapide en Tunisie.
+                      Nous connectons les clients gourmands aux meilleurs restaurants de la ville,
+                      avec une flotte de livreurs dévoués prêts à vous servir en un temps record.
+                    </p>
                   </div>
-                ))}
+
+                  <div style={{ marginBottom: '25px' }}>
+                    <h4 style={{ color: '#FFD700', marginBottom: '10px' }}>Nos Fonctionnalités</h4>
+                    <ul style={{ fontSize: '14px', color: '#555', paddingLeft: '20px', lineHeight: '1.8' }}>
+                      <li>🚀 <strong>Commande Rapide :</strong> Choisissez vos plats préférés en quelques clics.</li>
+                      <li>📍 <strong>Suivi en Temps Réel :</strong> Suivez votre livreur sur la carte jusqu'à votre porte.</li>
+                      <li>📱 <strong>Multi-Plateforme :</strong> Disponible sur Web, Android (APK) et PC (Electron).</li>
+                      <li>🛠️ <strong>Gestion de Profil :</strong> Personnalisez vos infos et gérez vos adresses facilement.</li>
+                    </ul>
+                  </div>
+
+                  <div style={{
+                    background: '#f9f9f9',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px dashed #FFD700'
+                  }}>
+                    <h4 style={{ margin: '0 0 10px 0' }}>Besoin d'aide ?</h4>
+                    <p style={{ fontSize: '14px', margin: '0 0 15px 0' }}>
+                      Notre équipe de support est là pour vous 24/7.
+                    </p>
+                    <div style={{ fontSize: '14px', color: '#333' }}>
+                      <strong>Votre Email :</strong> {user?.email}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#333', marginTop: '5px' }}>
+                      <strong>Support Email :</strong> flexpress.contact@gmail.com
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#333', marginTop: '5px' }}>
+                      <strong>Téléphone :</strong> +216 22 749 748
+                    </div>
+                    <button
+                      className="btn btn-primary btn-full"
+                      style={{ marginTop: '15px' }}
+                      onClick={() => window.location.href = `mailto:flexpress.contact@gmail.com?subject=Aide FLEXPRESS - User: ${user?.username}`}
+                    >
+                      Nous contacter par Email
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ textAlign: 'center', marginTop: '20px', color: '#999', fontSize: '12px' }}>
+                Version 1.0.0
               </div>
             </div>
+          ) : (
+            <>
+              {/* Section Mes Commandes */}
+              {showMyOrders && (
+                <div className="my-orders-section">
+                  <div className="section-header-orders">
+                    <h2 className="section-title">📦 Mes Commandes</h2>
+                    <button onClick={() => setShowMyOrders(false)} className="btn btn-secondary">
+                      ✕ Fermer
+                    </button>
+                  </div>
+                  {orders.length === 0 ? (
+                    <div className="empty-orders">
+                      <div className="empty-orders-icon">📦</div>
+                      <h3>Aucune commande</h3>
+                      <p>Vous n'avez pas encore passé de commande</p>
+                      <button onClick={() => { setShowMyOrders(false); }} className="btn btn-primary">
+                        Découvrir les restaurants
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="orders-list-glovo">
+                      {orders.map(order => {
+                        // Identifier si c'est une commande manuelle
+                        // Une commande est manuelle si :
+                        // 1. L'adresse de livraison commence par '[' (format des commandes manuelles avec restaurant personnalisé)
+                        // 2. Le restaurant est exactement 'Restaurant Personnalisé' (créé automatiquement par le backend)
+                        // On exclut les restaurants normaux comme Esmiralda
+                        const isManualOrder = (order.delivery_address && order.delivery_address.startsWith('[')) ||
+                          (order.restaurant_name === 'Restaurant Personnalisé');
 
-            <div style={{borderTop: '2px solid #FFD700', paddingTop: '15px', marginBottom: '20px'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <span style={{fontSize: '18px', fontWeight: 'bold', color: '#333'}}>Total:</span>
-                <span style={{fontSize: '24px', fontWeight: 'bold', color: '#FFD700'}}>
-                  {manualOrderForm.items
-                    .filter(item => item.name && item.name.trim() !== '')
-                    .reduce((sum, item) => {
-                      const autoPrice = getAutoPrice(item.name);
-                      const qty = parseFloat(item.quantity) || 0;
-                      return sum + (autoPrice * qty);
-                    }, 0)
-                    .toFixed(2)} DT
-                </span>
-              </div>
-            </div>
-
-            <div style={{display: 'flex', gap: '10px'}}>
-              <button onClick={addToCartFromManual} className="btn btn-primary" style={{flex: 1, padding: '12px', fontSize: '16px'}}>
-                🛒 Ajouter au panier
-              </button>
-              <button onClick={placeManualOrder} className="btn btn-success" style={{flex: 1, padding: '12px', fontSize: '16px'}}>
-                ✅ Commander (Direct)
-              </button>
-              <button onClick={() => {
-                setShowManualOrder(false);
-                setManualOrderForm({
-                  restaurant_id: '',
-                  restaurant_name: '',
-                  use_custom_restaurant: false,
-                  delivery_address: '',
-                  phone: '',
-                  items: [{ name: '', quantity: 1, price: 0 }]
-                });
-              }} className="btn btn-secondary" style={{padding: '12px', fontSize: '16px'}}>
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showTrackingMap && trackingOrder && (
-        <div className="cart-modal">
-          <div className="cart-content" style={{maxWidth: '800px', width: '90%'}}>
-            <div className="modal-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-              <h3>📍 Suivi de commande</h3>
-              <button onClick={() => setShowTrackingMap(false)} className="btn btn-secondary btn-sm">Fermer</button>
-            </div>
-            
-            <div style={{height: '400px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginBottom: '15px'}}>
-              <MapContainer 
-                center={mapCenter || [36.8065, 10.1815]} 
-                zoom={13} 
-                style={{ height: '100%', width: '100%' }}
-                ref={mapRef}
-              >
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                />
-                <RecenterMap center={mapCenter} zoom={15} />
-                
-                {/* Position du Livreur Uniquement */}
-                {trackingOrder.driver_name && (trackingOrder.driver_lat && trackingOrder.driver_lon) && (
-                  <Marker 
-                    position={[trackingOrder.driver_lat, trackingOrder.driver_lon]} 
-                    icon={driverIcon}
-                    eventHandlers={{
-                      click: () => {
-                        openDriverLocationInGPS(
-                          trackingOrder.driver_lat, 
-                          trackingOrder.driver_lon, 
-                          trackingOrder.driver_name
+                        return (
+                          <div key={order.id} className="order-card-glovo">
+                            <div className="order-card-header">
+                              <div className="order-restaurant-info">
+                                {!isManualOrder && <h3>{order.restaurant_name}</h3>}
+                                {isManualOrder && <h3>Commande Manuelle</h3>}
+                                <span className="order-date">{new Date(order.created_at).toLocaleString('fr-FR')}</span>
+                              </div>
+                              <span
+                                className={`order-status-badge status-${order.status}`}
+                                style={{ backgroundColor: getStatusColor(order.status) }}
+                              >
+                                {order.status === 'pending' ? '⏳ En attente' :
+                                  order.status === 'accepted' ? '✅ Acceptée' :
+                                    order.status === 'delivering' ? '🚚 En cours' :
+                                      order.status === 'delivered' ? '✓ Livrée' : order.status}
+                              </span>
+                            </div>
+                            {order.items && order.items.length > 0 && (
+                              <div className="order-items-list">
+                                {order.items.map((item, idx) => (
+                                  <div key={idx} className="order-item-row">
+                                    <span className="item-quantity">{item.quantity}x</span>
+                                    <span className="item-name">{item.item_name}</span>
+                                    {!isManualOrder && <span className="item-price">{Number(item.price || 0).toFixed(2)} DT</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div className="order-card-footer">
+                              {!isManualOrder && (
+                                <div className="order-total">
+                                  <span className="total-label">Total:</span>
+                                  <span className="total-amount">{Number(order.total_price || 0).toFixed(2)} DT</span>
+                                </div>
+                              )}
+                              {order.delivery_address && (
+                                <div className="order-address">
+                                  📍 {order.delivery_address}
+                                </div>
+                              )}
+                              {(order.status === 'accepted' || order.status === 'delivering') && (
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  style={{ marginTop: '10px', width: '100%' }}
+                                  onClick={() => openTrackingMap(order)}
+                                >
+                                  📍 Suivre ma commande
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         );
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <Popup>
-                      <div style={{textAlign: 'center'}}>
-                        <strong>Livreur: {trackingOrder.driver_name}</strong><br/>
-                        <span style={{fontSize: '0.9em', color: '#666'}}>En route vers vous !</span><br/><br/>
-                        <button 
-                          onClick={() => openDriverLocationInGPS(
-                            trackingOrder.driver_lat, 
-                            trackingOrder.driver_lon, 
-                            trackingOrder.driver_name
-                          )}
-                          style={{
-                            padding: '8px 16px',
-                            backgroundColor: '#28a745',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '5px',
-                            cursor: 'pointer',
-                            fontSize: '0.9em',
-                            fontWeight: 'bold',
-                            marginTop: '5px',
-                            width: '100%'
-                          }}
-                        >
-                          📍 Voir dans Google Maps (GPS)
-                        </button>
-                      </div>
-                    </Popup>
-                  </Marker>
-                )}
-              </MapContainer>
-            </div>
-            
-            <div className="tracking-info" style={{padding: '15px', background: '#f8f9fa', borderRadius: '8px'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px'}}>
-                <strong>Statut:</strong>
-                <span className={`status-badge status-${trackingOrder.status}`}>
-                  {trackingOrder.status === 'accepted' ? 'Préparation / En attente de prise en charge' : 
-                   trackingOrder.status === 'delivering' ? 'En cours de livraison' : trackingOrder.status}
-                </span>
-              </div>
-              
-              {trackingOrder.driver_name ? (
-                <div style={{marginBottom: '10px'}}>
-                  <strong>Livreur:</strong> {trackingOrder.driver_name}
-                  {trackingOrder.driver_lat && (
-                    <span style={{marginLeft: '10px', color: '#28a745', fontSize: '0.9em'}}>
-                      (Position en temps réel)
-                    </span>
+                      })}
+                    </div>
                   )}
                 </div>
-              ) : (
-                <div style={{marginBottom: '10px', color: '#6c757d'}}>
-                  <em>Recherche d'un livreur...</em>
-                </div>
               )}
-              
-              <div style={{fontSize: '0.9em', color: '#666', marginBottom: '10px'}}>
-                La position du livreur se met à jour automatiquement toutes les 5 secondes.
-              </div>
 
-              {trackingOrder.items && trackingOrder.items.length > 0 && (
-                <div style={{borderTop: '1px solid #ddd', paddingTop: '10px'}}>
-                  <strong style={{display: 'block', marginBottom: '5px'}}>Ma commande:</strong>
-                  <ul style={{paddingLeft: '20px', margin: 0, fontSize: '0.9em'}}>
-                    {trackingOrder.items.map((item, idx) => (
-                      <li key={idx}>
-                        {item.item_name} <span style={{color: '#666'}}>x{item.quantity}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {(() => {
-                    // Identifier si c'est une commande manuelle
-                    // Une commande est manuelle si :
-                    // 1. L'adresse de livraison commence par '[' (format des commandes manuelles avec restaurant personnalisé)
-                    // 2. Le restaurant est exactement 'Restaurant Personnalisé' (créé automatiquement par le backend)
-                    // On exclut les restaurants normaux comme Esmiralda
-                    const isManualOrder = (trackingOrder.delivery_address && trackingOrder.delivery_address.startsWith('[')) ||
-                                         (trackingOrder.restaurant_name === 'Restaurant Personnalisé');
-                    
-                    if (!isManualOrder) {
-                      return (
-                        <div style={{marginTop: '5px', fontWeight: 'bold', textAlign: 'right'}}>
-                          Total: {Number(trackingOrder.total_price || 0).toFixed(2)} DT
+              {/* Section Makloub & Populaires dynamique - cachée si recherche ou catégorie active */}
+              {!showMyOrders && !searchQuery.trim() && selectedCategory === null && (
+                <>
+                  {/* Ongoing Offers – grande bannière comme la maquette */}
+                  <div className="ongoing-offers-section">
+                    <h2 className="section-title-left">Offres en cours</h2>
+                    <div className="ongoing-offer-banner">
+                      <div className="ongoing-offer-texts">
+                        <span className="offer-tag">Spécial du jour</span>
+                        <h3>Offres que vous ne pouvez pas rater</h3>
+                        <p>Livraison rapide depuis vos restaurants préférés.</p>
+                        <button
+                          className="btn btn-primary offer-cta-btn"
+                          onClick={() => {
+                            if (filteredRestaurants[0]) {
+                              handleRestaurantSelect(filteredRestaurants[0]);
+                            }
+                          }}
+                        >
+                          Voir les offres
+                        </button>
+                      </div>
+                      <div className="ongoing-offer-image">
+                        <span>🌯🍔🍕</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Populaire / Tendance – deux colonnes de cartes */}
+                  {(popularItems.length > 0 || makloubItems.length > 0) && (
+                    <div className="popular-trending-wrapper">
+                      <div className="popular-column">
+                        <h3 className="popular-title">Populaire</h3>
+                        <div className="food-card-list">
+                          {(popularItems.length ? popularItems : tunisianFastFoodSuggestions)
+                            .slice(0, 4)
+                            .map((item, index) => (
+                              <div
+                                key={index}
+                                className="food-card"
+                                onClick={() => addToCart({ ...item, quantity: 1 })}
+                              >
+                                <div className="food-card-image-wrapper">
+                                  <img
+                                    src={getFullImageUrl(item.image_url) || getSuggestionImage(item.name)}
+                                    alt={item.name}
+                                    className="food-card-image"
+                                    onError={(e) => {
+                                      e.target.src = getSuggestionImage(item.name);
+                                    }}
+                                  />
+                                  <button className="food-card-favorite">♡</button>
+                                  <div className="food-card-time">
+                                    ⏱️ 15 min
+                                  </div>
+                                </div>
+                                <div className="food-card-content">
+                                  <h4>{item.name}</h4>
+                                  <div className="food-card-rating">
+                                    <span>⭐ 4.{index + 3}</span>
+                                    <span className="food-card-reviews">(250+ avis)</span>
+                                  </div>
+                                  <div className="food-card-footer">
+                                    <span className="food-card-price">
+                                      {Number(item.price || 0).toFixed(3)} DT
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                         </div>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
+                      </div>
+
+                      <div className="trending-column">
+                        <h3 className="popular-title">Tendance</h3>
+                        <div className="food-card-list">
+                          {(makloubItems.length ? makloubItems : tunisianFastFoodSuggestions)
+                            .slice(0, 4)
+                            .map((item, index) => (
+                              <div
+                                key={index}
+                                className="food-card"
+                                onClick={() => addToCart({ ...item, quantity: 1 })}
+                              >
+                                <div className="food-card-image-wrapper">
+                                  <img
+                                    src={getFullImageUrl(item.image_url) || getSuggestionImage(item.name)}
+                                    alt={item.name}
+                                    className="food-card-image"
+                                    onError={(e) => {
+                                      e.target.src = getSuggestionImage(item.name);
+                                    }}
+                                  />
+                                  <button className="food-card-favorite">♡</button>
+                                  <div className="food-card-time">
+                                    ⏱️ 12 min
+                                  </div>
+                                </div>
+                                <div className="food-card-content">
+                                  <h4>{item.name}</h4>
+                                  <div className="food-card-rating">
+                                    <span>⭐ 4.{index + 2}</span>
+                                    <span className="food-card-reviews">(300+ avis)</span>
+                                  </div>
+                                  <div className="food-card-footer">
+                                    <span className="food-card-price">
+                                      {Number(item.price || 0).toFixed(3)} DT
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+
+                  {/* Suggestions supplémentaires */}
+                  <div className="more-suggestions-section">
+                    <h2 className="section-title">✨ Recommandations pour vous</h2>
+                    <div className="recommendations-grid">
+                      <div className="recommendation-card" onClick={() => {
+                        setSelectedCategory('tunisian');
+                        setShowMyOrders(false);
+                      }}>
+                        <div className="recommendation-icon">🥙</div>
+                        <h4>Spécialités Tunisiennes</h4>
+                        <p>Découvrez nos meilleurs plats traditionnels</p>
+                      </div>
+                      <div className="recommendation-card" onClick={() => {
+                        setSelectedCategory('sandwich');
+                        setShowMyOrders(false);
+                      }}>
+                        <div className="recommendation-icon">🥪</div>
+                        <h4>Sandwichs & Paninis</h4>
+                        <p>Des sandwichs frais et savoureux</p>
+                      </div>
+                      <div className="recommendation-card" onClick={() => {
+                        setSelectedCategory('pizza');
+                        setShowMyOrders(false);
+                      }}>
+                        <div className="recommendation-icon">🍕</div>
+                        <h4>Pizzas Artisanales</h4>
+                        <p>Pizzas faites maison avec des ingrédients frais</p>
+                      </div>
+                      <div className="recommendation-card" onClick={() => {
+                        setSelectedCategory('chicken');
+                        setShowMyOrders(false);
+                      }}>
+                        <div className="recommendation-icon">🍗</div>
+                        <h4>Poulet Grillé</h4>
+                        <p>Poulet croustillant et savoureux</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="dashboard-grid">
+                    <div className="main-content">
+                      {/* Liste de restaurants retirée d'ici (déplacée en haut) */}
+                    </div>
+
+                    <div className="sidebar">
+                      {selectedRestaurant && (
+                        <div className="card">
+                          <h3>Menu - {selectedRestaurant.name}</h3>
+                          {menuItems.length === 0 ? (
+                            <p>Chargement du menu...</p>
+                          ) : (
+                            <div className="menu-items">
+                              {menuItems.map((item) => (
+                                <div key={item.id} className="menu-item">
+                                  {item.image_url && (
+                                    <img
+                                      src={getFullImageUrl(item.image_url)}
+                                      alt={item.name}
+                                      className="menu-item-image"
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                      }}
+                                    />
+                                  )}
+                                  <div className="menu-item-content">
+                                    <strong>{item.name}</strong>
+                                    <p>{item.description || 'Plat délicieux'}</p>
+                                    {item.category && (
+                                      <span className="menu-category">{item.category}</span>
+                                    )}
+                                  </div>
+                                  <div className="menu-item-actions">
+                                    <span className="price">{Number(item.price || 0).toFixed(3)}DT</span>
+                                    <button
+                                      onClick={() => addToCart({
+                                        ...item,
+                                        quantity: 1
+                                      })}
+                                      className="btn btn-primary"
+                                      disabled={!item.is_available}
+                                    >
+                                      {item.is_available ? 'Ajouter' : 'Indisponible'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Sidebar avec suggestions rapides */}
+                      <div className="card">
+                        <h3>⚡ Commandes rapides</h3>
+                        <p style={{ color: '#666', fontSize: '14px', marginBottom: '15px' }}>
+                          Commandez rapidement vos plats favoris
+                        </p>
+                        <div className="quick-orders">
+                          {(popularItems.length > 0 ? popularItems : tunisianFastFoodSuggestions).slice(0, 4).map((item, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                // Ajouter directement au panier
+                                addToCart({
+                                  ...item,
+                                  quantity: 1
+                                });
+                                alert(`"${item.name}" ajouté au panier !`);
+                              }}
+                              className="quick-order-btn"
+                            >
+                              <img
+                                src={item.image_url || getSuggestionImage(item.name)}
+                                alt={item.name}
+                                className="quick-order-image"
+                                onError={(e) => {
+                                  e.target.src = '/static/logo.png';
+                                }}
+                              />
+                              <div className="quick-order-info">
+                                <span className="quick-order-name">{item.name}</span>
+                                <span className="quick-order-price">{Number(item.price || 0).toFixed(3)} DT</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
+            </>
+          )}
+        </div>
+
+        {showCart && (
+          <div className="cart-modal">
+            <div className="cart-content">
+              <h3>Panier</h3>
+              {cart.length === 0 ? (
+                <p>Panier vide</p>
+              ) : (
+                <>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', fontSize: '0.9em', color: '#666', marginBottom: '5px' }}>Adresse de livraison:</label>
+                    <input
+                      type="text"
+                      value={deliveryAddress}
+                      readOnly
+                      placeholder="Votre adresse..."
+                      className="input"
+                      style={{ width: '100%', padding: '8px', background: '#f5f5f5', cursor: 'not-allowed' }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', fontSize: '0.9em', color: '#666', marginBottom: '5px' }}>Numéro de téléphone:</label>
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="Votre numéro de téléphone..."
+                      className="input"
+                      style={{ width: '100%', padding: '8px' }}
+                    />
+                  </div>
+
+                  {/* Affichage du restaurant sélectionné si existe */}
+                  {selectedRestaurant && (
+                    <div style={{ marginBottom: '10px', fontSize: '0.9em', color: '#28a745' }}>
+                      Restaurant: <strong>{selectedRestaurant.name}</strong>
+                    </div>
+                  )}
+                  {customRestaurantInfo.name && (
+                    <div style={{ marginBottom: '10px', fontSize: '0.9em', color: '#17a2b8' }}>
+                      Restaurant personnalisé: <strong>{customRestaurantInfo.name}</strong>
+                    </div>
+                  )}
+
+                  {cart.map(item => (
+                    <div key={item.id} className="cart-item" style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <div style={{ flex: 1 }}>
+                          <span>{item.name}</span>
+                          {item.category && (
+                            <span className="menu-category" style={{ marginLeft: '8px' }}>{item.category}</span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '0.9em', color: '#666' }}>
+                            {item.quantity} x {Number(item.price || 0).toFixed(2)}DT = {(Number(item.price || 0) * item.quantity).toFixed(2)}DT
+                          </span>
+                          <button onClick={() => removeFromCart(item.id)} style={{ background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer' }}>×</button>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        value={item.comment || ''}
+                        onChange={(e) => updateCartItemComment(item.id, e.target.value)}
+                        placeholder="Commentaire (ex: sans oignons...)"
+                        className="input"
+                        style={{ width: '100%', padding: '6px 10px', fontSize: '0.85em', border: '1px solid #ddd', borderRadius: '4px' }}
+                      />
+                    </div>
+                  ))}
+                  <div className="cart-total">
+                    Total: {cart.reduce((sum, item) => sum + Number(item.price || 0) * item.quantity, 0).toFixed(2)}DT
+                  </div>
+                  <button onClick={placeOrder} className="btn btn-success btn-full">
+                    Commander
+                  </button>
+                </>
+              )}
+              <button onClick={() => setShowCart(false)} className="btn btn-secondary btn-full" style={{ marginTop: '10px' }}>
+                Fermer
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {showManualOrder && (
+          <div className="cart-modal">
+            <div className="cart-content" style={{ maxWidth: '700px' }}>
+              <h3>📝 Commande Manuelle</h3>
+
+              <div style={{ marginBottom: '15px', padding: '12px', background: '#f0f0f0', borderRadius: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={manualOrderForm.use_custom_restaurant}
+                    onChange={(e) => setManualOrderForm({ ...manualOrderForm, use_custom_restaurant: e.target.checked, restaurant_id: '', restaurant_name: '' })}
+                    style={{ marginRight: '10px', width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontWeight: 'bold', color: '#333' }}>Restaurant non listé (saisir manuellement)</span>
+                </label>
+              </div>
+
+              {!manualOrderForm.use_custom_restaurant ? (
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>Restaurant *</label>
+                  <select
+                    value={manualOrderForm.restaurant_id}
+                    onChange={(e) => setManualOrderForm({ ...manualOrderForm, restaurant_id: e.target.value })}
+                    className="input"
+                    style={{ width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '16px' }}
+                  >
+                    <option value="">Sélectionner un restaurant</option>
+                    {allRestaurants.map(restaurant => (
+                      <option key={restaurant.id} value={restaurant.id}>
+                        {restaurant.name} {restaurant.is_open ? '🟢 Ouvert' : '🔴 Fermé'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>Nom du restaurant *</label>
+                  <input
+                    type="text"
+                    value={manualOrderForm.restaurant_name}
+                    onChange={(e) => setManualOrderForm({ ...manualOrderForm, restaurant_name: e.target.value })}
+                    placeholder="Ex: Restaurant Chez Ali"
+                    className="input"
+                    style={{ width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '16px' }}
+                  />
+                </div>
+              )}
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>Adresse de livraison *</label>
+                <input
+                  type="text"
+                  value={manualOrderForm.delivery_address}
+                  readOnly
+                  placeholder="Votre adresse de livraison"
+                  className="input"
+                  style={{ width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '16px', background: '#f5f5f5', cursor: 'not-allowed' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>Numéro de téléphone *</label>
+                <input
+                  type="tel"
+                  value={manualOrderForm.phone}
+                  onChange={(e) => setManualOrderForm({ ...manualOrderForm, phone: e.target.value })}
+                  placeholder="Ex: 50 123 456"
+                  className="input"
+                  style={{ width: '100%', padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '16px' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <label style={{ fontWeight: 'bold', color: '#333', fontSize: '16px' }}>Articles *</label>
+                  <button onClick={addManualItem} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '14px' }}>
+                    + Ajouter un article
+                  </button>
+                </div>
+
+                <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '10px', background: '#fafafa' }}>
+                  {manualOrderForm.items.map((item, index) => (
+                    <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', padding: '15px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', border: '1px solid #eee' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '10px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => updateManualItem(index, 'name', e.target.value)}
+                          placeholder="Nom de l'article (ex: Makloub)"
+                          className="input"
+                          style={{ padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '15px', background: '#f9f9f9' }}
+                        />
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => updateManualItem(index, 'quantity', e.target.value)}
+                          placeholder="Qté"
+                          min="1"
+                          className="input"
+                          style={{ padding: '12px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '15px', textAlign: 'center' }}
+                        />
+                        {manualOrderForm.items.length > 1 && (
+                          <button
+                            onClick={() => removeManualItem(index)}
+                            className="btn btn-danger"
+                            style={{ padding: '10px', minWidth: '40px', fontSize: '18px' }}
+                            title="Supprimer cet article"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                      <textarea
+                        value={item.comment || ''}
+                        onChange={(e) => updateManualItem(index, 'comment', e.target.value)}
+                        placeholder="Instructions spéciales (ex: sans oignons, plus de harissa...)"
+                        className="input"
+                        style={{ width: '100%', padding: '10px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '14px', minHeight: '60px', resize: 'vertical' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ borderTop: '2px solid #FFD700', paddingTop: '15px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#333' }}>Total:</span>
+                  <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#FFD700' }}>
+                    {manualOrderForm.items
+                      .filter(item => item.name && item.name.trim() !== '')
+                      .reduce((sum, item) => {
+                        const autoPrice = getAutoPrice(item.name);
+                        const qty = parseFloat(item.quantity) || 0;
+                        return sum + (autoPrice * qty);
+                      }, 0)
+                      .toFixed(2)} DT
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={addToCartFromManual} className="btn btn-primary" style={{ flex: 1, padding: '12px', fontSize: '16px' }}>
+                  🛒 Ajouter au panier
+                </button>
+                <button onClick={placeManualOrder} className="btn btn-success" style={{ flex: 1, padding: '12px', fontSize: '16px' }}>
+                  ✅ Commander (Direct)
+                </button>
+                <button onClick={() => {
+                  setShowManualOrder(false);
+                  setManualOrderForm({
+                    restaurant_id: '',
+                    restaurant_name: '',
+                    use_custom_restaurant: false,
+                    delivery_address: '',
+                    phone: '',
+                    items: [{ name: '', quantity: 1, price: 0 }]
+                  });
+                }} className="btn btn-secondary" style={{ padding: '12px', fontSize: '16px' }}>
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showTrackingMap && trackingOrder && (
+          <div className="cart-modal">
+            <div className="cart-content" style={{ maxWidth: '800px', width: '90%' }}>
+              <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3>📍 Suivi de commande</h3>
+                <button onClick={() => setShowTrackingMap(false)} className="btn btn-secondary btn-sm">Fermer</button>
+              </div>
+
+              <div style={{ height: '400px', width: '100%', borderRadius: '8px', overflow: 'hidden', marginBottom: '15px' }}>
+                <MapContainer
+                  center={mapCenter || [36.8065, 10.1815]}
+                  zoom={13}
+                  style={{ height: '100%', width: '100%' }}
+                  ref={mapRef}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  <RecenterMap center={mapCenter} zoom={15} />
+
+                  {/* Position du Livreur Uniquement */}
+                  {trackingOrder.driver_name && (trackingOrder.driver_lat && trackingOrder.driver_lon) && (
+                    <Marker
+                      position={[trackingOrder.driver_lat, trackingOrder.driver_lon]}
+                      icon={driverIcon}
+                      eventHandlers={{
+                        click: () => {
+                          openDriverLocationInGPS(
+                            trackingOrder.driver_lat,
+                            trackingOrder.driver_lon,
+                            trackingOrder.driver_name
+                          );
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <Popup>
+                        <div style={{ textAlign: 'center' }}>
+                          <strong>Livreur: {trackingOrder.driver_name}</strong><br />
+                          <span style={{ fontSize: '0.9em', color: '#666' }}>En route vers vous !</span><br /><br />
+                          <button
+                            onClick={() => openDriverLocationInGPS(
+                              trackingOrder.driver_lat,
+                              trackingOrder.driver_lon,
+                              trackingOrder.driver_name
+                            )}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: '#28a745',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '5px',
+                              cursor: 'pointer',
+                              fontSize: '0.9em',
+                              fontWeight: 'bold',
+                              marginTop: '5px',
+                              width: '100%'
+                            }}
+                          >
+                            📍 Voir dans Google Maps (GPS)
+                          </button>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
+                </MapContainer>
+              </div>
+
+              <div className="tracking-info" style={{ padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <strong>Statut:</strong>
+                  <span className={`status-badge status-${trackingOrder.status}`}>
+                    {trackingOrder.status === 'accepted' ? 'Préparation / En attente de prise en charge' :
+                      trackingOrder.status === 'delivering' ? 'En cours de livraison' : trackingOrder.status}
+                  </span>
+                </div>
+
+                {trackingOrder.driver_name ? (
+                  <div style={{ marginBottom: '10px' }}>
+                    <strong>Livreur:</strong> {trackingOrder.driver_name}
+                    {trackingOrder.driver_lat && (
+                      <span style={{ marginLeft: '10px', color: '#28a745', fontSize: '0.9em' }}>
+                        (Position en temps réel)
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: '10px', color: '#6c757d' }}>
+                    <em>Recherche d'un livreur...</em>
+                  </div>
+                )}
+
+                <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '10px' }}>
+                  La position du livreur se met à jour automatiquement toutes les 5 secondes.
+                </div>
+
+                {trackingOrder.items && trackingOrder.items.length > 0 && (
+                  <div style={{ borderTop: '1px solid #ddd', paddingTop: '10px' }}>
+                    <strong style={{ display: 'block', marginBottom: '5px' }}>Ma commande:</strong>
+                    <ul style={{ paddingLeft: '20px', margin: 0, fontSize: '0.9em' }}>
+                      {trackingOrder.items.map((item, idx) => (
+                        <li key={idx}>
+                          {item.item_name} <span style={{ color: '#666' }}>x{item.quantity}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {(() => {
+                      // Identifier si c'est une commande manuelle
+                      // Une commande est manuelle si :
+                      // 1. L'adresse de livraison commence par '[' (format des commandes manuelles avec restaurant personnalisé)
+                      // 2. Le restaurant est exactement 'Restaurant Personnalisé' (créé automatiquement par le backend)
+                      // On exclut les restaurants normaux comme Esmiralda
+                      const isManualOrder = (trackingOrder.delivery_address && trackingOrder.delivery_address.startsWith('[')) ||
+                        (trackingOrder.restaurant_name === 'Restaurant Personnalisé');
+
+                      if (!isManualOrder) {
+                        return (
+                          <div style={{ marginTop: '5px', fontWeight: 'bold', textAlign: 'right' }}>
+                            Total: {Number(trackingOrder.total_price || 0).toFixed(2)} DT
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
       </PullToRefresh>
 
@@ -2131,7 +2132,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
 
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav">
-        <button 
+        <button
           className={`mobile-nav-item ${!showMyOrders && !showCart && !showManualOrder && !showProfile ? 'active' : ''}`}
           onClick={() => {
             setShowMyOrders(false);
@@ -2143,8 +2144,8 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
           <FiHome className="mobile-nav-icon" />
           <span>Accueil</span>
         </button>
-        
-        <button 
+
+        <button
           className={`mobile-nav-item ${showMyOrders ? 'active' : ''}`}
           onClick={() => {
             setShowMyOrders(true);
@@ -2157,18 +2158,18 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
           <span>Commandes</span>
         </button>
 
-        <button 
+        <button
           className={`mobile-nav-item ${showManualOrder ? 'active' : ''}`}
           onClick={() => {
             setShowManualOrder(true);
             setShowCart(false);
             setShowMyOrders(false);
             setShowProfile(false);
-            const addr = positionLabel.includes('📍 Ma position : ') 
-              ? positionLabel.replace('📍 Ma position : ', '') 
+            const addr = positionLabel.includes('📍 Ma position : ')
+              ? positionLabel.replace('📍 Ma position : ', '')
               : positionLabel;
-            setManualOrderForm(prev => ({ 
-              ...prev, 
+            setManualOrderForm(prev => ({
+              ...prev,
               phone: user?.phone || '',
               delivery_address: addr
             }));
@@ -2177,8 +2178,8 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
           <FiPlusCircle className="mobile-nav-icon" />
           <span>Manuelle</span>
         </button>
-        
-        <button 
+
+        <button
           className={`mobile-nav-item ${showCart ? 'active' : ''}`}
           onClick={() => {
             setShowCart(true);
@@ -2187,7 +2188,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
             setShowProfile(false);
           }}
         >
-          <div style={{position: 'relative'}}>
+          <div style={{ position: 'relative' }}>
             <FiShoppingCart className="mobile-nav-icon" />
             {cart.length > 0 && (
               <span style={{
@@ -2212,28 +2213,28 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
           <span>Panier</span>
         </button>
 
-        <button 
-            className={`mobile-nav-item ${showProfile ? 'active' : ''}`}
-            onClick={() => {
-              setShowProfile(true);
-              setShowMyOrders(false);
-              setShowCart(false);
-              setShowManualOrder(false);
-            }}
+        <button
+          className={`mobile-nav-item ${showProfile ? 'active' : ''}`}
+          onClick={() => {
+            setShowProfile(true);
+            setShowMyOrders(false);
+            setShowCart(false);
+            setShowManualOrder(false);
+          }}
         >
-            <FiUser className="mobile-nav-icon" />
-            <span>Profil</span>
+          <FiUser className="mobile-nav-icon" />
+          <span>Profil</span>
         </button>
       </nav>
 
       {/* Modal Menu Professionnel */}
       {showMenuModal && selectedRestaurant && (
-        <div className="modal-overlay" style={{zIndex: 2000}}>
+        <div className="modal-overlay" style={{ zIndex: 2000 }}>
           <div className="modal-content menu-modal-content" style={{
-            maxWidth: '1000px', 
-            width: '95%', 
-            maxHeight: '90vh', 
-            padding: 0, 
+            maxWidth: '1000px',
+            width: '95%',
+            maxHeight: '90vh',
+            padding: 0,
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column'
@@ -2256,7 +2257,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 bottom: 0,
                 background: 'linear-gradient(transparent, rgba(0,0,0,0.8))'
               }}></div>
-              <button 
+              <button
                 onClick={() => setShowMenuModal(false)}
                 style={{
                   position: 'absolute',
@@ -2284,9 +2285,9 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 color: 'white',
                 width: '100%'
               }}>
-                <h2 style={{margin: 0, fontSize: '28px'}}>{selectedRestaurant.name}</h2>
-                <p style={{margin: '5px 0 0', opacity: 0.9}}>{selectedRestaurant.description}</p>
-                <div style={{display: 'flex', gap: '15px', marginTop: '10px', fontSize: '14px'}}>
+                <h2 style={{ margin: 0, fontSize: '28px' }}>{selectedRestaurant.name}</h2>
+                <p style={{ margin: '5px 0 0', opacity: 0.9 }}>{selectedRestaurant.description}</p>
+                <div style={{ display: 'flex', gap: '15px', marginTop: '10px', fontSize: '14px' }}>
                   <span>⭐ {Math.floor(Math.random() * 16) + 85}%</span>
                   <span>⏱️ 30-45 min</span>
                   <span>📍 {selectedRestaurant.address}</span>
@@ -2302,7 +2303,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
               background: '#f8f9fa'
             }}>
               {menuItems.length === 0 ? (
-                <div style={{textAlign: 'center', padding: '40px'}}>
+                <div style={{ textAlign: 'center', padding: '40px' }}>
                   <div className="loader"></div>
                   <p>Chargement du menu délicieux...</p>
                 </div>
@@ -2317,7 +2318,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                       return acc;
                     }, {})
                   ).map(([category, items]) => (
-                    <div key={category} style={{marginBottom: '30px'}}>
+                    <div key={category} style={{ marginBottom: '30px' }}>
                       <h3 style={{
                         borderBottom: '2px solid #FFD700',
                         paddingBottom: '10px',
@@ -2340,35 +2341,35 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                             transition: 'transform 0.2s',
                             border: '1px solid #eee'
                           }}>
-                            <div style={{height: '150px', overflow: 'hidden'}}>
-                              <img 
-                                src={getFullImageUrl(item.image_url)} 
+                            <div style={{ height: '150px', overflow: 'hidden' }}>
+                              <img
+                                src={getFullImageUrl(item.image_url)}
                                 alt={item.name}
-                                style={{width: '100%', height: '100%', objectFit: 'cover'}}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 onError={(e) => {
                                   e.target.src = getSuggestionImage(item.name);
                                 }}
                               />
                             </div>
-                            <div style={{padding: '15px', flex: 1, display: 'flex', flexDirection: 'column'}}>
-                              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                                <h4 style={{margin: 0, fontSize: '18px', color: '#333'}}>{item.name}</h4>
+                            <div style={{ padding: '15px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <h4 style={{ margin: 0, fontSize: '18px', color: '#333' }}>{item.name}</h4>
                                 <span style={{
-                                  fontWeight: 'bold', 
+                                  fontWeight: 'bold',
                                   color: '#28a745',
                                   fontSize: '16px'
                                 }}>{Number(item.price || 0).toFixed(3)} DT</span>
                               </div>
                               <p style={{
-                                fontSize: '14px', 
-                                color: '#666', 
+                                fontSize: '14px',
+                                color: '#666',
                                 margin: '10px 0',
                                 flex: 1,
                                 lineHeight: '1.4'
                               }}>{item.description || 'Un plat savoureux préparé avec soin.'}</p>
-                              <button 
+                              <button
                                 onClick={() => {
-                                  addToCart({...item, quantity: 1});
+                                  addToCart({ ...item, quantity: 1 });
                                   // Petit feedback visuel
                                   const btn = document.getElementById(`add-btn-${item.id}`);
                                   if (btn) {
@@ -2405,7 +2406,7 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 </>
               )}
             </div>
-            
+
             {/* Footer du Menu avec résumé panier rapide */}
             {cart.length > 0 && (
               <div style={{
@@ -2418,19 +2419,19 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
                 boxShadow: '0 -4px 10px rgba(0,0,0,0.05)'
               }}>
                 <div>
-                  <span style={{fontWeight: 'bold', fontSize: '18px'}}>{cart.length} articles</span>
-                  <span style={{margin: '0 10px', color: '#ccc'}}>|</span>
-                  <span style={{fontWeight: 'bold', color: '#28a745', fontSize: '18px'}}>
+                  <span style={{ fontWeight: 'bold', fontSize: '18px' }}>{cart.length} articles</span>
+                  <span style={{ margin: '0 10px', color: '#ccc' }}>|</span>
+                  <span style={{ fontWeight: 'bold', color: '#28a745', fontSize: '18px' }}>
                     {cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(3)} DT
                   </span>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setShowMenuModal(false);
                     setShowCart(true);
                   }}
                   className="btn btn-success"
-                  style={{padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold'}}
+                  style={{ padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold' }}
                 >
                   Voir mon panier
                 </button>
@@ -2441,15 +2442,15 @@ function ClientDashboard({ user, onLogout, onUpdateUser }) {
       )}
 
       {showComingSoon && (
-        <div className="modal-overlay" style={{zIndex: 3000}}>
-          <div className="modal-content" style={{maxWidth: '400px', textAlign: 'center', padding: '40px'}}>
-            <div style={{fontSize: '60px', marginBottom: '20px'}}>🚀</div>
-            <h3 style={{marginBottom: '10px'}}>Bientôt disponible !</h3>
-            <p style={{color: '#666', marginBottom: '30px'}}>
+        <div className="modal-overlay" style={{ zIndex: 3000 }}>
+          <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center', padding: '40px' }}>
+            <div style={{ fontSize: '60px', marginBottom: '20px' }}>🚀</div>
+            <h3 style={{ marginBottom: '10px' }}>Bientôt disponible !</h3>
+            <p style={{ color: '#666', marginBottom: '30px' }}>
               Cette fonctionnalité est en cours de développement et sera disponible dans la prochaine mise à jour.
             </p>
-            <button 
-              onClick={() => setShowComingSoon(false)} 
+            <button
+              onClick={() => setShowComingSoon(false)}
               className="btn btn-primary btn-full"
             >
               D'accord
